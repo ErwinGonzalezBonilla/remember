@@ -1,10 +1,16 @@
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import NullPool
+import os
 
 from .config import settings
 
 connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, connect_args=connect_args)
+# En Vercel cada función es efímera: sin pool propio (Neon ya hace pooling) y comprobando la conexión.
+engine = create_engine(
+    settings.database_url, connect_args=connect_args, pool_pre_ping=True,
+    **({"poolclass": NullPool} if os.getenv("VERCEL") else {}),
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

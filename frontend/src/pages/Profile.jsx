@@ -4,8 +4,8 @@ import { api, mediaUrl } from '../api/client'
 import Icon from '../components/Icon'
 import { AppShell, ErrorBox, Field, TopBar } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
+import { compressImage, tooBig } from '../media'
 
-const MAX_MB = 10
 
 /**
  * Perfil del usuario. Con `onboarding` es la bienvenida tras crear la cuenta:
@@ -35,11 +35,13 @@ export default function Profile({ onboarding = false }) {
     return () => URL.revokeObjectURL(url)
   }, [file])
 
-  function pick(f) {
+  async function pick(raw) {
     setError(''); setSaved(false)
-    if (!f) return
-    if (!f.type.startsWith('image/')) return setError('Elige una imagen (JPG, PNG, WEBP…).')
-    if (f.size > MAX_MB * 1024 * 1024) return setError(`La foto supera el límite de ${MAX_MB} MB.`)
+    if (!raw) return
+    if (!raw.type.startsWith('image/')) return setError('Elige una imagen (JPG, PNG, WEBP…).')
+    const f = await compressImage(raw, 800)
+    const big = tooBig(f)
+    if (big) return setError(big)
     setFile(f)
     setRemovePhoto(false)
   }

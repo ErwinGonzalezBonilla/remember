@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { AppShell, ErrorBox, Field, RELATIONS, Spinner, TopBar } from '../../components/ui'
+import { compressImage } from '../../media'
 
 const EMPTY = { name: '', relation: 'familia', birth_date: '', special_date: '', special_label: '', note: '' }
 
@@ -86,7 +87,7 @@ export default function PersonForm() {
           <label className="avatar-picker" aria-label="Foto de la persona">
             {current ? <img src={current} alt="" /> : <span className="avatar-initial">{form.name.trim().charAt(0).toUpperCase() || '?'}</span>}
             <span className="avatar-cam"><Icon name="camera" size={18} /></span>
-            <input type="file" accept="image/*" hidden onChange={(e) => setFile(e.target.files[0] || null)} />
+            <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files[0]; setFile(f ? await compressImage(f, 800) : null) }} />
           </label>
           <small className="muted">Foto (opcional)</small>
         </div>

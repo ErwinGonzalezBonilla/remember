@@ -5,10 +5,10 @@ import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
 import { AppShell, ErrorBox, Field, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
+import { MAX_UPLOAD_MB, compressImage, tooBig } from '../../media'
 import { KIND_LABEL } from './MemoryCard'
 import VoiceRecorder from './VoiceRecorder'
 
-const MAX_MB = 25
 const ACCEPT = { photo: 'image/*', video: 'video/*', audio: 'audio/*' }
 const KINDS = [
   { kind: 'photo', icon: 'camera' }, { kind: 'video', icon: 'video' },
@@ -36,10 +36,12 @@ export default function NewMemory() {
     return () => URL.revokeObjectURL(url)
   }, [file])
 
-  function pick(f) {
+  async function pick(raw) {
     setError('')
-    if (!f) return setFile(null)
-    if (f.size > MAX_MB * 1024 * 1024) return setError(`El archivo supera el límite de ${MAX_MB} MB.`)
+    if (!raw) return setFile(null)
+    const f = await compressImage(raw)
+    const big = tooBig(f)
+    if (big) return setError(big)
     setFile(f)
   }
 
@@ -94,7 +96,7 @@ export default function NewMemory() {
               {file ? 'Cambiar archivo' : kind === 'audio' ? 'O sube un audio' : `Elegir ${KIND_LABEL[kind].toLowerCase()}`}
               <input type="file" accept={ACCEPT[kind]} hidden onChange={(e) => pick(e.target.files[0])} />
             </label>
-            <small className="hint">Máximo {MAX_MB} MB.</small>
+            <small className="hint">Máximo {MAX_UPLOAD_MB} MB. Las fotos se reducen solas.</small>
           </div>
         )}
 

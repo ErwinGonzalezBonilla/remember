@@ -1,3 +1,5 @@
+import os
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,6 +34,11 @@ class Settings(BaseSettings):
     @property
     def public_url(self) -> str:
         return self.origins[0]
+
+    @property
+    def uses_blob(self) -> bool:
+        """Vercel Blob conectado al proyecto (Vercel añade estas variables al conectar el store)."""
+        return bool(os.getenv("BLOB_STORE_ID") or os.getenv("BLOB_READ_WRITE_TOKEN"))
 
     @property
     def is_production(self) -> bool:

@@ -37,6 +37,7 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   }
 
   if (res.status === 204) return null
+  if (res.status === 413) throw new ApiError('El archivo es demasiado grande para subirlo. Prueba con uno más pequeño.', 413)
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     if (res.status === 401 && token) onUnauthorized()

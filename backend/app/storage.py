@@ -1,5 +1,5 @@
 """Guardado de multimedia con límites de tamaño y formato.
-Si hay CLOUDINARY_URL se sube a Cloudinary; si no, a disco local (desarrollo)."""
+Orden: Vercel Blob (si el proyecto tiene un store conectado) → Cloudinary (CLOUDINARY_URL) → disco local."""
 import secrets
 from pathlib import Path
 
@@ -32,6 +32,17 @@ async def save_media(file: UploadFile, kind: str, folder: str) -> str:
     if not data:
         raise HTTPException(422, "El archivo está vacío.")
 
+    name = secrets.token_hex(12) + EXT.get(file.content_type, "")
+
+    if settings.uses_blob:
+        from vercel import blob  # paquete vercel-blob
+
+        result = await blob.put_blob(
+            f"remember/{folder}/{name}", data, access="public",
+            content_type=file.content_type, add_random_suffix=True,
+        )
+        return result.url
+
     if settings.cloudinary_url:
         import os
         os.environ.setdefault("CLOUDINARY_URL", settings.cloudinary_url)  # también si viene del archivo .env
@@ -47,6 +58,5 @@ async def save_media(file: UploadFile, kind: str, folder: str) -> str:
 
     target = Path(settings.upload_dir) / folder
     target.mkdir(parents=True, exist_ok=True)
-    name = secrets.token_hex(12) + EXT.get(file.content_type, "")
     (target / name).write_bytes(data)
     return f"/uploads/{folder}/{name}"

@@ -106,3 +106,15 @@ Pendiente antes de un lanzamiento real:
 - **Calendario** completo: eventos propios, vista mensual y recordatorios.
 12. **Settings y Privacy**: exportar datos (ZIP), 2FA, notificaciones.
 13. **Recommendations**: tabla `Recommendation` con categoría y listas conjuntas.
+
+## Publicar en Vercel (todo en un proyecto)
+
+`vercel.json` en la raíz usa **Vercel Services**: la web (`frontend/`) y la API FastAPI (`backend/`) en el mismo dominio; `/api/*` va al backend y el resto a React.
+
+1. Importa el repo en Vercel con **Root Directory = raíz del repo** (no `frontend`).
+2. En el proyecto → **Storage**: crea una base de datos **Neon (Postgres)** y un **Blob** con acceso **Public**, y conéctalos al proyecto (añaden `DATABASE_URL` y las variables de Blob solos).
+3. **Settings → Environment Variables**: `SECRET_KEY` (clave larga nueva) y `FRONTEND_URL` (`https://tu-proyecto.vercel.app`).
+4. Redeploy.
+
+Límites de esta versión: cada subida admite como máximo 4 MB (límite de Vercel); las fotos se reducen en el navegador antes de subirse. Los archivos en Blob público tienen URLs largas y aleatorias, pero no están firmadas.
+

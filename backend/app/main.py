@@ -55,8 +55,9 @@ app.include_router(users.router)
 app.include_router(people.router)
 app.include_router(memories.router)
 
-Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
+if not settings.uses_blob and not settings.cloudinary_url:
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 
 @app.get("/api/health")
