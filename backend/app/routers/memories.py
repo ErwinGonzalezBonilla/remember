@@ -2,11 +2,11 @@ from collections import Counter
 from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..deps import get_current_user, get_visible_memory, visible_to
+from ..deps import get_current_user, get_own_person, get_visible_memory, visible_to
 from ..models import Comment, Memory, MemoryTag, Person, Reaction, User
 from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn
 from ..storage import save_media
@@ -74,7 +74,15 @@ def list_memories(
 ):
     q = select(Memory).where(visible_to(user))
     if person_id is not None:
-        q = q.where(Memory.tags.any(MemoryTag.person_id == person_id))
+        # El cofre de una persona: lo que tú etiquetaste con ella y, si está conectada,
+        # también lo que ella guardó y etiquetó contigo (lo que compartís).
+        person = get_own_person(person_id, user, db)
+        cond = Memory.tags.any(MemoryTag.person_id == person.id)
+        if person.linked_user_id:
+            from_them = and_(Memory.author_id == person.linked_user_id,
+                             Memory.tags.any(MemoryTag.person.has(Person.linked_user_id == user.id)))
+            cond = or_(cond, from_them)
+        q = q.where(cond)
     if untagged:
         q = q.where(~Memory.tags.any())
     if kind in KINDS:

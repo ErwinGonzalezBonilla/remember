@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from typing import Annotated, Literal
 
@@ -58,13 +59,24 @@ class UserOut(BaseModel):
     id: int
     full_name: str
     email: EmailStr
+    username: str | None = None
     avatar_url: str | None = None
     bio: str | None = None
     birth_date: date | None = None
 
 
+def _check_username(v: str | None) -> str | None:
+    if v is None:
+        return None
+    v = v.strip().lstrip("@").lower()
+    if not re.fullmatch(r"[a-z0-9_.]{3,30}", v):
+        raise ValueError("El @usuario debe tener de 3 a 30 caracteres: letras, números, punto o guion bajo.")
+    return v
+
+
 class UserUpdate(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
+    username: Annotated[str | None, AfterValidator(_check_username)] = None
     bio: str | None = Field(default=None, max_length=160)
     birth_date: date | None = None
 
@@ -153,3 +165,43 @@ class MemoryUpdate(BaseModel):
     location: str | None = None
     happened_on: date | None = None
     person_ids: list[int] = []
+
+
+# ---------- Conectar ----------
+class PublicUser(BaseModel):
+    id: int
+    full_name: str
+    username: str | None
+    avatar_url: str | None
+
+
+class RequestIn(BaseModel):
+    to_user_id: int
+    relation: Relation                 # quién es esa persona para mí
+    person_id: int | None = None       # si ya la tenía guardada en mi lista
+
+
+class AcceptIn(BaseModel):
+    relation: Relation                 # quién es para mí quien me lo pide
+    person_id: int | None = None       # persona de mi lista a vincular; None = crear una nueva
+
+
+class RequestOut(BaseModel):
+    id: int
+    status: str
+    relation: str
+    created_at: datetime
+    from_user: PublicUser
+    to_user: PublicUser
+
+
+class RequestsOut(BaseModel):
+    incoming: list[RequestOut]
+    outgoing: list[RequestOut]
+    opened: list[RequestOut]           # aceptadas que aún no has visto: "tu cofre se ha abierto"
+
+
+class OpenedOut(BaseModel):
+    request: RequestOut
+    shared_count: int
+    person_id: int | None              # tu persona vinculada con quien te abrió el cofre

@@ -1,12 +1,17 @@
-import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
 import { AppShell, Avatar, ErrorBox, RELATIONS, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
 
 /** El cofre de una persona: su línea de tiempo con todo lo que has guardado con ella. */
 export default function PersonChest() {
   const { id } = useParams()
+  const { user } = useAuth()
+  const location = useLocation()
+  const [copied, setCopied] = useState(false)
   const { data: person, loading, error } = useApi(`/api/people/${id}`)
   const { data: memories } = useApi(`/api/memories?person_id=${id}`)
 
@@ -42,9 +47,17 @@ export default function PersonChest() {
         </span>
         {person.note && <p className="chest-note">“{person.note}”</p>}
         <span className={`chest-badge ${person.is_linked ? 'open' : ''}`}>
-          {person.is_linked ? '🔓 Conectada: ve este cofre' : '🔒 Se abrirá cuando se conecte'}
+          {person.is_linked ? '🔓 Conectada: compartís estos recuerdos' : '🔒 Se abrirá cuando se conecte'}
         </span>
       </section>
+
+      {location.state?.connected && (
+        <div className="alert alert-ok">
+          ¡Conectados! {location.state.shared > 0
+            ? `${location.state.connected} ya puede ver ${location.state.shared === 1 ? 'el recuerdo' : `los ${location.state.shared} recuerdos`} de su cofre.`
+            : `A partir de ahora compartiréis los recuerdos en los que os etiquetéis.`}
+        </div>
+      )}
 
       <Link to={`/recuerdos/nuevo?persona=${id}`} className="btn btn-primary">
         <Icon name="plus" size={18} /> Guardar un recuerdo para {first}
@@ -80,7 +93,7 @@ export default function PersonChest() {
                 <div className="tl-thumb"><MemoryThumb memory={m} asDiv /></div>
                 <span className="row-text">
                   <strong>{m.title}</strong>
-                  <small>{formatDate(m.happened_on || m.created_at)} · {KIND_LABEL[m.kind]}</small>
+                  <small>{formatDate(m.happened_on || m.created_at)} · {KIND_LABEL[m.kind]}{m.author_id !== user.id && ` · de ${m.author_name.split(' ')[0]}`}</small>
                   {m.people.length > 1 && (
                     <small className="muted">Con {m.people.filter((p) => String(p.id) !== id).map((p) => p.name).join(', ')}</small>
                   )}
@@ -92,10 +105,19 @@ export default function PersonChest() {
       ))}
 
       {!person.is_linked && (
-        <div className="soon-card card">
-          <Icon name="qr" size={18} />
-          <span><strong>Invitar a {first}</strong> · Próximamente: cuando cree su cuenta, te buscará por tu @usuario y su cofre se abrirá.</span>
-        </div>
+        <section className="card invite">
+          <strong>¿Cómo se abre el cofre de {first}?</strong>
+          <p className="muted">Cuando {first} cree su cuenta en Remember, que te busque en <b>Conectar</b> con tu @usuario. Al aceptar su solicitud, verá todo lo que guardaste aquí.</p>
+          {user.username ? (
+            <button className="btn btn-ghost" onClick={async () => {
+              try { await navigator.clipboard.writeText(`Te guardé recuerdos en Remember 💛 Crea tu cuenta en ${window.location.origin} y búscame: @${user.username}`); setCopied(true) } catch { /* sin portapapeles */ }
+            }}>
+              <Icon name={copied ? 'check' : 'link'} size={18} /> {copied ? 'Invitación copiada' : `Copiar invitación (@${user.username})`}
+            </button>
+          ) : (
+            <Link to="/perfil" className="btn btn-ghost">Elige tu @usuario primero</Link>
+          )}
+        </section>
       )}
     </AppShell>
   )

@@ -14,6 +14,8 @@ export default function PersonForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState(EMPTY)
   const [photoUrl, setPhotoUrl] = useState(null)
+  const [linked, setLinked] = useState(false)
+  const [confirmUnlink, setConfirmUnlink] = useState(false)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(editing)
@@ -30,6 +32,7 @@ export default function PersonForm() {
           special_label: p.special_label || '', note: p.note || '',
         })
         setPhotoUrl(p.photo_url)
+        setLinked(p.is_linked)
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -70,6 +73,16 @@ export default function PersonForm() {
     try {
       await api(`/api/people/${id}`, { method: 'DELETE' })
       navigate('/personas', { replace: true })
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function unlink() {
+    try {
+      await api(`/api/people/${id}/unlink`, { method: 'POST' })
+      setLinked(false)
+      setConfirmUnlink(false)
     } catch (err) {
       setError(err.message)
     }
@@ -122,6 +135,18 @@ export default function PersonForm() {
           </Field>
         </div>
         <button className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : editing ? 'Guardar cambios' : 'Añadir'}</button>
+        {editing && linked && !confirmUnlink && (
+          <button type="button" className="btn btn-ghost danger" onClick={() => setConfirmUnlink(true)}>Desconectar de {form.name}</button>
+        )}
+        {confirmUnlink && (
+          <div className="confirm danger-box">
+            <span>Si desconectas, ninguno de los dos volverá a ver lo que el otro etiquetó. Los recuerdos no se borran.</span>
+            <div className="row-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setConfirmUnlink(false)}>Cancelar</button>
+              <button type="button" className="btn btn-primary" onClick={unlink}>Desconectar</button>
+            </div>
+          </div>
+        )}
         {editing && <button type="button" className="btn btn-ghost danger" onClick={remove}>Quitar de mi lista</button>}
       </form>
     </AppShell>

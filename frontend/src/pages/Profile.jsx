@@ -6,6 +6,11 @@ import { AppShell, ErrorBox, Field, TopBar } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { compressImage, tooBig } from '../media'
 
+/** Sugerencia de @usuario a partir del nombre: "Félix Flores" → "felixflores". */
+export function suggestUsername(name) {
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24)
+}
+
 
 /**
  * Perfil del usuario. Con `onboarding` es la bienvenida tras crear la cuenta:
@@ -19,6 +24,7 @@ export default function Profile({ onboarding = false }) {
 
   const [form, setForm] = useState({
     full_name: user.full_name, bio: user.bio || '', birth_date: user.birth_date || '',
+    username: user.username || suggestUsername(user.full_name),
   })
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -49,11 +55,13 @@ export default function Profile({ onboarding = false }) {
   async function submit(e) {
     e.preventDefault()
     if (form.full_name.trim().length < 2) return setError('Escribe tu nombre (mínimo 2 caracteres).')
+    const username = form.username.trim().replace(/^@/, '').toLowerCase()
+    if (username && !/^[a-z0-9_.]{3,30}$/.test(username)) return setError('El @usuario debe tener de 3 a 30 caracteres: letras, números, punto o guion bajo.')
     setBusy(true); setError('')
     try {
       let updated = await api('/api/me', {
         method: 'PATCH',
-        body: { full_name: form.full_name, bio: form.bio || null, birth_date: form.birth_date || null },
+        body: { full_name: form.full_name, username: username || null, bio: form.bio || null, birth_date: form.birth_date || null },
       })
       if (file) {
         const fd = new FormData()
@@ -115,6 +123,14 @@ export default function Profile({ onboarding = false }) {
         <div className="card stack">
           <Field label="Nombre" htmlFor="pn">
             <input id="pn" value={form.full_name} onChange={set('full_name')} maxLength={120} autoComplete="name" required />
+          </Field>
+          <Field label="Tu @usuario" htmlFor="pu" hint="Así te encontrarán tus personas para conectar contigo y abrir sus cofres.">
+            <div className="input-prefix">
+              <span>@</span>
+              <input id="pu" value={form.username} maxLength={30} autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                onChange={(e) => { setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '') })); setSaved(false) }}
+                placeholder="felixflores" />
+            </div>
           </Field>
           <Field label="Algo sobre ti (opcional)" htmlFor="pb" hint={`${form.bio.length}/160`}>
             <textarea id="pb" rows={3} maxLength={160} value={form.bio} onChange={set('bio')}

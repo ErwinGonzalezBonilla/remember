@@ -12,6 +12,9 @@ import ResetPassword from './pages/auth/ResetPassword'
 import MemoriesGallery from './pages/memories/MemoriesGallery'
 import MemoryDetail from './pages/memories/MemoryDetail'
 import NewMemory from './pages/memories/NewMemory'
+import ChestOpened from './pages/connect/ChestOpened'
+import ConnectPage from './pages/connect/ConnectPage'
+import RequestReview from './pages/connect/RequestReview'
 import PeopleList from './pages/people/PeopleList'
 import PersonChest from './pages/people/PersonChest'
 import PersonForm from './pages/people/PersonForm'
@@ -55,6 +58,10 @@ export default function App() {
       <Route path="/personas/nueva" element={<Private><PersonForm /></Private>} />
       <Route path="/personas/:id" element={<Private><PersonChest /></Private>} />
       <Route path="/personas/:id/editar" element={<Private><PersonForm /></Private>} />
+
+      <Route path="/conectar" element={<Private><ConnectPage /></Private>} />
+      <Route path="/conectar/solicitud/:id" element={<Private><RequestReview /></Private>} />
+      <Route path="/cofre-abierto/:id" element={<Private><ChestOpened /></Private>} />
 
       <Route path="/recuerdos" element={<Private><MemoriesGallery /></Private>} />
       <Route path="/recuerdos/nuevo" element={<Private><NewMemory /></Private>} />

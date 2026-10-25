@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import Comment, Memory, Person, Reaction, User
+from ..models import Comment, ConnectionRequest, Memory, Person, Reaction, User
 from ..schemas import ChangePasswordIn, UserOut, UserUpdate
 from ..security import hash_password, verify_password
 from ..storage import save_media
@@ -20,6 +20,10 @@ def me(user: User = Depends(get_current_user)):
 @router.patch("", response_model=UserOut)
 def update_me(data: UserUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user.full_name = data.full_name.strip()
+    if data.username is not None and data.username != user.username:
+        if db.scalar(select(User.id).where(User.username == data.username, User.id != user.id)):
+            raise HTTPException(409, f"El @{data.username} ya está en uso. Prueba con otro.")
+        user.username = data.username
     user.bio = (data.bio or "").strip() or None
     user.birth_date = data.birth_date
     db.commit()
@@ -59,6 +63,8 @@ def delete_account(user: User = Depends(get_current_user), db: Session = Depends
     for memory in db.scalars(select(Memory).where(Memory.author_id == user.id)):
         db.delete(memory)
     db.execute(update(Person).where(Person.linked_user_id == user.id).values(linked_user_id=None))
+    db.execute(delete(ConnectionRequest).where(
+        (ConnectionRequest.from_user_id == user.id) | (ConnectionRequest.to_user_id == user.id)))
     db.flush()
     db.delete(user)  # sus personas se borran en cascada
     db.commit()

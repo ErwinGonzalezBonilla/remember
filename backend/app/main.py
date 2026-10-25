@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .database import Base, add_missing_columns, engine
-from .routers import auth, memories, people, users
+from .routers import auth, connect, memories, people, users
 
 # MVP: crea las tablas al arrancar. Cuando el modelo se estabilice, pasar a Alembic.
 Base.metadata.create_all(bind=engine)
@@ -54,6 +54,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(people.router)
 app.include_router(memories.router)
+app.include_router(connect.router)
 
 if not settings.uses_blob and not settings.cloudinary_url:
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)

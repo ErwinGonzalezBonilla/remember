@@ -26,6 +26,7 @@ export default function Home() {
   const { user } = useAuth()
   const { data: people, error } = useApi('/api/people')
   const { data: memories, loading } = useApi('/api/memories?limit=9')
+  const { data: requests } = useApi('/api/connect/requests')
   const event = people && upcoming(people)
 
   return (
@@ -67,10 +68,28 @@ export default function Home() {
 
       <ErrorBox error={error} />
 
-      {!user.avatar_url && (
+      {requests?.opened.map((r) => (
+        <Link key={`o${r.id}`} to={`/cofre-abierto/${r.id}`} className="highlight opened">
+          <span className="hl-icon"><Icon name="gift" size={20} /></span>
+          <span><strong>¡{r.to_user.full_name.split(' ')[0]} aceptó tu solicitud!</strong><small>Tu cofre se ha abierto. Toca para descubrirlo.</small></span>
+          <Icon name="chevron" className="muted" />
+        </Link>
+      ))}
+      {requests?.incoming.map((r) => (
+        <Link key={`i${r.id}`} to={`/conectar/solicitud/${r.id}`} className="highlight request">
+          <Avatar name={r.from_user.full_name} src={r.from_user.avatar_url} size={40} />
+          <span><strong>{r.from_user.full_name} quiere conectar contigo</strong><small>Dice que eres su {(RELATIONS[r.relation] || '').toLowerCase()} · Toca para responder</small></span>
+          <Icon name="chevron" className="muted" />
+        </Link>
+      ))}
+
+      {(!user.avatar_url || !user.username) && (
         <Link to="/perfil" className="highlight profile-nudge">
-          <span className="hl-icon"><Icon name="camera" size={20} /></span>
-          <span><strong>Completa tu perfil</strong><small>Añade tu foto para que tus personas te reconozcan.</small></span>
+          <span className="hl-icon"><Icon name={user.username ? 'camera' : 'user'} size={20} /></span>
+          <span>
+            <strong>{user.username ? 'Completa tu perfil' : 'Elige tu @usuario'}</strong>
+            <small>{user.username ? 'Añade tu foto para que tus personas te reconozcan.' : 'Así tus personas podrán encontrarte y conectar contigo.'}</small>
+          </span>
           <Icon name="chevron" className="muted" />
         </Link>
       )}

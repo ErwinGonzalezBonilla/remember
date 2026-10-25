@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { mediaUrl } from '../api/client'
+import { useApi } from '../hooks'
 import Icon from './Icon'
 
 /* ---------- Helpers ---------- */
@@ -149,11 +150,16 @@ const NAV = [
 ]
 
 export function BottomNav() {
+  const { data: requests } = useApi('/api/connect/requests')
+  const pending = (requests?.incoming.length || 0) + (requests?.opened.length || 0)
   return (
     <nav className="bottom-nav" aria-label="Navegación principal">
       {NAV.map((n) => (
         <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => (isActive ? 'active' : '')}>
-          <Icon name={n.icon} size={22} />
+          <span className="nav-icon">
+            <Icon name={n.icon} size={22} />
+            {n.to === '/personas' && pending > 0 && <span className="nav-dot" aria-label={`${pending} avisos`} />}
+          </span>
           <span>{n.label}</span>
         </NavLink>
       ))}

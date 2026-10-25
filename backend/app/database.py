@@ -43,3 +43,5 @@ def add_missing_columns():
                 if col.name not in existing and col.nullable:
                     col_type = col.type.compile(dialect=engine.dialect)
                     conn.execute(text(f'ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type}'))
+        # Columnas añadidas a posteriori que deben ser únicas
+        conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username ON users (username)'))

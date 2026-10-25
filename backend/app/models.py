@@ -24,6 +24,8 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(120))
+    # @usuario público para que te encuentren (parte 2). Opcional en cuentas antiguas.
+    username: Mapped[str | None] = mapped_column(String(30), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     avatar_url: Mapped[str | None] = mapped_column(String(500))
@@ -94,6 +96,25 @@ class MemoryTag(Base):
 
     memory: Mapped[Memory] = relationship(back_populates="tags")
     person: Mapped[Person] = relationship(back_populates="tags")
+
+
+class ConnectionRequest(Base):
+    """Solicitud de conexión: 'Allison (from) dice que Félix (to) es su padre'.
+    Al aceptarla, Félix vincula a Allison con una persona de su lista y se abre su cofre."""
+    __tablename__ = "connection_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    from_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    to_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    relation: Mapped[str] = mapped_column(String(30))            # quién es 'to' para 'from'
+    from_person_id: Mapped[int | None] = mapped_column(ForeignKey("people.id", ondelete="SET NULL"))
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | accepted | rejected
+    seen_by_sender: Mapped[bool] = mapped_column(default=False)  # ya vio "tu cofre se ha abierto"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    from_user: Mapped[User] = relationship(foreign_keys=[from_user_id])
+    to_user: Mapped[User] = relationship(foreign_keys=[to_user_id])
 
 
 class Comment(Base):

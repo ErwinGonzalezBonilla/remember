@@ -4,6 +4,8 @@ App privada para guardar recuerdos con las personas que importan y compartirlos 
 
 **La idea:** el recuerdo va primero. Guardas una foto, un video, un audio o una nota y etiquetas a la persona con quien lo viviste, aunque no tenga cuenta (por ejemplo, tu bebé). Cada persona tiene su **cofre**. Cuando esa persona crea su cuenta y os conectáis, su cofre se abre.
 
+**Conectar (parte 2):** cada usuario tiene un @usuario. Quien crea su cuenta busca a la otra persona por @usuario o correo exacto y le envía una solicitud diciendo quién es para ella; quien la recibe elige quién es para él, la vincula con una persona de su lista y acepta: su cofre se abre. Desconectar revoca el acceso en los dos sentidos.
+
 **Regla de privacidad:** ves un recuerdo si lo creaste tú o si estás etiquetado en él y conectado con quien lo guardó.
 Stack: **React + Vite** → **FastAPI** → **SQLAlchemy** → **PostgreSQL** (SQLite en local), JWT, Cloudinary opcional.
 
@@ -18,7 +20,7 @@ remember/
 │   │   ├── security.py     bcrypt, JWT, códigos de invitación
 │   │   ├── deps.py         usuario actual + regla de visibilidad de recuerdos
 │   │   ├── storage.py      subida de fotos/video/audio con límites (local o Cloudinary)
-│   │   └── routers/        auth · me · people · memories
+│   │   └── routers/        auth · me · people · memories · connect
 │   └── tests/test_flujo.py flujo completo + privacidad
 └── frontend/           React + Vite
     └── src/

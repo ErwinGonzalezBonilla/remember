@@ -38,7 +38,7 @@ export default function PeoplePicker({ people, setPeople, selected, onChange }) 
         return (
           <button type="button" key={p.id} className={`tagchip ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(p.id)}>
             <Avatar name={p.name} src={p.photo_url} size={34} />
-            <span>{p.name} <small>· {RELATIONS[p.relation] || p.relation}</small></span>
+            <span>{p.name} <small>· {RELATIONS[p.relation] || p.relation}{p.is_linked && ' · 🔓 lo verá'}</small></span>
             <span className="tag-check">{on && <Icon name="check" size={18} />}</span>
           </button>
         )

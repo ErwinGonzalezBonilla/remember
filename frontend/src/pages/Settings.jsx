@@ -48,7 +48,7 @@ export default function Settings() {
         <Avatar name={user.full_name} src={user.avatar_url} size={56} />
         <span className="row-text">
           <strong>{user.full_name}</strong>
-          <small className="muted">{user.bio || user.email}</small>
+          <small className="muted">{user.username ? `@${user.username}` : user.email}</small>
         </span>
         <span className="link-small">Editar</span>
       </Link>

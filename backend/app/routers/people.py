@@ -85,6 +85,19 @@ async def upload_photo(person_id: int, file: UploadFile = File(...), user: User 
     return serialize(person, _stats(db, [person.id]))
 
 
+@router.post("/{person_id}/unlink", response_model=PersonOut)
+def unlink(person_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Desconectar: ninguno de los dos vuelve a ver lo que el otro etiquetó. Los recuerdos no se borran."""
+    person = get_own_person(person_id, user, db)
+    other_id = person.linked_user_id
+    if other_id:
+        person.linked_user_id = None
+        for theirs in db.scalars(select(Person).where(Person.owner_id == other_id, Person.linked_user_id == user.id)):
+            theirs.linked_user_id = None
+        db.commit()
+    return serialize(person, _stats(db, [person.id]))
+
+
 @router.delete("/{person_id}", status_code=204)
 def delete_person(person_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Borra a la persona de tu lista. Los recuerdos NO se borran: solo pierden esa etiqueta."""
