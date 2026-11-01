@@ -252,3 +252,137 @@ def test_rechazar_y_cancelar_solicitud():
     assert client.post(f"/api/connect/requests/{r2['id']}/reject", headers=b).status_code == 204
     assert client.get("/api/connect/requests", headers=b).json()["incoming"] == []
     assert client.get("/api/people", headers=a).json() == []
+
+
+# ---------- Cápsula del tiempo ----------
+def connect_users(a, b, b_person_for_a, relation_a_says="padre/madre", relation_b_says="hijo/a"):
+    """`b` (que creó b_person_for_a en su lista) acepta la solicitud de `a`."""
+    b_id = client.get("/api/me", headers=b).json()["id"]
+    req = client.post("/api/connect/requests", headers=a, json={"to_user_id": b_id, "relation": relation_a_says}).json()
+    r = client.post(f"/api/connect/requests/{req['id']}/accept", headers=b,
+                    json={"relation": relation_b_says, "person_id": b_person_for_a["id"]})
+    assert r.status_code == 200, r.text
+
+
+def open_now(capsule_id):
+    from datetime import datetime, timedelta, timezone
+
+    from app.database import SessionLocal
+    from app.models import TimeCapsule
+    with SessionLocal() as db:
+        db.get(TimeCapsule, capsule_id).open_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+        db.commit()
+
+
+def future(days=30):
+    from datetime import datetime, timedelta, timezone
+    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+
+
+def test_capsula_del_tiempo(monkeypatch):
+    from app.routers import capsules as cap_router
+    mails = []
+    monkeypatch.setattr(cap_router, "send_email", lambda to, subject, *a, **k: mails.append((to, subject)) or True)
+
+    mama = register("Marta Ruiz", "marta@x.com")
+    hijo_p = add_person(mama, "Leo", "hijo/a")
+    otra_p = add_person(mama, "Vecina", "amistad")
+    leo = register("Leo Ruiz", "leo@x.com")
+    extra = register("Extraño", "extrano@x.com")
+
+    # Validaciones al crear
+    base = {"title": "Para tus 18", "person_id": hijo_p["id"], "timezone": "Europe/Madrid"}
+    assert client.post("/api/capsules", headers=mama, json={**base, "open_at": "2020-01-01T10:00:00+01:00"}).status_code == 422
+    assert client.post("/api/capsules", headers=mama, json={**base, "open_at": "2099-01-01T10:00:00"}).status_code == 422
+    assert client.post("/api/capsules", headers=mama, json={**base, "open_at": future(), "timezone": "Marte/Base"}).status_code == 422
+    assert client.post("/api/capsules", headers=leo, json={**base, "open_at": future()}).status_code == 404  # persona ajena
+
+    r = client.post("/api/capsules", headers=mama, json={**base, "open_at": future()})
+    assert r.status_code == 201 and r.json()["status"] == "draft"
+    cid = r.json()["id"]
+
+    # Vacía no se puede sellar
+    assert client.post(f"/api/capsules/{cid}/seal", headers=mama).status_code == 422
+
+    # Archivos (uno por petición)
+    r = client.post(f"/api/capsules/{cid}/items", headers=mama, data={"kind": "photo"},
+                    files={"file": ("a.jpg", b"\xff\xd8\xff fake", "image/jpeg")})
+    assert r.status_code == 201, r.text
+    item_id = r.json()["items"][0]["id"]
+    r = client.post(f"/api/capsules/{cid}/items", headers=mama, data={"kind": "audio"},
+                    files={"file": ("b.mp3", b"ID3 fake", "audio/mpeg")})
+    assert r.json()["item_counts"] == {"photo": 1, "audio": 1}
+    assert client.delete(f"/api/capsules/{cid}/items/{item_id}", headers=mama).json()["item_counts"] == {"audio": 1}
+
+    r = client.put(f"/api/capsules/{cid}", headers=mama, json={**base, "message": "Te quiero mucho", "open_at": future()})
+    assert r.status_code == 200 and r.json()["message"] == "Te quiero mucho"
+
+    # Sellar sin destinataria conectada: no hay correo
+    r = client.post(f"/api/capsules/{cid}/seal", headers=mama)
+    assert r.status_code == 200 and r.json()["status"] == "sealed" and mails == []
+    # Sellada: ya no se puede editar
+    assert client.put(f"/api/capsules/{cid}", headers=mama, json={**base, "open_at": future()}).status_code == 409
+    assert client.post(f"/api/capsules/{cid}/items", headers=mama, data={"kind": "photo"},
+                       files={"file": ("c.jpg", b"x", "image/jpeg")}).status_code == 409
+
+    # Antes de conectar, Leo no la ve; un extraño nunca
+    assert client.get(f"/api/capsules/{cid}", headers=leo).status_code == 404
+    assert client.get("/api/capsules", headers=leo).json()["received"] == []
+
+    connect_users(leo, mama, hijo_p)
+
+    # Conectado pero aún cerrada: ve que existe, no el contenido
+    r = client.get(f"/api/capsules/{cid}", headers=leo).json()
+    assert r["locked"] is True and r["message"] is None and r["items"] == [] and r["person"] is None
+    assert r["item_counts"] == {"audio": 1} and r["author_name"] == "Marta Ruiz"
+    assert client.get(f"/api/capsules/{cid}", headers=extra).status_code == 404
+    assert client.put(f"/api/capsules/{cid}/reaction", headers=leo, json={"emoji": "❤️"}).status_code == 409
+    assert client.post(f"/api/capsules/{cid}/comments", headers=leo, json={"body": "hola"}).status_code == 409
+    assert client.delete(f"/api/capsules/{cid}", headers=leo).status_code == 403
+
+    # Una segunda cápsula ya conectada: al sellar, correo a Leo
+    c2 = client.post("/api/capsules", headers=mama, json={**base, "title": "Navidad", "message": "🎄", "open_at": future(60)}).json()
+    client.post(f"/api/capsules/{c2['id']}/seal", headers=mama)
+    assert mails == [("leo@x.com", "Marta Ruiz te dejó una cápsula del tiempo")]
+    # Un borrador no aparece a Leo
+    client.post("/api/capsules", headers=mama, json={**base, "title": "Borrador", "open_at": future()})
+    assert [c["title"] for c in client.get("/api/capsules", headers=leo).json()["received"]] == ["Para tus 18", "Navidad"]
+    assert len(client.get("/api/capsules", headers=mama).json()["sent"]) == 3
+
+    # Llega el día
+    open_now(cid)
+    r = client.get(f"/api/capsules/{cid}", headers=leo).json()
+    assert r["status"] == "open" and r["locked"] is False and r["message"] == "Te quiero mucho" and len(r["items"]) == 1
+    r = client.put(f"/api/capsules/{cid}/reaction", headers=leo, json={"emoji": "😢"})
+    assert r.status_code == 200 and r.json()["my_reaction"] == "😢"
+    r = client.post(f"/api/capsules/{cid}/comments", headers=leo, json={"body": "Gracias, mamá"})
+    assert r.status_code == 201 and r.json()["comments"][0]["author_name"] == "Leo Ruiz"
+    assert client.get(f"/api/capsules/{cid}", headers=mama).json()["reactions"] == {"😢": 1}
+
+    # Aviso diario: solo una vez por cápsula
+    mails.clear()
+    assert client.get("/api/cron/capsules").json() == {"pending": 1, "sent": 1}
+    assert mails == [("leo@x.com", "¡Tu cápsula del tiempo ya se puede abrir! 🎉")]
+    assert client.get("/api/cron/capsules").json() == {"pending": 0, "sent": 0}
+
+    # Borrar a la persona: la cápsula queda sin destinataria (Leo deja de verla), no se borra
+    tmp = client.post("/api/capsules", headers=mama, json={**base, "person_id": otra_p["id"], "open_at": future()}).json()
+    assert client.delete(f"/api/people/{otra_p['id']}", headers=mama).status_code == 204
+    r = client.get(f"/api/capsules/{tmp['id']}", headers=mama).json()
+    assert r["person"] is None
+    assert client.post(f"/api/capsules/{tmp['id']}/seal", headers=mama).status_code == 422
+
+    # Borrar la cápsula
+    assert client.delete(f"/api/capsules/{c2['id']}", headers=mama).status_code == 204
+    assert client.get(f"/api/capsules/{c2['id']}", headers=leo).status_code == 404
+
+    # Eliminar la cuenta de Marta borra sus cápsulas
+    assert client.delete("/api/me", headers=mama).status_code == 204
+    assert client.get("/api/capsules", headers=leo).json()["received"] == []
+
+
+def test_cron_con_secreto(monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "cron_secret", "s3creto")
+    assert client.get("/api/cron/capsules").status_code == 401
+    assert client.get("/api/cron/capsules", headers={"Authorization": "Bearer s3creto"}).status_code == 200

@@ -18,6 +18,16 @@ class Settings(BaseSettings):
     max_upload_mb: int = 25
     upload_dir: str = "uploads"
 
+    # Correo: Resend (RESEND_API_KEY) o un servidor SMTP. Sin ninguno, los correos se escriben en el log (desarrollo).
+    resend_api_key: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 465
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    mail_from: str = "REHOMI <onboarding@resend.dev>"
+    # Clave que Vercel Cron envía como "Authorization: Bearer …" a /api/cron/*
+    cron_secret: str | None = None
+
     @field_validator("database_url")
     @classmethod
     def use_psycopg3(cls, v: str) -> str:
@@ -39,6 +49,10 @@ class Settings(BaseSettings):
     def uses_blob(self) -> bool:
         """Vercel Blob conectado al proyecto (Vercel añade estas variables al conectar el store)."""
         return bool(os.getenv("BLOB_STORE_ID") or os.getenv("BLOB_READ_WRITE_TOKEN"))
+
+    @property
+    def mail_enabled(self) -> bool:
+        return bool(self.resend_api_key or (self.smtp_host and self.smtp_user and self.smtp_password))
 
     @property
     def is_production(self) -> bool:

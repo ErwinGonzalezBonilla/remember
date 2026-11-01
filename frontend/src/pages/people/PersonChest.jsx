@@ -62,6 +62,9 @@ export default function PersonChest() {
       <Link to={`/recuerdos/nuevo?persona=${id}`} className="btn btn-primary">
         <Icon name="plus" size={18} /> Guardar un recuerdo para {first}
       </Link>
+      <Link to={`/capsulas/nueva?persona=${id}`} className="btn btn-ghost">
+        <Icon name="gift" size={18} /> Crear una cápsula del tiempo para {first}
+      </Link>
 
       {birthday && (
         <div className="milestone">

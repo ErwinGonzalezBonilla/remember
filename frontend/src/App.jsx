@@ -12,6 +12,9 @@ import ResetPassword from './pages/auth/ResetPassword'
 import MemoriesGallery from './pages/memories/MemoriesGallery'
 import MemoryDetail from './pages/memories/MemoryDetail'
 import NewMemory from './pages/memories/NewMemory'
+import CapsuleDetail from './pages/capsules/CapsuleDetail'
+import CapsuleForm from './pages/capsules/CapsuleForm'
+import CapsulesPage from './pages/capsules/CapsulesPage'
 import ChestOpened from './pages/connect/ChestOpened'
 import ConnectPage from './pages/connect/ConnectPage'
 import RequestReview from './pages/connect/RequestReview'
@@ -66,6 +69,11 @@ export default function App() {
       <Route path="/recuerdos" element={<Private><MemoriesGallery /></Private>} />
       <Route path="/recuerdos/nuevo" element={<Private><NewMemory /></Private>} />
       <Route path="/recuerdo/:id" element={<Private><MemoryDetail /></Private>} />
+
+      <Route path="/capsulas" element={<Private><CapsulesPage /></Private>} />
+      <Route path="/capsulas/nueva" element={<Private><CapsuleForm /></Private>} />
+      <Route path="/capsulas/:id/editar" element={<Private><CapsuleForm key="edit" /></Private>} />
+      <Route path="/capsula/:id" element={<Private><CapsuleDetail /></Private>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -3,6 +3,7 @@ import Icon from '../components/Icon'
 import { AppShell, Avatar, ErrorBox, PrivateBadge, RELATIONS, Spinner, formatDate, greeting, nextOccurrence } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
+import { remainingText } from './capsules/capsuleUtils'
 import { MemoryThumb } from './memories/MemoryCard'
 
 const SAVE = [
@@ -27,7 +28,10 @@ export default function Home() {
   const { data: people, error } = useApi('/api/people')
   const { data: memories, loading } = useApi('/api/memories?limit=9')
   const { data: requests } = useApi('/api/connect/requests')
+  const { data: capsules } = useApi('/api/capsules')
   const event = people && upcoming(people)
+  const waiting = capsules?.received.filter((c) => c.status === 'sealed') || []
+  const openedForMe = capsules?.received.filter((c) => c.status === 'open' && !c.my_reaction && !c.comment_count) || []
 
   return (
     <AppShell>
@@ -82,6 +86,25 @@ export default function Home() {
           <Icon name="chevron" className="muted" />
         </Link>
       ))}
+
+      {openedForMe.map((c) => (
+        <Link key={`c${c.id}`} to={`/capsula/${c.id}`} className="highlight opened">
+          <span className="hl-icon"><Icon name="gift" size={20} /></span>
+          <span><strong>¡Tu cápsula de {c.author_name.split(' ')[0]} ya se abrió!</strong><small>“{c.title}” · Toca para abrirla</small></span>
+          <Icon name="chevron" className="muted" />
+        </Link>
+      ))}
+      <Link to="/capsulas" className="highlight capsule-link">
+        <span className="hl-icon"><Icon name={waiting.length ? 'lock' : 'gift'} size={20} /></span>
+        <span>
+          {waiting.length
+            ? <><strong>{waiting.length === 1 ? 'Tienes 1 cápsula esperándote' : `Tienes ${waiting.length} cápsulas esperándote`}</strong>
+                <small>La próxima se abre {remainingText(waiting[0].open_at)}</small></>
+            : <><strong>Cápsulas del tiempo</strong>
+                <small>Deja una carta o un video que se abra en una fecha especial</small></>}
+        </span>
+        <Icon name="chevron" className="muted" />
+      </Link>
 
       {(!user.avatar_url || !user.username) && (
         <Link to="/perfil" className="highlight profile-nudge">

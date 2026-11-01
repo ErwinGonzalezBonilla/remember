@@ -10,8 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
+from ..mailer import first_name, send_email
 from ..models import ConnectionRequest, Memory, MemoryTag, Person, User
 from ..schemas import AcceptIn, OpenedOut, PublicUser, RequestIn, RequestOut, RequestsOut
 
@@ -95,6 +97,13 @@ def send_request(data: RequestIn, user: User = Depends(get_current_user), db: Se
     db.add(req)
     db.commit()
     db.refresh(req)
+    send_email(
+        other.email, f"{user.full_name} quiere conectar contigo en REHOMI",
+        f"{user.full_name} quiere conectar contigo",
+        [f"Hola, {first_name(other.full_name)}. <b>{first_name(user.full_name)}</b> te envió una solicitud de conexión en REHOMI.",
+         "Al aceptarla, se abrirá su cofre: podréis ver los recuerdos que guardasteis juntos."],
+        button=("Ver la solicitud", f"{settings.public_url}/conectar/solicitud/{req.id}"),
+    )
     return out(req)
 
 
@@ -142,6 +151,12 @@ def accept(request_id: int, data: AcceptIn, user: User = Depends(get_current_use
     req.status = "accepted"
     req.responded_at = datetime.now(timezone.utc)
     db.commit()
+    send_email(
+        sender.email, f"¡{user.full_name} aceptó tu solicitud!", "¡Tu cofre se ha abierto! 🎁",
+        [f"Hola, {first_name(sender.full_name)}. <b>{first_name(user.full_name)}</b> aceptó tu solicitud de conexión.",
+         "Desde ahora compartís los recuerdos en los que os etiquetéis."],
+        button=("Abrir REHOMI", f"{settings.public_url}/cofre-abierto/{req.id}"),
+    )
     return OpenedOut(request=out(req), shared_count=shared_count(user.id, sender.id, db), person_id=mine.id)
 
 

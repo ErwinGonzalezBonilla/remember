@@ -6,6 +6,8 @@
   `linked_user_id` se rellena cuando esa persona crea su cuenta y aceptas la conexión (parte 2):
   en ese momento el cofre se abre para ella.
 - Memory: foto, video, audio o nota. Pertenece a quien la crea y se etiqueta con 0..n personas.
+- TimeCapsule: mensaje, fotos, videos y audios para una persona, sellados hasta una fecha.
+  Borrador (sealed_at vacío) → Sellada → Abierta (cuando llega open_at).
 """
 from datetime import date, datetime, timezone
 
@@ -135,5 +137,61 @@ class Reaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     memory_id: Mapped[int] = mapped_column(ForeignKey("memories.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    emoji: Mapped[str] = mapped_column(String(8))
+
+
+class TimeCapsule(Base):
+    """Cápsula del tiempo. Quien la crea la ve siempre; la persona destinataria (si tiene cuenta y está
+    conectada) ve solo la portada y la cuenta atrás hasta `open_at`; después, todo el contenido."""
+    __tablename__ = "time_capsules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    person_id: Mapped[int | None] = mapped_column(ForeignKey("people.id", ondelete="SET NULL"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    message: Mapped[str | None] = mapped_column(Text)
+    cover_url: Mapped[str | None] = mapped_column(String(500))
+    open_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    timezone: Mapped[str] = mapped_column(String(64), default="Europe/Madrid")  # para mostrar la fecha en los correos
+    sealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    open_notified: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    author: Mapped[User] = relationship()
+    person: Mapped[Person | None] = relationship()
+    items: Mapped[list["CapsuleItem"]] = relationship(cascade="all, delete-orphan", order_by="CapsuleItem.id")
+    comments: Mapped[list["CapsuleComment"]] = relationship(cascade="all, delete-orphan",
+                                                            order_by="CapsuleComment.created_at")
+    reactions: Mapped[list["CapsuleReaction"]] = relationship(cascade="all, delete-orphan")
+
+
+class CapsuleItem(Base):
+    __tablename__ = "capsule_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    capsule_id: Mapped[int] = mapped_column(ForeignKey("time_capsules.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # photo | video | audio
+    media_url: Mapped[str] = mapped_column(String(500))
+
+
+class CapsuleComment(Base):
+    __tablename__ = "capsule_comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    capsule_id: Mapped[int] = mapped_column(ForeignKey("time_capsules.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(String(1000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    author: Mapped[User] = relationship()
+
+
+class CapsuleReaction(Base):
+    __tablename__ = "capsule_reactions"
+    __table_args__ = (UniqueConstraint("capsule_id", "user_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    capsule_id: Mapped[int] = mapped_column(ForeignKey("time_capsules.id", ondelete="CASCADE"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     emoji: Mapped[str] = mapped_column(String(8))

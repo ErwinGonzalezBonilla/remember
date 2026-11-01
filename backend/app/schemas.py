@@ -205,3 +205,56 @@ class OpenedOut(BaseModel):
     request: RequestOut
     shared_count: int
     person_id: int | None              # tu persona vinculada con quien te abrió el cofre
+
+
+# ---------- Cápsula del tiempo ----------
+class CapsuleIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    message: str | None = Field(default=None, max_length=5000)
+    person_id: int
+    open_at: datetime                      # con zona horaria (ISO 8601)
+    timezone: str = Field(default="Europe/Madrid", max_length=64)
+
+    @field_validator("open_at")
+    @classmethod
+    def aware(cls, v: datetime) -> datetime:
+        if v.tzinfo is None:
+            raise ValueError("La fecha de apertura debe incluir la zona horaria.")
+        return v
+
+
+class CapsuleItemOut(BaseModel):
+    id: int
+    kind: str
+    media_url: str
+
+
+class CapsuleOut(BaseModel):
+    id: int
+    title: str
+    status: Literal["draft", "sealed", "open"]
+    locked: bool                           # True: el contenido aún no se puede ver (solo destinataria antes de la fecha)
+    open_at: datetime
+    timezone: str
+    sealed_at: datetime | None
+    created_at: datetime
+    is_author: bool
+    author_name: str
+    author_avatar: str | None
+    person: PersonTag | None               # destinataria (solo la ve quien la creó)
+    message: str | None
+    cover_url: str | None
+    items: list[CapsuleItemOut]
+    item_counts: dict[str, int]            # p. ej. {"photo": 3, "audio": 1}: se muestra aunque esté cerrada
+    reactions: dict[str, int]
+    my_reaction: str | None
+    comment_count: int
+
+
+class CapsuleDetailOut(CapsuleOut):
+    comments: list[CommentOut]
+
+
+class CapsulesOut(BaseModel):
+    received: list[CapsuleOut]
+    sent: list[CapsuleOut]

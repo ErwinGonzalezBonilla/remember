@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,13 +5,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..mailer import first_name, send_email
 from ..database import get_db
 from ..models import PasswordReset, User
 from ..schemas import ForgotIn, LoginIn, RegisterIn, ResetIn, TokenOut, UserOut
 from ..security import create_access_token, hash_password, hash_token, new_reset_token, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-log = logging.getLogger("rehomi.auth")
 
 
 def _token_response(user: User) -> TokenOut:
@@ -27,6 +26,13 @@ def register(data: RegisterIn, db: Session = Depends(get_db)):
     user = User(full_name=data.full_name.strip(), email=email, password_hash=hash_password(data.password))
     db.add(user)
     db.commit()
+    send_email(
+        user.email, "Bienvenido a REHOMI", f"¡Hola, {first_name(user.full_name)}! Bienvenido a REHOMI",
+        ["Ya tienes tu espacio privado para guardar los recuerdos con las personas que importan.",
+         "Empieza añadiendo a tu primera persona y guarda una foto, un audio o una nota. "
+         "Cuando esa persona se una a REHOMI y os conectéis, su cofre se abrirá."],
+        button=("Guardar mi primer recuerdo", settings.public_url),
+    )
     return _token_response(user)
 
 
@@ -50,8 +56,13 @@ def forgot_password(data: ForgotIn, db: Session = Depends(get_db)):
         ))
         db.commit()
         link = f"{settings.public_url}/restablecer/{token}"
-        # TODO: enviar por email (Resend, SendGrid o un flujo de n8n). En desarrollo se imprime en consola.
-        log.warning("Enlace de recuperación para %s: %s", user.email, link)
+        send_email(
+            user.email, "Crea una nueva contraseña", "Recupera el acceso a tu cuenta",
+            [f"Hola, {first_name(user.full_name)}. Recibimos una solicitud para cambiar la contraseña de tu cuenta de REHOMI.",
+             "El enlace es válido durante <b>1 hora</b> y solo se puede usar una vez."],
+            button=("Crear nueva contraseña", link),
+            footer="Si no fuiste tú, ignora este correo: tu contraseña no cambiará.",
+        )
     return {"message": "Si el correo está registrado, recibirás un enlace para crear una nueva contraseña."}
 
 

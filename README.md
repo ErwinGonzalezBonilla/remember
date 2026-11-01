@@ -6,6 +6,8 @@ App privada para guardar recuerdos con las personas que importan y compartirlos 
 
 **Conectar (parte 2):** cada usuario tiene un @usuario. Quien crea su cuenta busca a la otra persona por @usuario o correo exacto y le envía una solicitud diciendo quién es para ella; quien la recibe elige quién es para él, la vincula con una persona de su lista y acepta: su cofre se abre. Desconectar revoca el acceso en los dos sentidos.
 
+**Cápsula del tiempo:** escribes una carta y añades hasta 10 fotos, videos o audios para una persona, eliges el día y la hora, y la sellas. Hasta esa fecha la persona destinataria solo ve una cuenta atrás, quién se la dejó y cuántos archivos hay: el servidor no envía el contenido. Ese día se abre y puede reaccionar y comentar.
+
 **Regla de privacidad:** ves un recuerdo si lo creaste tú o si estás etiquetado en él y conectado con quien lo guardó.
 Stack: **React + Vite** → **FastAPI** → **SQLAlchemy** → **PostgreSQL** (SQLite en local), JWT, Cloudinary opcional.
 
@@ -70,7 +72,9 @@ App en http://localhost:5173 (Vite redirige `/api` y `/uploads` al backend).
 | Recuerdos | ✅ Foto, video, audio (grabado o subido) y nota; etiquetas a 0..n personas; "solo para mí"; galería con filtros |
 | Reacciones y comentarios | ✅ |
 | Calendario | ✅ Cumpleaños y fechas especiales de tus personas |
-| Conectar y abrir el cofre | ⏳ Parte 2 |
+| Conectar y abrir el cofre | ✅ @usuario, solicitudes, "¡Tu cofre se ha abierto!" |
+| Cápsula del tiempo | ✅ Borrador → sellada (cuenta atrás) → abierta; carta + 10 archivos; reacciones y comentarios al abrirse |
+| Correos reales | ✅ Bienvenida, recuperar contraseña, solicitud de conexión, cofre abierto, cápsula recibida y cápsula abierta (Resend o SMTP) |
 
 ## Decisiones de privacidad y seguridad
 
@@ -103,7 +107,6 @@ Pendiente antes de un lanzamiento real:
 ## Siguientes pasos sugeridos (orden del informe)
 
 - **Parte 2 – Conectar y abrir el cofre**: `@usuario` único, búsqueda por @usuario o correo exacto, solicitudes (pendiente/aceptada), vincular la solicitud con una persona de tu lista (`Person.linked_user_id`) y pantalla "¡Tu cofre se ha abierto!".
-- **Cápsula**: recuerdos sellados hasta una fecha (p. ej. sus 18 años); el backend no los devuelve antes.
 - **Chat** por WebSocket entre personas conectadas.
 - **Calendario** completo: eventos propios, vista mensual y recordatorios.
 12. **Settings y Privacy**: exportar datos (ZIP), 2FA, notificaciones.
@@ -116,7 +119,9 @@ Pendiente antes de un lanzamiento real:
 1. Importa el repo en Vercel con **Root Directory = raíz del repo** (no `frontend`).
 2. En el proyecto → **Storage**: crea una base de datos **Neon (Postgres)** y un **Blob** con acceso **Public**, y conéctalos al proyecto (añaden `DATABASE_URL` y las variables de Blob solos).
 3. **Settings → Environment Variables**: `SECRET_KEY` (clave larga nueva) y `FRONTEND_URL` (`https://tu-proyecto.vercel.app`).
-4. Redeploy.
+4. **Correos**: crea una cuenta en [resend.com](https://resend.com), verifica tu dominio y añade `RESEND_API_KEY` y `MAIL_FROM` (p. ej. `REHOMI <hola@tudominio.com>`). Sin dominio verificado, Resend solo deja enviar a tu propio correo. Alternativa: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` (Gmail con contraseña de aplicación, Zoho…).
+5. **Aviso de cápsulas abiertas**: añade `CRON_SECRET` (una clave larga cualquiera). `vercel.json` ya programa `/api/cron/capsules` una vez al día (09:00 UTC) y Vercel envía ese secreto solo.
+6. Redeploy.
 
 Límites de esta versión: cada subida admite como máximo 4 MB (límite de Vercel); las fotos se reducen en el navegador antes de subirse. Los archivos en Blob público tienen URLs largas y aleatorias, pero no están firmadas.
 

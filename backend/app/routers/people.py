@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .capsules import detach_person
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..models import Memory, MemoryTag, Person, User
@@ -102,5 +103,6 @@ def unlink(person_id: int, user: User = Depends(get_current_user), db: Session =
 def delete_person(person_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Borra a la persona de tu lista. Los recuerdos NO se borran: solo pierden esa etiqueta."""
     person = get_own_person(person_id, user, db)
+    detach_person(person, db)
     db.delete(person)
     db.commit()
