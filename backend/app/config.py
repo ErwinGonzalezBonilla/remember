@@ -9,7 +9,7 @@ DEV_SECRET = "dev-secret-cambia-esto"
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "sqlite:///./remember.db"
+    database_url: str = "sqlite:///./rehomi.db"
     secret_key: str = DEV_SECRET
     access_token_minutes: int = 60 * 24 * 7
     # Una o varias URLs del frontend separadas por coma (CORS). La primera se usa en los enlaces de los correos.

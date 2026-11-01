@@ -14,7 +14,7 @@ from .routers import auth, connect, memories, people, users
 Base.metadata.create_all(bind=engine)
 add_missing_columns()
 
-app = FastAPI(title="Remember API", version="0.2.0",
+app = FastAPI(title="REHOMI API", version="0.2.0",
               description="Conecta · Guarda · Siempre")
 
 app.add_middleware(

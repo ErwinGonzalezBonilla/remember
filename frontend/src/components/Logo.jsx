@@ -15,7 +15,7 @@ export default function Logo({ size = 48, tagline = true }) {
     <div className="logo">
       <LogoMark size={size} />
       <div>
-        <div className="logo-word" style={{ fontSize: size * 0.72 }}>Remember</div>
+        <div className="logo-word" style={{ fontSize: size * 0.72 }}>REHOMI</div>
         {tagline && <div className="logo-tag">Conecta · Guarda · Siempre</div>}
       </div>
     </div>

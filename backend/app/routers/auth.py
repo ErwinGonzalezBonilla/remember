@@ -12,7 +12,7 @@ from ..schemas import ForgotIn, LoginIn, RegisterIn, ResetIn, TokenOut, UserOut
 from ..security import create_access_token, hash_password, hash_token, new_reset_token, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-log = logging.getLogger("remember.auth")
+log = logging.getLogger("rehomi.auth")
 
 
 def _token_response(user: User) -> TokenOut:

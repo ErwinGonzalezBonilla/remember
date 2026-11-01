@@ -1,4 +1,4 @@
-"""Modelo de Remember: el recuerdo es lo primero.
+"""Modelo de REHOMI: el recuerdo es lo primero.
 
 - User: quien tiene cuenta.
 - Person: alguien de tu vida, con o sin cuenta (tu bebé, tu pareja, tu mejor amigo).

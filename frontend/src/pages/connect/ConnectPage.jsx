@@ -109,7 +109,7 @@ export default function ConnectPage() {
             <button className="btn btn-primary" disabled={busy}>Buscar</button>
           </div>
         </Field>
-        <small className="hint">Solo encontrarás a alguien si escribes su @usuario o su correo exacto: así nadie puede curiosear quién está en Remember.</small>
+        <small className="hint">Solo encontrarás a alguien si escribes su @usuario o su correo exacto: así nadie puede curiosear quién está en REHOMI.</small>
       </form>
 
       <ErrorBox error={error} />

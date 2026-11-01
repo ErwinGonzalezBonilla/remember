@@ -1,4 +1,4 @@
-# Remember · Conecta · Guarda · Siempre
+# REHOMI · Conecta · Guarda · Siempre
 
 App privada para guardar recuerdos con las personas que importan y compartirlos cuando estén listas.
 
@@ -10,7 +10,7 @@ App privada para guardar recuerdos con las personas que importan y compartirlos 
 Stack: **React + Vite** → **FastAPI** → **SQLAlchemy** → **PostgreSQL** (SQLite en local), JWT, Cloudinary opcional.
 
 ```
-remember/
+rehomi/
 ├── backend/            FastAPI
 │   ├── app/
 │   │   ├── main.py         app, CORS, errores en español, /uploads
@@ -89,7 +89,7 @@ App en http://localhost:5173 (Vite redirige `/api` y `/uploads` al backend).
 |---|---|
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (añade antes el servicio PostgreSQL) |
 | `SECRET_KEY` | una clave larga nueva (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
-| `FRONTEND_URL` | la URL de Vercel, p. ej. `https://remember-erwin.vercel.app` |
+| `FRONTEND_URL` | la URL de Vercel, p. ej. `https://rehomi-erwin.vercel.app` |
 | `CLOUDINARY_URL` | `cloudinary://API_KEY:API_SECRET@CLOUD_NAME` (fotos, videos y audios) |
 
 **Frontend en Vercel** (carpeta `frontend`, preset Vite): variable `VITE_API_URL` = la URL pública de Railway, sin barra final.

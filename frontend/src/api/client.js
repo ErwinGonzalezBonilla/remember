@@ -1,8 +1,16 @@
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
-const TOKEN_KEY = 'remember_token'
+const TOKEN_KEY = 'rehomi_token'
+// Nombre anterior de la app: se migra la sesión guardada para que nadie tenga que volver a entrar.
+const OLD_TOKEN_KEY = 'remember_token'
 
 export const tokenStore = {
-  get: () => { try { return localStorage.getItem(TOKEN_KEY) } catch { return null } },
+  get: () => {
+    try {
+      const old = localStorage.getItem(OLD_TOKEN_KEY)
+      if (old) { localStorage.setItem(TOKEN_KEY, old); localStorage.removeItem(OLD_TOKEN_KEY) }
+      return localStorage.getItem(TOKEN_KEY)
+    } catch { return null }
+  },
   set: (t) => { try { localStorage.setItem(TOKEN_KEY, t) } catch { /* modo privado */ } },
   clear: () => { try { localStorage.removeItem(TOKEN_KEY) } catch { /* modo privado */ } },
 }

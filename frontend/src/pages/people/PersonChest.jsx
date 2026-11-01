@@ -107,10 +107,10 @@ export default function PersonChest() {
       {!person.is_linked && (
         <section className="card invite">
           <strong>¿Cómo se abre el cofre de {first}?</strong>
-          <p className="muted">Cuando {first} cree su cuenta en Remember, que te busque en <b>Conectar</b> con tu @usuario. Al aceptar su solicitud, verá todo lo que guardaste aquí.</p>
+          <p className="muted">Cuando {first} cree su cuenta en REHOMI, que te busque en <b>Conectar</b> con tu @usuario. Al aceptar su solicitud, verá todo lo que guardaste aquí.</p>
           {user.username ? (
             <button className="btn btn-ghost" onClick={async () => {
-              try { await navigator.clipboard.writeText(`Te guardé recuerdos en Remember 💛 Crea tu cuenta en ${window.location.origin} y búscame: @${user.username}`); setCopied(true) } catch { /* sin portapapeles */ }
+              try { await navigator.clipboard.writeText(`Te guardé recuerdos en REHOMI 💛 Crea tu cuenta en ${window.location.origin} y búscame: @${user.username}`); setCopied(true) } catch { /* sin portapapeles */ }
             }}>
               <Icon name={copied ? 'check' : 'link'} size={18} /> {copied ? 'Invitación copiada' : `Copiar invitación (@${user.username})`}
             </button>

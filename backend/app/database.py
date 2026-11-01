@@ -33,7 +33,7 @@ def add_missing_columns():
     if insp.has_table("memories") and "connection_id" in {c["name"] for c in insp.get_columns("memories")}:
         raise RuntimeError(
             "\n\n  La base de datos es de la versión anterior (conexiones), que cambió de modelo.\n"
-            "  Detén el servidor, borra el archivo backend/remember.db y vuelve a arrancar.\n")
+            "  Detén el servidor, borra el archivo backend/rehomi.db y vuelve a arrancar.\n")
     with engine.begin() as conn:
         for table in Base.metadata.sorted_tables:
             if not insp.has_table(table.name):

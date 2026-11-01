@@ -22,7 +22,7 @@ def get_current_user(
 
 
 def visible_to(user: User):
-    """Regla de privacidad de Remember, en una sola condición:
+    """Regla de privacidad de REHOMI, en una sola condición:
     ves un recuerdo si lo creaste tú o si estás etiquetado en él con tu cuenta vinculada
     (esto último se activa en la parte 2, cuando se abre tu cofre)."""
     tagged_me = exists().where(

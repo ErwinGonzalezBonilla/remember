@@ -38,7 +38,7 @@ async def save_media(file: UploadFile, kind: str, folder: str) -> str:
         from vercel import blob  # paquete vercel-blob
 
         result = await blob.put_blob(
-            f"remember/{folder}/{name}", data, access="public",
+            f"rehomi/{folder}/{name}", data, access="public",
             content_type=file.content_type, add_random_suffix=True,
         )
         return result.url
@@ -51,7 +51,7 @@ async def save_media(file: UploadFile, kind: str, folder: str) -> str:
         resource_type = "image" if kind == "photo" else "video"  # Cloudinary trata el audio como video
         # Nombre aleatorio no adivinable. Para producción: pasar a type="authenticated" + URLs firmadas.
         result = cloudinary.uploader.upload(
-            data, folder=f"remember/{folder}", resource_type=resource_type,
+            data, folder=f"rehomi/{folder}", resource_type=resource_type,
             public_id=secrets.token_hex(16),
         )
         return result["secure_url"]

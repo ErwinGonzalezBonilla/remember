@@ -34,7 +34,7 @@ export default function Register() {
   return (
     <AuthLayout
       title="Crear cuenta"
-      subtitle="Regístrate en Remember"
+      subtitle="Regístrate en REHOMI"
       footer={<>¿Ya tienes cuenta? <Link to="/login" state={location.state}>Inicia sesión</Link></>}
     >
       <form onSubmit={submit} noValidate className="stack">
