@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { mediaUrl } from '../api/client'
 import { useApi } from '../hooks'
@@ -149,21 +149,67 @@ const NAV = [
   { to: '/ajustes', icon: 'gear', label: 'Ajustes' },
 ]
 
+const CREATE = [
+  { kind: 'photo', icon: 'camera', label: 'Foto', text: 'Del carrete o la cámara' },
+  { kind: 'video', icon: 'video', label: 'Video', text: 'Un momento en movimiento' },
+  { kind: 'audio', icon: 'mic', label: 'Audio', text: 'Graba tu voz o sube un audio' },
+  { kind: 'text', icon: 'note', label: 'Carta', text: 'Escribe lo que quieres que quede' },
+]
+
+function NavItem({ to, icon, label, end, dot }) {
+  return (
+    <NavLink to={to} end={end} className={({ isActive }) => (isActive ? 'active' : '')}>
+      <span className="nav-icon">
+        <Icon name={icon} size={22} />
+        {dot > 0 && <span className="nav-dot" aria-label={`${dot} avisos`} />}
+      </span>
+      <span>{label}</span>
+    </NavLink>
+  )
+}
+
 export function BottomNav() {
   const { data: requests } = useApi('/api/connect/requests')
   const pending = (requests?.incoming.length || 0) + (requests?.opened.length || 0)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  const [first, second, ...rest] = NAV
   return (
-    <nav className="bottom-nav" aria-label="Navegación principal">
-      {NAV.map((n) => (
-        <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => (isActive ? 'active' : '')}>
-          <span className="nav-icon">
-            <Icon name={n.icon} size={22} />
-            {n.to === '/personas' && pending > 0 && <span className="nav-dot" aria-label={`${pending} avisos`} />}
-          </span>
-          <span>{n.label}</span>
-        </NavLink>
-      ))}
-    </nav>
+    <>
+      {open && (
+        <div className="create-backdrop" onClick={() => setOpen(false)}>
+          <div className="create-sheet" role="dialog" aria-modal="true" aria-labelledby="create-title" onClick={(e) => e.stopPropagation()}>
+            <span className="sheet-handle" aria-hidden="true" />
+            <h2 id="create-title">Guarda un recuerdo</h2>
+            <div className="create-grid">
+              {CREATE.map((c) => (
+                <Link key={c.kind} to={`/recuerdos/nuevo?tipo=${c.kind}`} onClick={() => setOpen(false)}>
+                  <span className="create-icon"><Icon name={c.icon} /></span>
+                  <strong>{c.label}</strong>
+                  <small>{c.text}</small>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      <nav className="bottom-nav" aria-label="Navegación principal">
+        <NavItem {...first} />
+        <NavItem {...second} dot={pending} />
+        <button type="button" className={`nav-create ${open ? 'open' : ''}`} onClick={() => setOpen((o) => !o)}
+          aria-label={open ? 'Cerrar' : 'Guardar un recuerdo'} aria-expanded={open}>
+          <span><Icon name="plus" size={26} /></span>
+        </button>
+        {rest.map((n) => <NavItem key={n.to} {...n} />)}
+      </nav>
+    </>
   )
 }
 

@@ -6,13 +6,6 @@ import { useApi } from '../hooks'
 import { remainingText } from './capsules/capsuleUtils'
 import { MemoryThumb } from './memories/MemoryCard'
 
-const SAVE = [
-  { kind: 'photo', icon: 'camera', label: 'Foto' },
-  { kind: 'video', icon: 'video', label: 'Video' },
-  { kind: 'audio', icon: 'mic', label: 'Audio' },
-  { kind: 'text', icon: 'note', label: 'Nota' },
-]
-
 /** Próxima fecha especial (cumpleaños o aniversario) de tus personas, si cae en ≤ 30 días. */
 function upcoming(people) {
   const events = []
@@ -57,18 +50,6 @@ export default function Home() {
           </Link>
         ))}
       </div>
-
-      {/* Acción principal: guardar */}
-      <section className="save-card" aria-label="Guarda un recuerdo">
-        <h2>Guarda un recuerdo</h2>
-        <div className="save-row">
-          {SAVE.map((s) => (
-            <Link key={s.kind} to={`/recuerdos/nuevo?tipo=${s.kind}`}>
-              <span><Icon name={s.icon} /></span>{s.label}
-            </Link>
-          ))}
-        </div>
-      </section>
 
       <ErrorBox error={error} />
 
