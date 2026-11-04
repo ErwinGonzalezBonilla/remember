@@ -7,7 +7,7 @@ from .capsules import detach_person
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..models import Memory, MemoryTag, Person, User
-from ..schemas import PersonIn, PersonOut
+from ..schemas import PersonIn, PersonOut, SeenAs
 from ..storage import save_media
 
 router = APIRouter(prefix="/api/people", tags=["personas"])
@@ -28,7 +28,8 @@ def _stats(db: Session, person_ids: list[int]) -> dict[int, tuple[int, object]]:
 def serialize(p: Person, stats: dict) -> PersonOut:
     count, last = stats.get(p.id, (0, None))
     return PersonOut(
-        id=p.id, name=p.name, relation=p.relation, relation_label=p.relation_label, photo_url=p.photo_url, birth_date=p.birth_date,
+        id=p.id, name=p.name, relation=p.relation, relation_label=p.relation_label,
+        nickname=p.nickname, nickname_emoji=p.nickname_emoji, photo_url=p.photo_url, birth_date=p.birth_date,
         special_date=p.special_date, special_label=p.special_label, note=p.note,
         is_linked=p.linked_user_id is not None, memory_count=count, last_memory_at=last, created_at=p.created_at,
     )
@@ -37,10 +38,12 @@ def serialize(p: Person, stats: dict) -> PersonOut:
 def _clean(data: PersonIn) -> dict:
     d = data.model_dump()
     d["name"] = d["name"].strip()
-    for k in ("special_label", "note", "relation_label"):
+    for k in ("special_label", "note", "relation_label", "nickname", "nickname_emoji"):
         d[k] = (d[k] or "").strip() or None
     if d["relation"] != "otro":
         d["relation_label"] = None
+    if not d["nickname"]:
+        d["nickname_emoji"] = None
     return d
 
 
@@ -66,7 +69,21 @@ def create_person(data: PersonIn, user: User = Depends(get_current_user), db: Se
 @router.get("/{person_id}", response_model=PersonOut)
 def get_person(person_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     person = get_own_person(person_id, user, db)
-    return serialize(person, _stats(db, [person.id]))
+    out = serialize(person, _stats(db, [person.id]))
+    out.seen_as = seen_as(person.linked_user_id, user.id, db)
+    return out
+
+
+def seen_as(owner_id: int | None, viewer_id: int, db: Session) -> SeenAs | None:
+    """Cómo tiene guardado `owner` a `viewer` (relación y apodo). Solo existe si están conectados."""
+    if not owner_id:
+        return None
+    theirs = db.scalar(select(Person).where(Person.owner_id == owner_id, Person.linked_user_id == viewer_id))
+    if not theirs:
+        return None
+    owner = db.get(User, owner_id)
+    return SeenAs(name=owner.full_name, relation=theirs.relation, relation_label=theirs.relation_label,
+                  nickname=theirs.nickname, nickname_emoji=theirs.nickname_emoji)
 
 
 @router.put("/{person_id}", response_model=PersonOut)

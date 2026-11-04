@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { relationText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
@@ -45,11 +45,19 @@ export default function PersonChest() {
           {person.memory_count === 1 ? 'recuerdo' : 'recuerdos'}
           {since && ` desde ${(since.happened_on || since.created_at).slice(0, 4)}`}
         </span>
+        {person.nickname && <span className="chest-nick">Le dices «{person.nickname}» {person.nickname_emoji}</span>}
         {person.note && <p className="chest-note">“{person.note}”</p>}
         <span className={`chest-badge ${person.is_linked ? 'open' : ''}`}>
           {person.is_linked ? '🔓 Conectada: compartís estos recuerdos' : '🔒 Se abrirá cuando se conecte'}
         </span>
       </section>
+
+      {seenAsText(person.seen_as) && (
+        <div className="seen-as">
+          <span className="seen-emoji" aria-hidden="true">{person.seen_as.nickname_emoji || '💛'}</span>
+          <span><small>Cómo te tiene guardado</small><strong>{seenAsText(person.seen_as)}</strong></span>
+        </div>
+      )}
 
       {location.state?.connected && (
         <div className="alert alert-ok">

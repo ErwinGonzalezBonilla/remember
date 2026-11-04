@@ -57,6 +57,8 @@ class Person(Base):
     name: Mapped[str] = mapped_column(String(120))
     relation: Mapped[str] = mapped_column(String(30))
     relation_label: Mapped[str | None] = mapped_column(String(40))  # texto libre cuando relation = "otro"
+    nickname: Mapped[str | None] = mapped_column(String(40))        # apodo cariñoso: "el Orejón"
+    nickname_emoji: Mapped[str | None] = mapped_column(String(16))  # 😂
     photo_url: Mapped[str | None] = mapped_column(String(500))
     birth_date: Mapped[date | None] = mapped_column(Date)
     special_date: Mapped[date | None] = mapped_column(Date)       # aniversario, el día que os conocisteis…

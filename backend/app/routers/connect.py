@@ -15,6 +15,7 @@ from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..mailer import first_name, send_email
 from ..models import ConnectionRequest, Memory, MemoryTag, Person, User
+from .people import seen_as
 from ..schemas import AcceptIn, OpenedOut, PublicUser, RequestIn, RequestOut, RequestsOut
 
 router = APIRouter(prefix="/api/connect", tags=["conectar"])
@@ -187,4 +188,4 @@ def opened(request_id: int, user: User = Depends(get_current_user), db: Session 
     db.commit()
     mine = _linked_person(user.id, req.to_user_id, db)
     return OpenedOut(request=out(req), shared_count=shared_count(req.to_user_id, user.id, db),
-                     person_id=mine.id if mine else None)
+                     person_id=mine.id if mine else None, seen_as=seen_as(req.to_user_id, user.id, db))

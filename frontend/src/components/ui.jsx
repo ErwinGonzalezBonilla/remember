@@ -15,6 +15,37 @@ export function relationText(p) {
   return (p?.relation === 'otro' && p.relation_label) || RELATIONS[p?.relation] || p?.relation || ''
 }
 
+/* ---------- Apodos ---------- */
+export const NICK_EMOJIS = ['😂', '🥰', '😎', '🤗', '😜', '👑', '🐻', '❤️']
+
+// Emoji sugerido según el apodo (el usuario siempre puede elegir otro).
+const NICK_RULES = [
+  [/oso|osit/, '🐻'], [/gat|michi/, '🐱'], [/perr|cachorr/, '🐶'], [/conej/, '🐰'], [/pollit|pollo/, '🐥'],
+  [/mono|monit|chango/, '🐵'], [/raton|ratita/, '🐭'], [/pulg|hormig/, '🐜'], [/leon/, '🦁'], [/tigr/, '🐯'],
+  [/princes|rein|rey\b|reyna|king|queen/, '👑'],
+  [/amor|cari|cielo|vida|beb|corazon|tesoro|precios|mi luz|cuchi|chiqui|nen[ae]/, '🥰'],
+  [/dulce|chocol|galle|caramel|azuc|miel|bombon|cupcake|gomit/, '🍬'],
+  [/estrell|luna|sol\b|solecit/, '🌟'], [/jef|crack|idol|campe|capo|boss|maestr|genio/, '😎'],
+  [/loc[oa]|travies|diabl|pill[oa]|terremot|torment/, '😜'],
+  [/orej|cabez|nariz|pelon|gord|flac|enan|pat[oa]|fe[oa]\b|chimuel|calv|chato|cachet|pansh|panz|negr|guer|chin[oa]|tap[oa]n/, '😂'],
+]
+export function suggestEmoji(nickname = '') {
+  const n = nickname.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  if (!n.trim()) return ''
+  return NICK_RULES.find(([re]) => re.test(n))?.[1] || '😄'
+}
+
+/** "Erwin dice que eres su primo y te apoda «el Orejón» 😂" */
+export function seenAsText(seen) {
+  if (!seen) return ''
+  const first = seen.name.split(' ')[0]
+  const rel = relationText(seen)
+  const parts = []
+  if (rel && !(seen.relation === 'otro' && !seen.relation_label)) parts.push(`dice que eres su ${rel.toLowerCase()}`)
+  if (seen.nickname) parts.push(`te apoda «${seen.nickname}»${seen.nickname_emoji ? ` ${seen.nickname_emoji}` : ''}`)
+  return parts.length ? `${first} ${parts.join(' y ')}` : ''
+}
+
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
 // Las fechas "YYYY-MM-DD" se parsean en local (no en UTC) para que no cambie el día.

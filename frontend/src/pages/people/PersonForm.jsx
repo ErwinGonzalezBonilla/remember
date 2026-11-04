@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
-import { AppShell, ErrorBox, Field, RELATIONS, Spinner, TopBar } from '../../components/ui'
+import { AppShell, ErrorBox, Field, RELATIONS, Spinner, TopBar, NICK_EMOJIS, suggestEmoji } from '../../components/ui'
 import { compressImage } from '../../media'
 
-const EMPTY = { name: '', relation: 'familia', relation_label: '', birth_date: '', special_date: '', special_label: '', note: '' }
+const EMPTY = { name: '', relation: 'familia', relation_label: '', nickname: '', nickname_emoji: '', birth_date: '', special_date: '', special_label: '', note: '' }
 
 /** Crear o editar una persona (sin cuenta necesaria). */
 export default function PersonForm() {
   const { id } = useParams()
   const editing = Boolean(id)
   const navigate = useNavigate()
+  const [emojiTouched, setEmojiTouched] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [linked, setLinked] = useState(false)
@@ -28,9 +29,11 @@ export default function PersonForm() {
     api(`/api/people/${id}`)
       .then((p) => {
         setForm({
-          name: p.name, relation: p.relation, relation_label: p.relation_label || '', birth_date: p.birth_date || '', special_date: p.special_date || '',
+          name: p.name, relation: p.relation, relation_label: p.relation_label || '',
+          nickname: p.nickname || '', nickname_emoji: p.nickname_emoji || '', birth_date: p.birth_date || '', special_date: p.special_date || '',
           special_label: p.special_label || '', note: p.note || '',
         })
+        if (p.nickname_emoji) setEmojiTouched(true)
         setPhotoUrl(p.photo_url)
         setLinked(p.is_linked)
       })
@@ -54,6 +57,7 @@ export default function PersonForm() {
       birth_date: form.birth_date || null, special_date: form.special_date || null,
       special_label: form.special_label || null, note: form.note || null,
       relation_label: form.relation === 'otro' ? form.relation_label.trim() || null : null,
+      nickname: form.nickname.trim() || null, nickname_emoji: form.nickname.trim() ? form.nickname_emoji || null : null,
     }
     try {
       const person = await api(editing ? `/api/people/${id}` : '/api/people', { method: editing ? 'PUT' : 'POST', body })
@@ -131,6 +135,22 @@ export default function PersonForm() {
               </div>
             </Field>
           )}
+          <Field label="Apodo cariñoso (opcional)" htmlFor="nick" hint={form.nickname.trim() ? 'Si os conectáis, verá cómo le llamas.' : undefined}>
+            <input id="nick" value={form.nickname} maxLength={40} placeholder="El Orejón, Cuchi, Mi osito…"
+              onChange={(e) => {
+                const nickname = e.target.value
+                setForm((f) => ({ ...f, nickname, nickname_emoji: emojiTouched ? f.nickname_emoji : suggestEmoji(nickname) }))
+              }} />
+            {form.nickname.trim() && (
+              <div className="chips chips-sm emoji-chips" role="radiogroup" aria-label="Emoji del apodo">
+                {[...new Set([suggestEmoji(form.nickname), ...NICK_EMOJIS])].map((em) => (
+                  <button type="button" key={em} role="radio" aria-checked={form.nickname_emoji === em}
+                    className={`chip ${form.nickname_emoji === em ? 'active' : ''}`}
+                    onClick={() => { setEmojiTouched(true); setForm((f) => ({ ...f, nickname_emoji: em })) }}>{em}</button>
+                ))}
+              </div>
+            )}
+          </Field>
           <Field label="Cumpleaños (opcional)" htmlFor="b">
             <input id="b" type="date" value={form.birth_date} onChange={set('birth_date')} />
           </Field>

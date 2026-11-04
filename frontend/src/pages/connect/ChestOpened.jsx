@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { AppShell, Avatar, ErrorBox, RELATIONS, Spinner, formatDate } from '../../components/ui'
+import { AppShell, Avatar, ErrorBox, RELATIONS, Spinner, formatDate, seenAsText } from '../../components/ui'
 import { useApi } from '../../hooks'
 import { MemoryThumb } from '../memories/MemoryCard'
 
@@ -30,6 +30,7 @@ export default function ChestOpened() {
             ? <>Tu {relation || 'persona'}, {first}, guardó <b>{data.shared_count} {data.shared_count === 1 ? 'recuerdo' : 'recuerdos'}</b> para ti{oldest ? ` desde ${(oldest.happened_on || oldest.created_at).slice(0, 4)}` : ''}.</>
             : <>{first} ha aceptado tu solicitud. A partir de ahora podréis compartir los recuerdos en los que os etiquetéis.</>}
         </p>
+        {seenAsText(data.seen_as) && <p className="reveal-nick">{seenAsText(data.seen_as)}</p>}
       </section>
 
       {fromThem.length > 0 && (

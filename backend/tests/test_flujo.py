@@ -252,6 +252,31 @@ def test_conectar_y_abrir_cofre():
     assert [m["title"] for m in client.get("/api/memories", headers=allison).json()] == ["Mi graduación"]
 
 
+def test_apodo_visible_al_conectar():
+    erwin = register("Erwin González", "erwin@example.com")
+    client.patch("/api/me", headers=erwin, json={"full_name": "Erwin González", "username": "erwin_g"})
+    primo = register("Luis Pérez", "luis@example.com")
+    client.patch("/api/me", headers=primo, json={"full_name": "Luis Pérez", "username": "luis_p"})
+    luis = add_person(erwin, "Luis", "otro", relation_label="primo", nickname=" el Orejón ", nickname_emoji="😂")
+    assert luis["nickname"] == "el Orejón" and luis["nickname_emoji"] == "😂"
+    # Sin apodo no se guarda el emoji
+    otro = add_person(erwin, "Ana", "amistad", nickname_emoji="😂")
+    assert otro["nickname_emoji"] is None
+    # Antes de conectar, Luis no ve nada
+    erwin_id = client.get("/api/connect/lookup", headers=primo, params={"q": "@erwin_g"}).json()["id"]
+    req = client.post("/api/connect/requests", headers=primo, json={"to_user_id": erwin_id, "relation": "familia"}).json()
+    r = client.post(f"/api/connect/requests/{req['id']}/accept", headers=erwin,
+                    json={"relation": "otro", "person_id": luis["id"]})
+    assert r.status_code == 200, r.text
+    seen = client.get(f"/api/connect/opened/{req['id']}", headers=primo).json()["seen_as"]
+    assert seen["name"] == "Erwin González" and seen["nickname"] == "el Orejón" and seen["relation_label"] == "primo"
+    erwin_for_luis = [p for p in client.get("/api/people", headers=primo).json() if p["is_linked"]][0]
+    detail = client.get(f"/api/people/{erwin_for_luis['id']}", headers=primo).json()
+    assert detail["seen_as"]["nickname_emoji"] == "😂"
+    # El apodo que Erwin puso no aparece en la lista de Luis como si fuera suyo
+    assert erwin_for_luis["nickname"] is None
+
+
 def test_rechazar_y_cancelar_solicitud():
     a = register("Ana Uno", "ana1@x.com")
     b = register("Beto Dos", "beto2@x.com")

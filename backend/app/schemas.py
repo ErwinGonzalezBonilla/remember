@@ -92,10 +92,21 @@ class PersonIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     relation: Relation
     relation_label: str | None = Field(default=None, max_length=40)   # "primo", "mejor amigo"… si es "otro"
+    nickname: str | None = Field(default=None, max_length=40)         # apodo cariñoso
+    nickname_emoji: str | None = Field(default=None, max_length=16)
     birth_date: date | None = None
     special_date: date | None = None
     special_label: str | None = Field(default=None, max_length=60)
     note: str | None = Field(default=None, max_length=300)
+
+
+class SeenAs(BaseModel):
+    """Cómo te tiene guardado la otra persona (solo si estáis conectados)."""
+    name: str
+    relation: str
+    relation_label: str | None
+    nickname: str | None
+    nickname_emoji: str | None
 
 
 class PersonOut(BaseModel):
@@ -103,6 +114,9 @@ class PersonOut(BaseModel):
     name: str
     relation: str
     relation_label: str | None = None
+    nickname: str | None = None
+    nickname_emoji: str | None = None
+    seen_as: SeenAs | None = None       # solo en el detalle de una persona conectada
     photo_url: str | None
     birth_date: date | None
     special_date: date | None
@@ -208,6 +222,7 @@ class OpenedOut(BaseModel):
     request: RequestOut
     shared_count: int
     person_id: int | None              # tu persona vinculada con quien te abrió el cofre
+    seen_as: SeenAs | None = None      # cómo te tiene guardado quien te abrió el cofre
 
 
 # ---------- Cápsula del tiempo ----------

@@ -655,3 +655,13 @@ input:disabled { opacity: .65; }
 
 .chips-sm { margin-top: 8px; }
 .chips-sm .chip { font-size: .8rem; padding: 6px 12px; min-height: 0; }
+
+/* Apodos */
+.emoji-chips .chip { font-size: 1.15rem; padding: 4px 10px; }
+.chest-nick { font-family: var(--hand); font-size: 1.35rem; color: var(--coral); }
+.seen-as { display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: var(--radius); background: var(--coral-50); }
+.seen-as .seen-emoji { font-size: 2rem; line-height: 1; }
+.seen-as span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.seen-as small { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--coral); font-weight: 800; }
+.seen-as strong { color: var(--text); font-weight: 700; }
+.reveal-nick { background: rgba(255,255,255,.14); border-radius: 999px; padding: 6px 14px; font-weight: 700; color: #fff !important; }
