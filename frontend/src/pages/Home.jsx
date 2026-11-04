@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
+import Logo from '../components/Logo'
 import { AppShell, Avatar, ErrorBox, PrivateBadge, RELATIONS, Spinner, formatDate, greeting, nextOccurrence } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
@@ -30,6 +31,7 @@ export default function Home() {
     <AppShell>
       <header className="home-head">
         <div>
+          <Logo size={30} tagline={false} className="logo-inline" />
           <p className="muted">{greeting()}, {user.full_name.split(' ')[0]}</p>
           <h1 className="display">Guarda lo que importa.</h1>
         </div>
