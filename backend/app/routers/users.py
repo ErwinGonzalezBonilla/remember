@@ -31,11 +31,19 @@ def update_me(data: UserUpdate, user: User = Depends(get_current_user), db: Sess
     sent = data.model_fields_set
     if "relationship_status" in sent:
         user.relationship_status = data.relationship_status
-    if "partner_name" in sent or "relationship_status" in sent:
+    own = set(db.scalars(select(Person.id).where(Person.owner_id == user.id)))
+    if "partner_name" in sent or "relationship_status" in sent or "partner_person_id" in sent:
+        has_partner = user.relationship_status and user.relationship_status != "soltero"
         name = (data.partner_name or "").strip() or None
-        user.partner_name = name if user.relationship_status and user.relationship_status != "soltero" else None
+        user.partner_name = name if has_partner else None
+        # Solo se puede enlazar a un cofre de tu propia lista
+        user.partner_person_id = data.partner_person_id if has_partner and name and data.partner_person_id in own else None
     if "family" in sent:
         fam = data.family.model_dump() if data.family else {}
+        for members in fam.values():
+            for m in members:
+                if m["person_id"] not in own:
+                    m["person_id"] = None
         fam = {k: v for k, v in fam.items() if v}
         user.family = fam or None
     db.commit()

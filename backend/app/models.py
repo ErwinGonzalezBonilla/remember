@@ -11,7 +11,7 @@
 """
 from datetime import date, datetime, timezone
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Integer, JSON, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -36,7 +36,9 @@ class User(Base):
     # Tu familia (todo opcional): solo lo ven las personas conectadas contigo
     relationship_status: Mapped[str | None] = mapped_column(String(20))  # soltero · relacion · comprometido · casado
     partner_name: Mapped[str | None] = mapped_column(String(80))
-    family: Mapped[dict | None] = mapped_column(JSON)                     # {"parents": [...], "siblings": [...], "children": [...]}
+    partner_person_id: Mapped[int | None] = mapped_column(Integer)        # su cofre en tu lista, si lo enlazas
+    # {"parents": [{"name": "Rosa", "person_id": 3}, ...], "siblings": [...], "children": [...]}
+    family: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     people: Mapped[list["Person"]] = relationship(

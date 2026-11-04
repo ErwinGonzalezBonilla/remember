@@ -681,3 +681,8 @@ input:disabled { opacity: .65; }
 .about-list li { display: flex; gap: 10px; align-items: flex-start; }
 .about-list li > span:first-child { font-size: 1.1rem; line-height: 1.4; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card-title { color: var(--sky); } }
+.people-suggest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.suggest-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; font-size: .85rem; border-style: dashed; }
+.family-link { color: var(--petrol); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--coral); }
+.family-you { color: var(--coral); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .family-link { color: var(--sky); } }

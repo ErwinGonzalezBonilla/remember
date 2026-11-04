@@ -284,7 +284,8 @@ def test_familia_en_el_perfil():
         "partner_name": " Anabel ", "family": {"parents": ["Rosa", " José "], "siblings": [], "children": []}})
     assert r.status_code == 200, r.text
     me = r.json()
-    assert me["partner_name"] == "Anabel" and me["family"] == {"parents": ["Rosa", "José"], "siblings": [], "children": []}
+    assert me["partner_name"] == "Anabel"
+    assert me["family"]["parents"] == [{"name": "Rosa", "person_id": None}, {"name": "José", "person_id": None}]
     # La bienvenida no envía la familia: no se borra
     r = client.patch("/api/me", headers=a, json={"full_name": "Erwin Familia", "username": "erwin_fam"})
     assert r.json()["partner_name"] == "Anabel"
@@ -301,9 +302,50 @@ def test_familia_en_el_perfil():
     req = client.post("/api/connect/requests", headers=b, json={"to_user_id": eid, "relation": "amistad", "person_id": p["id"]}).json()
     client.post(f"/api/connect/requests/{req['id']}/accept", headers=a, json={"relation": "amistad"})
     about = client.get(f"/api/people/{p['id']}", headers=b).json()["about"]
-    assert about["relationship_status"] == "casado" and about["partner_name"] == "Anabel"
-    assert about["family"]["parents"] == ["Rosa", "José"]
+    assert about["relationship_status"] == "casado" and about["partner"]["name"] == "Anabel"
+    assert [m["name"] for m in about["family"]["parents"]] == ["Rosa", "José"]
     assert "email" not in about
+
+
+def _connect(a, a_user, b, relation="familia"):
+    """b envía la solicitud a a (por @usuario) y a la acepta."""
+    aid = client.get("/api/connect/lookup", headers=b, params={"q": f"@{a_user}"}).json()["id"]
+    req = client.post("/api/connect/requests", headers=b, json={"to_user_id": aid, "relation": relation}).json()
+    assert client.post(f"/api/connect/requests/{req['id']}/accept", headers=a, json={"relation": relation}).status_code == 200
+
+
+def test_familia_enlazada_a_cofres():
+    erwin = register("Erwin Enlace", "erwinenl@example.com")
+    client.patch("/api/me", headers=erwin, json={"full_name": "Erwin Enlace", "username": "erwin_enl"})
+    anabel = register("Anabel Enlace", "anabelenl@example.com")
+    client.patch("/api/me", headers=anabel, json={"full_name": "Anabel Enlace", "username": "anabel_enl"})
+    luis = register("Luis Enlace", "luisenl@example.com")
+    client.patch("/api/me", headers=luis, json={"full_name": "Luis Enlace", "username": "luis_enl"})
+    ajena = add_person(luis, "Otra", "amistad")
+    # Erwin conecta con Anabel y con Luis; Luis también conecta con Anabel
+    _connect(erwin, "erwin_enl", anabel, "pareja")
+    _connect(erwin, "erwin_enl", luis)
+    _connect(anabel, "anabel_enl", luis, "amistad")
+    ana_in_erwin = [p for p in client.get("/api/people", headers=erwin).json() if p["name"] == "Anabel Enlace"][0]
+    rosa = add_person(erwin, "Rosa", "padre/madre")
+    r = client.patch("/api/me", headers=erwin, json={
+        "full_name": "Erwin Enlace", "relationship_status": "relacion",
+        "partner_name": "Anabel", "partner_person_id": ana_in_erwin["id"],
+        "family": {"parents": [{"name": "Rosa", "person_id": rosa["id"]}, "José"],
+                   "siblings": [{"name": "Truco", "person_id": ajena["id"]}]}})
+    assert r.status_code == 200, r.text
+    me = r.json()
+    assert me["partner_person_id"] == ana_in_erwin["id"]
+    assert me["family"]["siblings"][0]["person_id"] is None   # no se puede enlazar un cofre ajeno
+    # Luis ve a Erwin: Anabel enlaza a SU cofre de Anabel; Rosa (sin cuenta) no enlaza
+    erwin_in_luis = [p for p in client.get("/api/people", headers=luis).json() if p["name"] == "Erwin Enlace"][0]
+    about = client.get(f"/api/people/{erwin_in_luis['id']}", headers=luis).json()["about"]
+    ana_in_luis = [p for p in client.get("/api/people", headers=luis).json() if p["name"] == "Anabel Enlace"][0]
+    assert about["partner"] == {"name": "Anabel", "person_id": ana_in_luis["id"], "is_you": False}
+    assert about["family"]["parents"][0] == {"name": "Rosa", "person_id": None, "is_you": False}
+    # Anabel ve a Erwin: la pareja es ella
+    erwin_in_ana = [p for p in client.get("/api/people", headers=anabel).json() if p["name"] == "Erwin Enlace"][0]
+    assert client.get(f"/api/people/{erwin_in_ana['id']}", headers=anabel).json()["about"]["partner"]["is_you"] is True
 
 
 def test_rechazar_y_cancelar_solicitud():

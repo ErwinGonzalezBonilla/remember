@@ -2,7 +2,7 @@ import re
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from .security import password_problems
 
@@ -55,23 +55,43 @@ class ChangePasswordIn(BaseModel):
 
 
 RelationshipStatus = Literal["soltero", "relacion", "comprometido", "casado"]
-FamilyName = Annotated[str, AfterValidator(lambda v: v.strip()), Field(min_length=1, max_length=60)]
+class FamilyMember(BaseModel):
+    """Un familiar: su nombre y, si quieres, el cofre de tu lista que le corresponde."""
+    name: Annotated[str, AfterValidator(lambda v: v.strip()), Field(min_length=1, max_length=60)]
+    person_id: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _from_text(cls, v):
+        return {"name": v} if isinstance(v, str) else v   # versión anterior: solo nombres
 
 
 class Family(BaseModel):
-    parents: list[FamilyName] = Field(default_factory=list, max_length=4)
-    siblings: list[FamilyName] = Field(default_factory=list, max_length=15)
-    children: list[FamilyName] = Field(default_factory=list, max_length=15)
+    parents: list[FamilyMember] = Field(default_factory=list, max_length=4)
+    siblings: list[FamilyMember] = Field(default_factory=list, max_length=15)
+    children: list[FamilyMember] = Field(default_factory=list, max_length=15)
+
+
+class AboutMember(BaseModel):
+    """Un familiar visto por otra persona: enlaza a SU propio cofre de esa persona, si lo tiene."""
+    name: str
+    person_id: int | None = None     # id en la lista de quien mira (nunca el del dueño del perfil)
+    is_you: bool = False             # el familiar eres tú
+
+
+class AboutFamily(BaseModel):
+    parents: list[AboutMember] = []
+    siblings: list[AboutMember] = []
+    children: list[AboutMember] = []
 
 
 class AboutOut(BaseModel):
     """Lo que ve de ti una persona conectada contigo."""
-    model_config = ConfigDict(from_attributes=True)
     full_name: str
     bio: str | None = None
     relationship_status: str | None = None
-    partner_name: str | None = None
-    family: Family | None = None
+    partner: AboutMember | None = None
+    family: AboutFamily | None = None
 
 
 class UserOut(BaseModel):
@@ -85,6 +105,7 @@ class UserOut(BaseModel):
     birth_date: date | None = None
     relationship_status: str | None = None
     partner_name: str | None = None
+    partner_person_id: int | None = None
     family: Family | None = None
 
 
@@ -104,6 +125,7 @@ class UserUpdate(BaseModel):
     birth_date: date | None = None
     relationship_status: RelationshipStatus | None = None
     partner_name: str | None = Field(default=None, max_length=80)
+    partner_person_id: int | None = None
     family: Family | None = None
 
 

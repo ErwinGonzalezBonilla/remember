@@ -7,7 +7,7 @@ from .capsules import detach_person
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..models import Memory, MemoryTag, Person, User
-from ..schemas import AboutOut, PersonIn, PersonOut, SeenAs
+from ..schemas import AboutFamily, AboutMember, AboutOut, Family, PersonIn, PersonOut, SeenAs
 from ..storage import save_media
 
 router = APIRouter(prefix="/api/people", tags=["personas"])
@@ -74,8 +74,34 @@ def get_person(person_id: int, user: User = Depends(get_current_user), db: Sessi
     if person.linked_user_id:
         other = db.get(User, person.linked_user_id)
         if other:
-            out.about = AboutOut.model_validate(other)
+            out.about = about(other, user, db)
     return out
+
+
+def about(owner: User, viewer: User, db: Session) -> AboutOut:
+    """Perfil de `owner` visto por `viewer`. Si un familiar de owner está enlazado a una cuenta con la que
+    viewer también está conectado, se enlaza al cofre que viewer tiene de esa persona."""
+    family = Family.model_validate(owner.family or {})
+    ids = {m.person_id for ms in (family.parents, family.siblings, family.children) for m in ms if m.person_id}
+    if owner.partner_person_id:
+        ids.add(owner.partner_person_id)
+    linked = dict(db.execute(select(Person.id, Person.linked_user_id)
+                             .where(Person.id.in_(ids), Person.owner_id == owner.id)).all()) if ids else {}
+    users = {uid for uid in linked.values() if uid}
+    mine = dict(db.execute(select(Person.linked_user_id, Person.id)
+                           .where(Person.owner_id == viewer.id, Person.linked_user_id.in_(users))).all()) if users else {}
+
+    def member(name: str, pid: int | None) -> AboutMember:
+        uid = linked.get(pid)
+        return AboutMember(name=name, is_you=uid == viewer.id, person_id=mine.get(uid) if uid else None)
+
+    has_family = family.parents or family.siblings or family.children
+    return AboutOut(
+        full_name=owner.full_name, bio=owner.bio, relationship_status=owner.relationship_status,
+        partner=member(owner.partner_name, owner.partner_person_id) if owner.partner_name else None,
+        family=AboutFamily(**{k: [member(m.name, m.person_id) for m in getattr(family, k)]
+                              for k in ("parents", "siblings", "children")}) if has_family else None,
+    )
 
 
 def seen_as(owner_id: int | None, viewer_id: int, db: Session) -> SeenAs | None:

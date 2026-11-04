@@ -30,38 +30,82 @@ export function relationshipText(status, partner) {
   const base = { relacion: 'Tiene una relación', comprometido: 'Comprometido/a', casado: 'Casado/a' }[status]
   return partner ? `${base} con ${partner}` : base
 }
+export const relationshipBase = (status) =>
+  ({ soltero: 'Soltero/a', relacion: 'Tiene una relación', comprometido: 'Comprometido/a', casado: 'Casado/a' })[status] || ''
 
-/** Lista de nombres que se añaden uno a uno (padres, hermanos, hijos). */
-export function NameList({ id, value, onChange, placeholder, max }) {
+// Qué personas de tu lista se sugieren en cada parte de tu familia
+export const FAMILY_RELATION = { partner: ['pareja'], parents: ['padre/madre'], siblings: ['hermano/a'], children: ['hijo/a'] }
+
+const norm = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+/** Busca en tu lista una persona con ese nombre (o cuyo nombre empiece igual: "Anabel" → "Anabel Ruiz"). */
+export function matchPerson(name, people = []) {
+  const n = norm(name)
+  if (!n) return null
+  return people.find((p) => norm(p.name) === n) || people.find((p) => norm(p.name).split(' ')[0] === n) || null
+}
+
+/** Lista de familiares: nombre escrito o elegido de tus personas (entonces enlaza a su cofre). */
+export function NameList({ id, value, onChange, placeholder, max, people = [], relations = [] }) {
   const [draft, setDraft] = useState('')
+  const taken = (name, pid) => value.some((v) => (pid && v.person_id === pid) || norm(v.name) === norm(name))
+  const push = (member) => {
+    if (value.length >= max || taken(member.name, member.person_id)) return
+    onChange([...value, member])
+  }
   const add = () => {
     const name = draft.trim()
-    if (!name || value.length >= max || value.some((v) => v.toLowerCase() === name.toLowerCase())) return setDraft('')
-    onChange([...value, name]); setDraft('')
+    if (name) push({ name, person_id: matchPerson(name, people)?.id ?? null })
+    setDraft('')
   }
+  const suggestions = people.filter((p) => relations.includes(p.relation) && !taken(p.name, p.id))
   return (
     <div className="name-list">
       {value.length > 0 && (
         <div className="chips">
-          {value.map((n) => (
-            <span key={n} className="chip active name-chip">
-              {n}
-              <button type="button" aria-label={`Quitar a ${n}`} onClick={() => onChange(value.filter((v) => v !== n))}>×</button>
+          {value.map((m) => (
+            <span key={m.person_id ?? m.name} className="chip active name-chip">
+              {m.person_id && <span aria-label="Enlazado a su cofre" title="Enlazado a su cofre">🔗</span>}
+              {m.name}
+              <button type="button" aria-label={`Quitar a ${m.name}`} onClick={() => onChange(value.filter((v) => v !== m))}>×</button>
             </span>
           ))}
         </div>
       )}
       {value.length < max && (
-        <div className="name-add">
-          <input id={id} value={draft} maxLength={60} placeholder={placeholder}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() } }}
-            onBlur={add} />
-          <button type="button" className="btn btn-ghost btn-sm" onClick={add} disabled={!draft.trim()}>Añadir</button>
-        </div>
+        <>
+          <div className="name-add">
+            <input id={id} value={draft} maxLength={60} placeholder={placeholder}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() } }}
+              onBlur={add} />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={add} disabled={!draft.trim()}>Añadir</button>
+          </div>
+          {suggestions.length > 0 && <PeopleSuggest people={suggestions} onPick={(p) => push({ name: p.name, person_id: p.id })} />}
+        </>
       )}
     </div>
   )
+}
+
+/** "De tus personas: + Anabel + Rosa" */
+export function PeopleSuggest({ people, onPick }) {
+  return (
+    <div className="people-suggest">
+      <small className="muted">De tus personas:</small>
+      {people.map((p) => (
+        <button type="button" key={p.id} className="chip suggest-chip" onClick={() => onPick(p)}>
+          <Avatar name={p.name} src={p.photo_url} size={22} /> {p.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Nombre de un familiar en "Sobre…": enlace a tu cofre de esa persona, "tú", o solo el nombre. */
+export function FamilyName({ member }) {
+  if (member.is_you) return <b className="family-you">tú 💛</b>
+  if (member.person_id) return <Link to={`/personas/${member.person_id}`} className="family-link">{member.name}</Link>
+  return <>{member.name}</>
 }
 
 /* ---------- Apodos ---------- */

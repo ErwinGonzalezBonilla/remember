@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, mediaUrl } from '../api/client'
 import Icon from '../components/Icon'
-import { AppShell, ErrorBox, FAMILY_GROUPS, Field, NameList, RELATIONSHIP, TopBar } from '../components/ui'
+import { AppShell, ErrorBox, FAMILY_GROUPS, FAMILY_RELATION, Field, NameList, PeopleSuggest, RELATIONSHIP, TopBar, matchPerson } from '../components/ui'
+import { useApi } from '../hooks'
 import { useAuth } from '../context/AuthContext'
 import { compressImage, tooBig } from '../media'
 
@@ -26,8 +27,10 @@ export default function Profile({ onboarding = false }) {
     full_name: user.full_name, bio: user.bio || '', birth_date: user.birth_date || '',
     username: user.username || suggestUsername(user.full_name),
     relationship_status: user.relationship_status || '', partner_name: user.partner_name || '',
+    partner_person_id: user.partner_person_id || null,
     family: { parents: [], siblings: [], children: [], ...(user.family || {}) },
   })
+  const { data: people } = useApi(onboarding ? null : '/api/people')
   const setFamily = (k) => (list) => { setForm((f) => ({ ...f, family: { ...f.family, [k]: list } })); setSaved(false) }
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -70,6 +73,7 @@ export default function Profile({ onboarding = false }) {
           ...(onboarding ? {} : {
             relationship_status: form.relationship_status || null,
             partner_name: form.relationship_status && form.relationship_status !== 'soltero' ? form.partner_name.trim() || null : null,
+            partner_person_id: form.partner_name.trim() ? form.partner_person_id : null,
             family: form.family,
           }),
         },
@@ -174,13 +178,23 @@ export default function Profile({ onboarding = false }) {
               </div>
             </Field>
             {form.relationship_status && form.relationship_status !== 'soltero' && (
-              <Field label="¿Con quién?" htmlFor="pp">
-                <input id="pp" value={form.partner_name} onChange={set('partner_name')} maxLength={80} placeholder="Anabel" />
+              <Field label="¿Con quién?" htmlFor="pp" hint={form.partner_person_id ? '🔗 Enlazado a su cofre' : undefined}>
+                <input id="pp" value={form.partner_name} maxLength={80} placeholder="Anabel"
+                  onChange={(e) => {
+                    const partner_name = e.target.value
+                    setForm((f) => ({ ...f, partner_name, partner_person_id: matchPerson(partner_name, people)?.id ?? null }))
+                    setSaved(false)
+                  }} />
+                {!form.partner_person_id && people?.some((p) => FAMILY_RELATION.partner.includes(p.relation)) && (
+                  <PeopleSuggest people={people.filter((p) => FAMILY_RELATION.partner.includes(p.relation))}
+                    onPick={(p) => { setForm((f) => ({ ...f, partner_name: p.name, partner_person_id: p.id })); setSaved(false) }} />
+                )}
               </Field>
             )}
             {FAMILY_GROUPS.map(([key, label, placeholder, max]) => (
               <Field key={key} label={label} htmlFor={`fam-${key}`}>
-                <NameList id={`fam-${key}`} value={form.family[key]} onChange={setFamily(key)} placeholder={placeholder} max={max} />
+                <NameList id={`fam-${key}`} value={form.family[key]} onChange={setFamily(key)} placeholder={placeholder} max={max}
+                  people={people || []} relations={FAMILY_RELATION[key]} />
               </Field>
             ))}
           </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { relationText, relationshipText, seenAsText, FAMILY_GROUPS, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { relationText, relationshipBase, seenAsText, FAMILY_GROUPS, FamilyName, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
@@ -65,11 +65,15 @@ export default function PersonChest() {
           {person.about.bio && <p className="muted">“{person.about.bio}”</p>}
           <ul className="about-list">
             {person.about.relationship_status && (
-              <li><span aria-hidden="true">💞</span>{relationshipText(person.about.relationship_status, person.about.partner_name)}</li>
+              <li><span aria-hidden="true">💞</span>
+                <span>{relationshipBase(person.about.relationship_status)}
+                  {person.about.partner && <> con <FamilyName member={person.about.partner} /></>}</span></li>
             )}
             {FAMILY_GROUPS.map(([key, label]) => person.about.family?.[key]?.length > 0 && (
               <li key={key}><span aria-hidden="true">{{ parents: '👪', siblings: '🤝', children: '🧒' }[key]}</span>
-                <span><b>{label}:</b> {person.about.family[key].join(', ')}</span></li>
+                <span><b>{label}:</b> {person.about.family[key].map((m, i) => (
+                  <span key={i}>{i > 0 && ', '}<FamilyName member={m} /></span>
+                ))}</span></li>
             ))}
           </ul>
         </section>
