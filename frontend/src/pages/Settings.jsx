@@ -104,7 +104,11 @@ export default function Settings() {
         <ListRow icon="logout" title="Cerrar sesión" onClick={() => { logout(); navigate('/login', { replace: true }) }} />
         <ListRow icon="trash" title="Eliminar cuenta" subtitle="Borra tu cuenta de forma permanente" danger onClick={deleteAccount} />
       </div>
-      <p className="handwritten center">Simple. Seguro. Tuyo. ♡</p>
+      <footer className="about-brand">
+        <img src="/brand/about.png" alt="Rehomi" width="64" height="64" />
+        <small>Conecta · Guarda · Siempre</small>
+        <p className="handwritten">Simple. Seguro. Tuyo. ♡</p>
+      </footer>
     </AppShell>
   )
 }

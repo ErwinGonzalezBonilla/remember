@@ -89,8 +89,9 @@ export default function Profile({ onboarding = false }) {
     <AppShell nav={!onboarding}>
       {onboarding ? (
         <header className="onboarding-head">
+          <img src="/brand/welcome.png" alt="Rehomi" className="brand-badge" width="88" height="88" />
           <span className="step-pill">Paso 1 de 2 · Tu perfil</span>
-          <h1 className="display">¡Bienvenido a REHOMI, {user.full_name.split(' ')[0]}!</h1>
+          <h1 className="display">¡Bienvenido a Rehomi, {user.full_name.split(' ')[0]}!</h1>
           <p className="muted">Preséntate en un momento. Después podrás guardar tu primer recuerdo.</p>
         </header>
       ) : (

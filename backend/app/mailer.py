@@ -17,10 +17,12 @@ log = logging.getLogger("rehomi.mail")
 PETROL = "#0F4C5C"
 CORAL = "#FF6B6B"
 SAND = "#FBF6EE"
+LOGO_BG = "#083D4A"  # mismo fondo que la imagen del logo
 
 
 def layout(title: str, paragraphs: list[str], button: tuple[str, str] | None = None, footer: str = "") -> str:
     """Plantilla HTML común. `paragraphs` ya vienen escapados o con HTML seguro."""
+    logo_url = f"{settings.origins[0]}/brand/email.png" if settings.origins else ""
     body = "".join(f'<p style="margin:0 0 14px;font-size:16px;line-height:1.55;color:#17323A">{p}</p>' for p in paragraphs)
     cta = ""
     if button:
@@ -31,11 +33,12 @@ def layout(title: str, paragraphs: list[str], button: tuple[str, str] | None = N
 <body style="margin:0;background:{SAND};font-family:Arial,Helvetica,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{SAND};padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:18px;overflow:hidden">
-<tr><td style="background:{PETROL};padding:20px 28px;color:#fff;font-size:22px;font-weight:800;letter-spacing:1px">
-<span style="color:{CORAL}">&#9829;</span> REHOMI<div style="font-size:11px;font-weight:600;letter-spacing:3px;opacity:.8;margin-top:4px">CONECTA · GUARDA · SIEMPRE</div></td></tr>
+<tr><td style="background:{LOGO_BG};padding:16px 20px 18px;color:#fff;font-size:22px;font-weight:800">
+<img src="{escape(logo_url)}" width="240" height="80" alt="Rehomi" style="display:block;border:0;width:240px;height:auto;color:#fff;font-size:24px;font-weight:800">
+<div style="font-size:11px;font-weight:600;letter-spacing:3px;opacity:.8;margin:2px 0 0 12px">CONECTA · GUARDA · SIEMPRE</div></td></tr>
 <tr><td style="padding:28px">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;color:{PETROL}">{escape(title)}</h1>{body}{cta}
-<p style="margin:20px 0 0;font-size:13px;color:#5B7179">{footer or "Recibes este correo porque tienes una cuenta en REHOMI."}</p>
+<p style="margin:20px 0 0;font-size:13px;color:#5B7179">{footer or "Recibes este correo porque tienes una cuenta en Rehomi."}</p>
 </td></tr></table></td></tr></table></body></html>"""
 
 

@@ -23,7 +23,7 @@ export default function ChestOpened() {
     <AppShell nav={false}>
       <section className="reveal">
         <Avatar name={other.full_name} src={other.avatar_url} size={72} />
-        <span className="reveal-gift"><Icon name="gift" size={34} /></span>
+        <img src="/brand/coral.png" alt="" className="reveal-gift" width="56" height="56" />
         <h1>{data.shared_count > 0 ? '¡Tu cofre se ha abierto!' : '¡Ya estáis conectados!'}</h1>
         <p>
           {data.shared_count > 0

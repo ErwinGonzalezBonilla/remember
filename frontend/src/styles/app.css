@@ -546,7 +546,7 @@ input:disabled { opacity: .65; }
   background: linear-gradient(170deg, var(--petrol), #2C7A8C); display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 .reveal .avatar { box-shadow: 0 0 0 4px rgba(255,255,255,.35); }
-.reveal-gift { width: 56px; height: 56px; border-radius: 50%; background: var(--coral); display: grid; place-items: center; margin-top: -28px; margin-left: 56px; border: 3px solid var(--petrol); animation: pop .6s ease-out both; }
+.reveal-gift { width: 56px; height: 56px; border-radius: 16px; margin-top: -28px; margin-left: 56px; border: 3px solid var(--petrol); animation: pop .6s ease-out both; }
 .reveal h1 { font-size: 1.6rem; font-weight: 800; color: #fff; }
 .reveal p { color: #E3EEF1; max-width: 34ch; }
 @keyframes pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
@@ -641,3 +641,14 @@ input:disabled { opacity: .65; }
   :root:not([data-theme="light"]) .capsule-status { color: var(--sky) !important; }
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .create-grid strong, :root:not([data-theme="light"]) .create-sheet h2 { color: var(--sky); } }
+
+/* ---------- Marca ---------- */
+.splash img { border-radius: 24px; animation: splash-pulse 1.6s ease-in-out infinite; }
+@keyframes splash-pulse { 50% { transform: scale(.94); opacity: .85; } }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.brand-badge { border-radius: 22px; box-shadow: var(--shadow); }
+.about-brand { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; padding: 12px 0 4px; }
+.about-brand img { border-radius: 16px; margin-bottom: 8px; }
+.about-brand small { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: var(--text-2); }
+.about-brand .handwritten { margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .splash img { animation: none; } }

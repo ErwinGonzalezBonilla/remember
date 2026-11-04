@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { Spinner } from './components/ui'
+import { Splash } from './components/Logo'
 import { useAuth } from './context/AuthContext'
 import CalendarPage from './pages/CalendarPage'
 import Home from './pages/Home'
@@ -25,7 +25,7 @@ import PersonForm from './pages/people/PersonForm'
 function Private({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
-  if (loading) return <div className="center-screen"><Spinner /></div>
+  if (loading) return <Splash />
   // Si llega desde un enlace de invitación sin sesión, vuelve ahí tras entrar.
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return children
@@ -34,7 +34,7 @@ function Private({ children }) {
 function PublicOnly({ children }) {
   const { user, loading, isNew } = useAuth()
   const location = useLocation()
-  if (loading) return <div className="center-screen"><Spinner /></div>
+  if (loading) return <Splash />
   if (!user) return children
   const from = location.state?.from || '/'
   // Recién registrado → primero su perfil; después sigue a donde iba (p. ej. un enlace de invitación).

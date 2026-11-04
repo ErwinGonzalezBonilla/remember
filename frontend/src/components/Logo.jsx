@@ -10,3 +10,13 @@ export default function Logo({ size = 48, tagline = true, className = '' }) {
     </div>
   )
 }
+
+// Pantalla de carga al abrir la app.
+export function Splash() {
+  return (
+    <div className="center-screen splash" role="status">
+      <img src="/brand/splash.png" alt="" width="96" height="96" />
+      <span className="sr-only">Cargando…</span>
+    </div>
+  )
+}
