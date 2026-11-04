@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
 import Logo from '../components/Logo'
-import { AppShell, Avatar, ErrorBox, PrivateBadge, RELATIONS, Spinner, formatDate, greeting, nextOccurrence } from '../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, PrivateBadge, RELATIONS, Spinner, formatDate, greeting, nextOccurrence } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
 import { remainingText } from './capsules/capsuleUtils'
@@ -48,7 +48,7 @@ export default function Home() {
           <Link key={p.id} to={`/personas/${p.id}`} className={`story ${p.is_linked ? '' : 'locked'}`}>
             <Avatar name={p.name} src={p.photo_url} size={58} />
             <span>{p.name.split(' ')[0]}</span>
-            <small>{RELATIONS[p.relation] || p.relation}{!p.is_linked && ' · 🔒'}</small>
+            <small>{relationText(p)}{!p.is_linked && ' · 🔒'}</small>
           </Link>
         ))}
       </div>

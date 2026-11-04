@@ -23,7 +23,7 @@ def to_out(memory: Memory, user: User) -> MemoryOut:
         id=memory.id, kind=memory.kind, title=memory.title, description=memory.description,
         media_url=memory.media_url, location=memory.location, happened_on=memory.happened_on,
         created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
-        people=[PersonTag(id=t.person.id, name=t.person.name, relation=t.person.relation,
+        people=[PersonTag(id=t.person.id, name=t.person.name, relation=t.person.relation, relation_label=t.person.relation_label,
                           photo_url=t.person.photo_url) for t in memory.tags],
         reactions=dict(counts), my_reaction=mine, comment_count=len(memory.comments),
         can_edit=memory.author_id == user.id,

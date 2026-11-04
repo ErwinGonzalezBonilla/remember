@@ -91,6 +91,7 @@ class TokenOut(BaseModel):
 class PersonIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     relation: Relation
+    relation_label: str | None = Field(default=None, max_length=40)   # "primo", "mejor amigo"… si es "otro"
     birth_date: date | None = None
     special_date: date | None = None
     special_label: str | None = Field(default=None, max_length=60)
@@ -101,6 +102,7 @@ class PersonOut(BaseModel):
     id: int
     name: str
     relation: str
+    relation_label: str | None = None
     photo_url: str | None
     birth_date: date | None
     special_date: date | None
@@ -116,6 +118,7 @@ class PersonTag(BaseModel):
     id: int
     name: str
     relation: str
+    relation_label: str | None = None
     photo_url: str | None
 
 

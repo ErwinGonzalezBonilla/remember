@@ -5,7 +5,7 @@ import Icon from '../../components/Icon'
 import { AppShell, ErrorBox, Field, RELATIONS, Spinner, TopBar } from '../../components/ui'
 import { compressImage } from '../../media'
 
-const EMPTY = { name: '', relation: 'familia', birth_date: '', special_date: '', special_label: '', note: '' }
+const EMPTY = { name: '', relation: 'familia', relation_label: '', birth_date: '', special_date: '', special_label: '', note: '' }
 
 /** Crear o editar una persona (sin cuenta necesaria). */
 export default function PersonForm() {
@@ -28,7 +28,7 @@ export default function PersonForm() {
     api(`/api/people/${id}`)
       .then((p) => {
         setForm({
-          name: p.name, relation: p.relation, birth_date: p.birth_date || '', special_date: p.special_date || '',
+          name: p.name, relation: p.relation, relation_label: p.relation_label || '', birth_date: p.birth_date || '', special_date: p.special_date || '',
           special_label: p.special_label || '', note: p.note || '',
         })
         setPhotoUrl(p.photo_url)
@@ -53,6 +53,7 @@ export default function PersonForm() {
       ...form,
       birth_date: form.birth_date || null, special_date: form.special_date || null,
       special_label: form.special_label || null, note: form.note || null,
+      relation_label: form.relation === 'otro' ? form.relation_label.trim() || null : null,
     }
     try {
       const person = await api(editing ? `/api/people/${id}` : '/api/people', { method: editing ? 'PUT' : 'POST', body })
@@ -118,6 +119,18 @@ export default function PersonForm() {
               ))}
             </div>
           </Field>
+          {form.relation === 'otro' && (
+            <Field label="¿Qué es para ti?" htmlFor="rl" hint="Así aparecerá en su cofre y en tus recuerdos.">
+              <input id="rl" value={form.relation_label} onChange={set('relation_label')} maxLength={40}
+                placeholder="Primo, mejor amigo, hermana favorita…" />
+              <div className="chips chips-sm">
+                {['Primo/a', 'Tío/a', 'Sobrino/a', 'Mejor amigo/a', 'Padrino/Madrina', 'Ahijado/a'].map((s) => (
+                  <button type="button" key={s} className={`chip ${form.relation_label === s ? 'active' : ''}`}
+                    onClick={() => setForm((f) => ({ ...f, relation_label: s }))}>{s}</button>
+                ))}
+              </div>
+            </Field>
+          )}
           <Field label="Cumpleaños (opcional)" htmlFor="b">
             <input id="b" type="date" value={form.birth_date} onChange={set('birth_date')} />
           </Field>

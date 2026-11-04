@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
-import { AppShell, Avatar, ErrorBox, Field, RELATIONS, Spinner, TopBar, formatDate } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar, formatDate } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 
@@ -137,7 +137,7 @@ export default function MemoryDetail() {
               <div className="tagged">
                 {m.people.map((p) => (
                   isAuthor
-                    ? <Link key={p.id} to={`/personas/${p.id}`} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{p.name}<small>{RELATIONS[p.relation]}</small></Link>
+                    ? <Link key={p.id} to={`/personas/${p.id}`} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{p.name}<small>{relationText(p)}</small></Link>
                     : <span key={p.id} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{p.name}</span>
                 ))}
               </div>

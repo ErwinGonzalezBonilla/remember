@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { AppShell, Avatar, EmptyState, ErrorBox, RELATIONS, Spinner } from '../../components/ui'
+import { relationText, AppShell, Avatar, EmptyState, ErrorBox, RELATIONS, Spinner } from '../../components/ui'
 import { useApi } from '../../hooks'
 
 export default function PeopleList() {
@@ -44,7 +44,7 @@ export default function PeopleList() {
           <Link key={p.id} to={`/personas/${p.id}`} className="person-card">
             <Avatar name={p.name} src={p.photo_url} size={60} />
             <div className="person-info">
-              <small className="eyebrow">{RELATIONS[p.relation] || p.relation}</small>
+              <small className="eyebrow">{relationText(p)}</small>
               <strong>{p.name}</strong>
               <small className="muted">
                 {p.memory_count} {p.memory_count === 1 ? 'recuerdo' : 'recuerdos'} ·{' '}

@@ -56,6 +56,7 @@ class Person(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120))
     relation: Mapped[str] = mapped_column(String(30))
+    relation_label: Mapped[str | None] = mapped_column(String(40))  # texto libre cuando relation = "otro"
     photo_url: Mapped[str | None] = mapped_column(String(500))
     birth_date: Mapped[date | None] = mapped_column(Date)
     special_date: Mapped[date | None] = mapped_column(Date)       # aniversario, el día que os conocisteis…

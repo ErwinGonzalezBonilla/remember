@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api/client'
 import Icon from './Icon'
-import { Avatar, RELATIONS } from './ui'
+import { relationText, Avatar, RELATIONS } from './ui'
 
 /**
  * "¿Con quién es este recuerdo?": elige personas de tu lista o crea una nueva sin salir de la pantalla.
@@ -38,7 +38,7 @@ export default function PeoplePicker({ people, setPeople, selected, onChange }) 
         return (
           <button type="button" key={p.id} className={`tagchip ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(p.id)}>
             <Avatar name={p.name} src={p.photo_url} size={34} />
-            <span>{p.name} <small>· {RELATIONS[p.relation] || p.relation}{p.is_linked && ' · 🔓 lo verá'}</small></span>
+            <span>{p.name} <small>· {relationText(p)}{p.is_linked && ' · 🔓 lo verá'}</small></span>
             <span className="tag-check">{on && <Icon name="check" size={18} />}</span>
           </button>
         )

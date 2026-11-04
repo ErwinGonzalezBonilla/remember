@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import Icon from '../../components/Icon'
-import { AppShell, Avatar, ErrorBox, Field, RELATIONS, Spinner, TopBar } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Field, RELATIONS, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
 
 /** Revisar una solicitud: quién es para mí, con qué persona de mi lista la vinculo, y aceptar. */
@@ -97,7 +97,7 @@ export default function RequestReview() {
                   <button type="button" key={p.id} className={`tagchip ${personId === String(p.id) ? 'on' : ''}`}
                     aria-pressed={personId === String(p.id)} onClick={() => { setPersonId(String(p.id)); if (!relation) setRelation(p.relation) }}>
                     <Avatar name={p.name} src={p.photo_url} size={34} />
-                    <span>{p.name} <small>· {RELATIONS[p.relation]} · {p.memory_count} recuerdos</small></span>
+                    <span>{p.name} <small>· {relationText(p)} · {p.memory_count} recuerdos</small></span>
                     <span className="tag-check">{personId === String(p.id) && <Icon name="check" size={18} />}</span>
                   </button>
                 ))}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
 import Icon from '../../components/Icon'
-import { AppShell, Avatar, ErrorBox, Field, RELATIONS, TopBar } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Field, RELATIONS, TopBar } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 
@@ -145,7 +145,7 @@ export default function ConnectPage() {
               <select id="pp" value={personId} onChange={(e) => setPersonId(e.target.value)}>
                 <option value="">No, añádela como nueva</option>
                 {unlinked.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} · {RELATIONS[p.relation]} · {p.memory_count} recuerdos</option>
+                  <option key={p.id} value={p.id}>{p.name} · {relationText(p)} · {p.memory_count} recuerdos</option>
                 ))}
               </select>
             </Field>

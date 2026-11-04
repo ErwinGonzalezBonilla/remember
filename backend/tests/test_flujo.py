@@ -109,6 +109,18 @@ def test_personas_recuerdos_y_cofre():
     assert [p["name"] for p in r["people"]] == ["Allison"]
 
 
+def test_relacion_personalizada():
+    h = register("Rosa", "rosa@example.com")
+    p = add_person(h, "Dani", "otro", relation_label="  mejor amigo ")
+    assert p["relation"] == "otro" and p["relation_label"] == "mejor amigo"
+    # Si deja de ser "otro", el texto libre se borra
+    r = client.put(f"/api/people/{p['id']}", headers=h, json={"name": "Dani", "relation": "amistad", "relation_label": "primo"})
+    assert r.status_code == 200, r.text
+    assert r.json()["relation_label"] is None
+    m = save(h, "Cumple", people=[add_person(h, "Leo", "otro", relation_label="primo")])
+    assert m["people"][0]["relation_label"] == "primo"
+
+
 def test_privacidad():
     felix = register("Félix P", "felixp@x.com")
     otro = register("Otro", "otro@x.com")

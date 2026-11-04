@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
-import { AppShell, Avatar, ErrorBox, Field, RELATIONS, Spinner, TopBar } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
 import { MAX_UPLOAD_MB, compressImage, tooBig } from '../../media'
 import { countsText, openDateText } from './capsuleUtils'
@@ -150,7 +150,7 @@ export default function CapsuleForm() {
                 <button type="button" key={p.id} role="radio" aria-checked={on} className={`tagchip ${on ? 'on' : ''}`}
                   onClick={() => setForm((f) => ({ ...f, person_id: p.id }))}>
                   <Avatar name={p.name} src={p.photo_url} size={34} />
-                  <span>{p.name} <small>· {RELATIONS[p.relation] || p.relation}</small></span>
+                  <span>{p.name} <small>· {relationText(p)}</small></span>
                   <span className="tag-check">{on && <Icon name="check" size={18} />}</span>
                 </button>
               )

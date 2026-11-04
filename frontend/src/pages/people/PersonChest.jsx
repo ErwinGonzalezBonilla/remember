@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { AppShell, Avatar, ErrorBox, RELATIONS, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
@@ -41,7 +41,7 @@ export default function PersonChest() {
         <Avatar name={person.name} src={person.photo_url} size={84} />
         <h1>El cofre de {first}</h1>
         <span className="muted">
-          {RELATIONS[person.relation] || person.relation} · {person.memory_count}{' '}
+          {relationText(person)} · {person.memory_count}{' '}
           {person.memory_count === 1 ? 'recuerdo' : 'recuerdos'}
           {since && ` desde ${(since.happened_on || since.created_at).slice(0, 4)}`}
         </span>

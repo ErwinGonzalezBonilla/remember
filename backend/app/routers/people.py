@@ -28,7 +28,7 @@ def _stats(db: Session, person_ids: list[int]) -> dict[int, tuple[int, object]]:
 def serialize(p: Person, stats: dict) -> PersonOut:
     count, last = stats.get(p.id, (0, None))
     return PersonOut(
-        id=p.id, name=p.name, relation=p.relation, photo_url=p.photo_url, birth_date=p.birth_date,
+        id=p.id, name=p.name, relation=p.relation, relation_label=p.relation_label, photo_url=p.photo_url, birth_date=p.birth_date,
         special_date=p.special_date, special_label=p.special_label, note=p.note,
         is_linked=p.linked_user_id is not None, memory_count=count, last_memory_at=last, created_at=p.created_at,
     )
@@ -37,8 +37,10 @@ def serialize(p: Person, stats: dict) -> PersonOut:
 def _clean(data: PersonIn) -> dict:
     d = data.model_dump()
     d["name"] = d["name"].strip()
-    for k in ("special_label", "note"):
+    for k in ("special_label", "note", "relation_label"):
         d[k] = (d[k] or "").strip() or None
+    if d["relation"] != "otro":
+        d["relation_label"] = None
     return d
 
 

@@ -10,6 +10,11 @@ export const RELATIONS = {
   'abuelo/a': 'Abuelo/a', familia: 'Familia', amistad: 'Amistad', 'compañero/a': 'Compañero/a', otro: 'Otro',
 }
 
+/** Cómo se muestra quién es una persona: el texto libre si eligió "Otro" (primo, mejor amigo…). */
+export function relationText(p) {
+  return (p?.relation === 'otro' && p.relation_label) || RELATIONS[p?.relation] || p?.relation || ''
+}
+
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
 // Las fechas "YYYY-MM-DD" se parsean en local (no en UTC) para que no cambie el día.
