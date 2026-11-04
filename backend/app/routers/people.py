@@ -7,7 +7,7 @@ from .capsules import detach_person
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..models import Memory, MemoryTag, Person, User
-from ..schemas import PersonIn, PersonOut, SeenAs
+from ..schemas import AboutOut, PersonIn, PersonOut, SeenAs
 from ..storage import save_media
 
 router = APIRouter(prefix="/api/people", tags=["personas"])
@@ -71,6 +71,10 @@ def get_person(person_id: int, user: User = Depends(get_current_user), db: Sessi
     person = get_own_person(person_id, user, db)
     out = serialize(person, _stats(db, [person.id]))
     out.seen_as = seen_as(person.linked_user_id, user.id, db)
+    if person.linked_user_id:
+        other = db.get(User, person.linked_user_id)
+        if other:
+            out.about = AboutOut.model_validate(other)
     return out
 
 

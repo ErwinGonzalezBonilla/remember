@@ -15,6 +15,55 @@ export function relationText(p) {
   return (p?.relation === 'otro' && p.relation_label) || RELATIONS[p?.relation] || p?.relation || ''
 }
 
+/* ---------- Familia (perfil) ---------- */
+export const RELATIONSHIP = [
+  ['soltero', 'Soltero/a'], ['relacion', 'En una relación'], ['comprometido', 'Comprometido/a'], ['casado', 'Casado/a'],
+]
+export const FAMILY_GROUPS = [
+  ['parents', 'Padres', 'Rosa, José…', 4], ['siblings', 'Hermanos', 'Laura, Diego…', 15], ['children', 'Hijos', 'Allison…', 15],
+]
+
+/** "Tiene una relación con Anabel", "Casado/a con Anabel"… */
+export function relationshipText(status, partner) {
+  if (!status) return ''
+  if (status === 'soltero') return 'Soltero/a'
+  const base = { relacion: 'Tiene una relación', comprometido: 'Comprometido/a', casado: 'Casado/a' }[status]
+  return partner ? `${base} con ${partner}` : base
+}
+
+/** Lista de nombres que se añaden uno a uno (padres, hermanos, hijos). */
+export function NameList({ id, value, onChange, placeholder, max }) {
+  const [draft, setDraft] = useState('')
+  const add = () => {
+    const name = draft.trim()
+    if (!name || value.length >= max || value.some((v) => v.toLowerCase() === name.toLowerCase())) return setDraft('')
+    onChange([...value, name]); setDraft('')
+  }
+  return (
+    <div className="name-list">
+      {value.length > 0 && (
+        <div className="chips">
+          {value.map((n) => (
+            <span key={n} className="chip active name-chip">
+              {n}
+              <button type="button" aria-label={`Quitar a ${n}`} onClick={() => onChange(value.filter((v) => v !== n))}>×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      {value.length < max && (
+        <div className="name-add">
+          <input id={id} value={draft} maxLength={60} placeholder={placeholder}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() } }}
+            onBlur={add} />
+          <button type="button" className="btn btn-ghost btn-sm" onClick={add} disabled={!draft.trim()}>Añadir</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ---------- Apodos ---------- */
 export const NICK_EMOJIS = ['😂', '🥰', '😎', '🤗', '😜', '👑', '🐻', '❤️']
 

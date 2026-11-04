@@ -27,6 +27,17 @@ def update_me(data: UserUpdate, user: User = Depends(get_current_user), db: Sess
         user.username = data.username
     user.bio = (data.bio or "").strip() or None
     user.birth_date = data.birth_date
+    # La familia solo se toca si viene en la petición (la bienvenida no la envía)
+    sent = data.model_fields_set
+    if "relationship_status" in sent:
+        user.relationship_status = data.relationship_status
+    if "partner_name" in sent or "relationship_status" in sent:
+        name = (data.partner_name or "").strip() or None
+        user.partner_name = name if user.relationship_status and user.relationship_status != "soltero" else None
+    if "family" in sent:
+        fam = data.family.model_dump() if data.family else {}
+        fam = {k: v for k, v in fam.items() if v}
+        user.family = fam or None
     db.commit()
     return user
 

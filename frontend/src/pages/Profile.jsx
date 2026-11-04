@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, mediaUrl } from '../api/client'
 import Icon from '../components/Icon'
-import { AppShell, ErrorBox, Field, TopBar } from '../components/ui'
+import { AppShell, ErrorBox, FAMILY_GROUPS, Field, NameList, RELATIONSHIP, TopBar } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { compressImage, tooBig } from '../media'
 
@@ -25,7 +25,10 @@ export default function Profile({ onboarding = false }) {
   const [form, setForm] = useState({
     full_name: user.full_name, bio: user.bio || '', birth_date: user.birth_date || '',
     username: user.username || suggestUsername(user.full_name),
+    relationship_status: user.relationship_status || '', partner_name: user.partner_name || '',
+    family: { parents: [], siblings: [], children: [], ...(user.family || {}) },
   })
+  const setFamily = (k) => (list) => { setForm((f) => ({ ...f, family: { ...f.family, [k]: list } })); setSaved(false) }
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [removePhoto, setRemovePhoto] = useState(false)
@@ -61,7 +64,15 @@ export default function Profile({ onboarding = false }) {
     try {
       let updated = await api('/api/me', {
         method: 'PATCH',
-        body: { full_name: form.full_name, username: username || null, bio: form.bio || null, birth_date: form.birth_date || null },
+        body: {
+          full_name: form.full_name, username: username || null, bio: form.bio || null, birth_date: form.birth_date || null,
+          // En la bienvenida no se envía la familia: se rellena después desde "Mi perfil"
+          ...(onboarding ? {} : {
+            relationship_status: form.relationship_status || null,
+            partner_name: form.relationship_status && form.relationship_status !== 'soltero' ? form.partner_name.trim() || null : null,
+            family: form.family,
+          }),
+        },
       })
       if (file) {
         const fd = new FormData()
@@ -146,6 +157,34 @@ export default function Profile({ onboarding = false }) {
             </Field>
           )}
         </div>
+
+        {!onboarding && (
+          <div className="card stack">
+            <div>
+              <h2 className="card-title">Tu familia <small className="muted">(todo opcional)</small></h2>
+              <p className="muted small">Rellena solo lo que quieras contar. Lo verán las personas con las que te conectes.</p>
+            </div>
+            <Field label="Pareja" htmlFor="rs">
+              <div className="chips" id="rs" role="radiogroup">
+                {[['', 'Prefiero no decirlo'], ...RELATIONSHIP].map(([value, label]) => (
+                  <button type="button" key={value || 'none'} role="radio" aria-checked={form.relationship_status === value}
+                    className={`chip ${form.relationship_status === value ? 'active' : ''}`}
+                    onClick={() => { setForm((f) => ({ ...f, relationship_status: value })); setSaved(false) }}>{label}</button>
+                ))}
+              </div>
+            </Field>
+            {form.relationship_status && form.relationship_status !== 'soltero' && (
+              <Field label="¿Con quién?" htmlFor="pp">
+                <input id="pp" value={form.partner_name} onChange={set('partner_name')} maxLength={80} placeholder="Anabel" />
+              </Field>
+            )}
+            {FAMILY_GROUPS.map(([key, label, placeholder, max]) => (
+              <Field key={key} label={label} htmlFor={`fam-${key}`}>
+                <NameList id={`fam-${key}`} value={form.family[key]} onChange={setFamily(key)} placeholder={placeholder} max={max} />
+              </Field>
+            ))}
+          </div>
+        )}
 
         <div className="private-note">
           <Icon name="shield" size={20} />

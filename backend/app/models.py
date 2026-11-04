@@ -11,7 +11,7 @@
 """
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -33,6 +33,10 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     bio: Mapped[str | None] = mapped_column(String(160))
     birth_date: Mapped[date | None] = mapped_column(Date)
+    # Tu familia (todo opcional): solo lo ven las personas conectadas contigo
+    relationship_status: Mapped[str | None] = mapped_column(String(20))  # soltero · relacion · comprometido · casado
+    partner_name: Mapped[str | None] = mapped_column(String(80))
+    family: Mapped[dict | None] = mapped_column(JSON)                     # {"parents": [...], "siblings": [...], "children": [...]}
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     people: Mapped[list["Person"]] = relationship(

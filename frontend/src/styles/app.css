@@ -665,3 +665,19 @@ input:disabled { opacity: .65; }
 .seen-as small { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--coral); font-weight: 800; }
 .seen-as strong { color: var(--text); font-weight: 700; }
 .reveal-nick { background: rgba(255,255,255,.14); border-radius: 999px; padding: 6px 14px; font-weight: 700; color: #fff !important; }
+
+/* Familia en el perfil */
+.card-title { font-size: 1.05rem; font-weight: 800; color: var(--petrol); }
+.card-title small { font-weight: 600; font-size: .8rem; }
+.small { font-size: .85rem; }
+.name-list { display: flex; flex-direction: column; gap: 8px; }
+.name-add { display: flex; gap: 8px; }
+.name-add input { flex: 1; min-width: 0; }
+.btn-sm { min-height: 46px; padding: 0 14px; width: auto; flex: none; }
+.name-chip { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }
+.name-chip button { background: rgba(255,255,255,.2); border: 0; color: inherit; width: 22px; height: 22px; border-radius: 50%; font-size: 1rem; line-height: 1; cursor: pointer; }
+.about-card { display: flex; flex-direction: column; gap: 8px; }
+.about-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.about-list li { display: flex; gap: 10px; align-items: flex-start; }
+.about-list li > span:first-child { font-size: 1.1rem; line-height: 1.4; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card-title { color: var(--sky); } }

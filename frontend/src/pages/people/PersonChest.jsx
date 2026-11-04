@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { relationText, relationshipText, seenAsText, FAMILY_GROUPS, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
@@ -59,6 +59,22 @@ export default function PersonChest() {
         </div>
       )}
 
+      {person.about && (person.about.bio || person.about.relationship_status || person.about.family) && (
+        <section className="card about-card">
+          <h2 className="card-title">Sobre {person.about.full_name.split(' ')[0]}</h2>
+          {person.about.bio && <p className="muted">“{person.about.bio}”</p>}
+          <ul className="about-list">
+            {person.about.relationship_status && (
+              <li><span aria-hidden="true">💞</span>{relationshipText(person.about.relationship_status, person.about.partner_name)}</li>
+            )}
+            {FAMILY_GROUPS.map(([key, label]) => person.about.family?.[key]?.length > 0 && (
+              <li key={key}><span aria-hidden="true">{{ parents: '👪', siblings: '🤝', children: '🧒' }[key]}</span>
+                <span><b>{label}:</b> {person.about.family[key].join(', ')}</span></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {location.state?.connected && (
         <div className="alert alert-ok">
           ¡Conectados! {location.state.shared > 0
@@ -90,7 +106,7 @@ export default function PersonChest() {
           <span className="hl-icon"><Icon name="gift" size={22} /></span>
           <div>
             <strong>Su cofre está vacío</strong>
-            <p className="muted">Guarda una foto, un audio o una carta para {first}. Lo descubrirá cuando se conecte.</p>
+            <p className="muted">Guarda una foto, un audio o una carta para {first}. {person.is_linked ? 'Lo verá en cuanto lo guardes.' : 'Lo descubrirá cuando se conecte.'}</p>
           </div>
         </div>
       )}

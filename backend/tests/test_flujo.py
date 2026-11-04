@@ -277,6 +277,35 @@ def test_apodo_visible_al_conectar():
     assert erwin_for_luis["nickname"] is None
 
 
+def test_familia_en_el_perfil():
+    a = register("Erwin Familia", "erwinfam@example.com")
+    r = client.patch("/api/me", headers=a, json={
+        "full_name": "Erwin Familia", "username": "erwin_fam", "relationship_status": "relacion",
+        "partner_name": " Anabel ", "family": {"parents": ["Rosa", " José "], "siblings": [], "children": []}})
+    assert r.status_code == 200, r.text
+    me = r.json()
+    assert me["partner_name"] == "Anabel" and me["family"] == {"parents": ["Rosa", "José"], "siblings": [], "children": []}
+    # La bienvenida no envía la familia: no se borra
+    r = client.patch("/api/me", headers=a, json={"full_name": "Erwin Familia", "username": "erwin_fam"})
+    assert r.json()["partner_name"] == "Anabel"
+    # Soltero/a no guarda pareja
+    r = client.patch("/api/me", headers=a, json={"full_name": "Erwin Familia", "relationship_status": "soltero", "partner_name": "X"})
+    assert r.json()["partner_name"] is None
+    client.patch("/api/me", headers=a, json={"full_name": "Erwin Familia", "relationship_status": "casado", "partner_name": "Anabel"})
+    assert client.patch("/api/me", headers=a, json={"full_name": "E F", "relationship_status": "otro"}).status_code == 422
+    # Solo lo ve quien está conectado
+    b = register("Ana Familia", "anafam@example.com")
+    p = add_person(b, "Erwin", "amistad")
+    assert client.get(f"/api/people/{p['id']}", headers=b).json()["about"] is None
+    eid = client.get("/api/connect/lookup", headers=b, params={"q": "@erwin_fam"}).json()["id"]
+    req = client.post("/api/connect/requests", headers=b, json={"to_user_id": eid, "relation": "amistad", "person_id": p["id"]}).json()
+    client.post(f"/api/connect/requests/{req['id']}/accept", headers=a, json={"relation": "amistad"})
+    about = client.get(f"/api/people/{p['id']}", headers=b).json()["about"]
+    assert about["relationship_status"] == "casado" and about["partner_name"] == "Anabel"
+    assert about["family"]["parents"] == ["Rosa", "José"]
+    assert "email" not in about
+
+
 def test_rechazar_y_cancelar_solicitud():
     a = register("Ana Uno", "ana1@x.com")
     b = register("Beto Dos", "beto2@x.com")

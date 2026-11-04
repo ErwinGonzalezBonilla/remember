@@ -54,6 +54,26 @@ class ChangePasswordIn(BaseModel):
     new_password: Password
 
 
+RelationshipStatus = Literal["soltero", "relacion", "comprometido", "casado"]
+FamilyName = Annotated[str, AfterValidator(lambda v: v.strip()), Field(min_length=1, max_length=60)]
+
+
+class Family(BaseModel):
+    parents: list[FamilyName] = Field(default_factory=list, max_length=4)
+    siblings: list[FamilyName] = Field(default_factory=list, max_length=15)
+    children: list[FamilyName] = Field(default_factory=list, max_length=15)
+
+
+class AboutOut(BaseModel):
+    """Lo que ve de ti una persona conectada contigo."""
+    model_config = ConfigDict(from_attributes=True)
+    full_name: str
+    bio: str | None = None
+    relationship_status: str | None = None
+    partner_name: str | None = None
+    family: Family | None = None
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -63,6 +83,9 @@ class UserOut(BaseModel):
     avatar_url: str | None = None
     bio: str | None = None
     birth_date: date | None = None
+    relationship_status: str | None = None
+    partner_name: str | None = None
+    family: Family | None = None
 
 
 def _check_username(v: str | None) -> str | None:
@@ -79,6 +102,9 @@ class UserUpdate(BaseModel):
     username: Annotated[str | None, AfterValidator(_check_username)] = None
     bio: str | None = Field(default=None, max_length=160)
     birth_date: date | None = None
+    relationship_status: RelationshipStatus | None = None
+    partner_name: str | None = Field(default=None, max_length=80)
+    family: Family | None = None
 
 
 class TokenOut(BaseModel):
@@ -117,6 +143,7 @@ class PersonOut(BaseModel):
     nickname: str | None = None
     nickname_emoji: str | None = None
     seen_as: SeenAs | None = None       # solo en el detalle de una persona conectada
+    about: AboutOut | None = None       # su perfil (bio y familia), solo si estáis conectados
     photo_url: str | None
     birth_date: date | None
     special_date: date | None
