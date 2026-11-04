@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { hasFamily } from '../../components/About'
 import Icon from '../../components/Icon'
-import { relationText, relationshipBase, seenAsText, FAMILY_GROUPS, FamilyName, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
@@ -38,7 +39,7 @@ export default function PersonChest() {
       />
 
       <section className="chest">
-        <Avatar name={person.name} src={person.photo_url} size={84} />
+        <Avatar name={person.name} src={person.photo_url || person.about?.avatar_url} size={84} />
         <h1>El cofre de {first}</h1>
         <span className="muted">
           {relationText(person)} · {person.memory_count}{' '}
@@ -59,24 +60,19 @@ export default function PersonChest() {
         </div>
       )}
 
-      {person.about && (person.about.bio || person.about.relationship_status || person.about.family) && (
-        <section className="card about-card">
-          <h2 className="card-title">Sobre {person.about.full_name.split(' ')[0]}</h2>
-          {person.about.bio && <p className="muted">“{person.about.bio}”</p>}
-          <ul className="about-list">
-            {person.about.relationship_status && (
-              <li><span aria-hidden="true">💞</span>
-                <span>{relationshipBase(person.about.relationship_status)}
-                  {person.about.partner && <> con <FamilyName member={person.about.partner} /></>}</span></li>
-            )}
-            {FAMILY_GROUPS.map(([key, label]) => person.about.family?.[key]?.length > 0 && (
-              <li key={key}><span aria-hidden="true">{{ parents: '👪', siblings: '🤝', children: '🧒' }[key]}</span>
-                <span><b>{label}:</b> {person.about.family[key].map((m, i) => (
-                  <span key={i}>{i > 0 && ', '}<FamilyName member={m} /></span>
-                ))}</span></li>
-            ))}
-          </ul>
-        </section>
+      {person.about && (
+        <Link to={`/personas/${id}/perfil`} className="card profile-link">
+          <Avatar name={person.about.full_name} src={person.about.avatar_url} size={48} />
+          <span className="row-text">
+            <strong>Ver el perfil de {first}</strong>
+            <small className="muted">
+              {[person.about.username && `@${person.about.username}`,
+                hasFamily(person.about) ? 'su familia' : null, person.about.birth_date ? 'cumpleaños' : null]
+                .filter(Boolean).join(' · ') || 'Su foto y lo que ha contado de sí'}
+            </small>
+          </span>
+          <Icon name="chevron" size={18} className="muted" />
+        </Link>
       )}
 
       {location.state?.connected && (

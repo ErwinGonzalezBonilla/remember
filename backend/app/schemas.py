@@ -88,6 +88,9 @@ class AboutFamily(BaseModel):
 class AboutOut(BaseModel):
     """Lo que ve de ti una persona conectada contigo."""
     full_name: str
+    username: str | None = None
+    avatar_url: str | None = None
+    birth_date: date | None = None
     bio: str | None = None
     relationship_status: str | None = None
     partner: AboutMember | None = None

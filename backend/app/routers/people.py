@@ -97,7 +97,8 @@ def about(owner: User, viewer: User, db: Session) -> AboutOut:
 
     has_family = family.parents or family.siblings or family.children
     return AboutOut(
-        full_name=owner.full_name, bio=owner.bio, relationship_status=owner.relationship_status,
+        full_name=owner.full_name, username=owner.username, avatar_url=owner.avatar_url, birth_date=owner.birth_date,
+        bio=owner.bio, relationship_status=owner.relationship_status,
         partner=member(owner.partner_name, owner.partner_person_id) if owner.partner_name else None,
         family=AboutFamily(**{k: [member(m.name, m.person_id) for m in getattr(family, k)]
                               for k in ("parents", "siblings", "children")}) if has_family else None,

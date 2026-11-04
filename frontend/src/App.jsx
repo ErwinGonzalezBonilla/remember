@@ -21,6 +21,7 @@ import RequestReview from './pages/connect/RequestReview'
 import PeopleList from './pages/people/PeopleList'
 import PersonChest from './pages/people/PersonChest'
 import PersonForm from './pages/people/PersonForm'
+import PersonProfile from './pages/people/PersonProfile'
 
 function Private({ children }) {
   const { user, loading } = useAuth()
@@ -60,6 +61,7 @@ export default function App() {
       <Route path="/personas" element={<Private><PeopleList /></Private>} />
       <Route path="/personas/nueva" element={<Private><PersonForm /></Private>} />
       <Route path="/personas/:id" element={<Private><PersonChest /></Private>} />
+      <Route path="/personas/:id/perfil" element={<Private><PersonProfile /></Private>} />
       <Route path="/personas/:id/editar" element={<Private><PersonForm /></Private>} />
 
       <Route path="/conectar" element={<Private><ConnectPage /></Private>} />

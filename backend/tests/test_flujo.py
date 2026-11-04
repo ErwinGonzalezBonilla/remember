@@ -305,6 +305,7 @@ def test_familia_en_el_perfil():
     assert about["relationship_status"] == "casado" and about["partner"]["name"] == "Anabel"
     assert [m["name"] for m in about["family"]["parents"]] == ["Rosa", "José"]
     assert "email" not in about
+    assert about["username"] == "erwin_fam" and about["full_name"] == "Erwin Familia"
 
 
 def _connect(a, a_user, b, relation="familia"):

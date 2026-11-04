@@ -686,3 +686,11 @@ input:disabled { opacity: .65; }
 .family-link { color: var(--petrol); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--coral); }
 .family-you { color: var(--coral); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .family-link { color: var(--sky); } }
+
+/* Perfil de una persona conectada */
+.profile-hero { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 8px 0 4px; }
+.profile-hero h1 { font-size: 1.4rem; font-weight: 800; color: var(--petrol); margin-top: 6px; }
+.profile-rel { font-size: .85rem; font-weight: 700; color: var(--petrol); background: var(--petrol-50); border-radius: 999px; padding: 5px 12px; }
+.profile-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: inherit; }
+.profile-link .row-text { flex: 1; min-width: 0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .profile-hero h1, :root:not([data-theme="light"]) .profile-rel { color: var(--sky); } }
