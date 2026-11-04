@@ -328,3 +328,21 @@ class CapsuleDetailOut(CapsuleOut):
 class CapsulesOut(BaseModel):
     received: list[CapsuleOut]
     sent: list[CapsuleOut]
+
+
+# ---------- Avisos ----------
+class NotificationOut(BaseModel):
+    id: int
+    kind: str
+    created_at: datetime
+    read: bool
+    actor_name: str
+    actor_avatar: str | None
+    memory_id: int
+    memory_title: str
+    memory_kind: str
+
+
+class NotificationsOut(BaseModel):
+    unread: int
+    items: list[NotificationOut]

@@ -91,11 +91,11 @@ export default function Settings() {
           </div>
         )}
         <ListRow to="/personas" icon="users" title="Tus personas" subtitle="Sus cofres, fechas y fotos" />
+        <ListRow to="/avisos" icon="bell" title="Avisos" subtitle="Te avisamos en la app y por correo cuando te etiquetan" />
       </div>
 
       <h2 className="small-title">Próximamente</h2>
       <div className="card list soon-list">
-        <div className="list-row" aria-disabled="true"><span className="row-icon"><Icon name="bell" size={20} /></span><span className="row-text"><strong>Notificaciones</strong><small>Push y correo</small></span></div>
         <div className="list-row" aria-disabled="true"><span className="row-icon"><Icon name="lock" size={20} /></span><span className="row-text"><strong>Verificación en dos pasos</strong><small>Una capa extra de seguridad</small></span></div>
         <div className="list-row" aria-disabled="true"><span className="row-icon"><Icon name="archive" size={20} /></span><span className="row-text"><strong>Exportar mis datos</strong><small>Descarga todos tus recuerdos</small></span></div>
       </div>

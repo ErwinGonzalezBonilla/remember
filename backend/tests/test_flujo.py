@@ -349,6 +349,40 @@ def test_familia_enlazada_a_cofres():
     assert client.get(f"/api/people/{erwin_in_ana['id']}", headers=anabel).json()["about"]["partner"]["is_you"] is True
 
 
+def test_avisos_al_etiquetar_y_comentar(monkeypatch):
+    sent = []
+    monkeypatch.setattr("app.routers.notifications.send_email", lambda to, subject, *a, **k: sent.append((to, subject)) or True)
+    felix = register("Félix Aviso", "felixav@example.com")
+    client.patch("/api/me", headers=felix, json={"full_name": "Félix Aviso", "username": "felix_av"})
+    erwin = register("Erwin Aviso", "erwinav@example.com")
+    client.patch("/api/me", headers=erwin, json={"full_name": "Erwin Aviso", "username": "erwin_av"})
+    _connect(felix, "felix_av", erwin, "amistad")
+    erwin_in_felix = [p for p in client.get("/api/people", headers=felix).json() if p["name"] == "Erwin Aviso"][0]
+    sin_cuenta = add_person(felix, "Bebé", "hijo/a")
+    m = save(felix, "Asado del domingo", people=[erwin_in_felix, sin_cuenta])
+    # Erwin recibe aviso y correo; nadie más
+    n = client.get("/api/notifications", headers=erwin).json()
+    assert n["unread"] == 1 and n["items"][0]["kind"] == "memory_tag"
+    assert n["items"][0]["actor_name"] == "Félix Aviso" and n["items"][0]["memory_title"] == "Asado del domingo"
+    assert sent == [("erwinav@example.com", "Félix Aviso guardó un recuerdo contigo")]
+    assert client.get("/api/notifications", headers=felix).json()["unread"] == 0
+    # Volver a guardar el recuerdo sin etiquetas nuevas no repite el aviso
+    client.put(f"/api/memories/{m['id']}", headers=felix, json={"title": "Asado", "person_ids": [erwin_in_felix["id"]]})
+    assert client.get("/api/notifications", headers=erwin).json()["unread"] == 1 and len(sent) == 1
+    # Abrir el recuerdo lo marca como leído
+    client.get(f"/api/memories/{m['id']}", headers=erwin)
+    assert client.get("/api/notifications", headers=erwin).json()["unread"] == 0
+    # Erwin comenta: Félix recibe aviso (sin correo)
+    client.post(f"/api/memories/{m['id']}/comments", headers=erwin, json={"body": "¡Qué día!"})
+    nf = client.get("/api/notifications", headers=felix).json()
+    assert nf["unread"] == 1 and nf["items"][0]["kind"] == "comment" and len(sent) == 1
+    client.post("/api/notifications/read", headers=felix)
+    assert client.get("/api/notifications", headers=felix).json()["unread"] == 0
+    # Si Félix borra el recuerdo, el aviso desaparece
+    client.delete(f"/api/memories/{m['id']}", headers=felix)
+    assert client.get("/api/notifications", headers=erwin).json()["items"] == []
+
+
 def test_rechazar_y_cancelar_solicitud():
     a = register("Ana Uno", "ana1@x.com")
     b = register("Beto Dos", "beto2@x.com")

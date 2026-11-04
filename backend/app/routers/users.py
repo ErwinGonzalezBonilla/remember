@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from .capsules import remove_user_capsules
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import Comment, ConnectionRequest, Memory, Person, Reaction, User
+from ..models import Comment, ConnectionRequest, Memory, Notification, Person, Reaction, User
 from ..schemas import ChangePasswordIn, UserOut, UserUpdate
 from ..security import hash_password, verify_password
 from ..storage import save_media
@@ -79,6 +79,9 @@ def delete_account(user: User = Depends(get_current_user), db: Session = Depends
     """Elimina la cuenta y todo lo suyo: recuerdos, personas, comentarios y reacciones.
     Si estaba vinculada al cofre de otra persona, ese cofre vuelve a quedar 'sin conectar'."""
     remove_user_capsules(user, db)
+    mine = select(Memory.id).where(Memory.author_id == user.id)
+    db.execute(delete(Notification).where((Notification.user_id == user.id) | (Notification.actor_id == user.id)
+                                          | Notification.memory_id.in_(mine)))
     db.execute(delete(Reaction).where(Reaction.user_id == user.id))
     db.execute(delete(Comment).where(Comment.author_id == user.id))
     for memory in db.scalars(select(Memory).where(Memory.author_id == user.id)):

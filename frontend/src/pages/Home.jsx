@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
 import { remainingText } from './capsules/capsuleUtils'
 import { MemoryThumb } from './memories/MemoryCard'
+import { noticeText } from './Notifications'
 
 /** Próxima fecha especial (cumpleaños o aniversario) de tus personas, si cae en ≤ 30 días. */
 function upcoming(people) {
@@ -23,6 +24,8 @@ export default function Home() {
   const { data: memories, loading } = useApi('/api/memories?limit=9')
   const { data: requests } = useApi('/api/connect/requests')
   const { data: capsules } = useApi('/api/capsules')
+  const { data: notices } = useApi('/api/notifications')
+  const newTags = notices?.items.filter((n) => !n.read && n.kind === 'memory_tag').slice(0, 3) || []
   const event = people && upcoming(people)
   const waiting = capsules?.received.filter((c) => c.status === 'sealed') || []
   const openedForMe = capsules?.received.filter((c) => c.status === 'open' && !c.my_reaction && !c.comment_count) || []
@@ -35,7 +38,13 @@ export default function Home() {
           <p className="muted">{greeting()}, {user.full_name.split(' ')[0]}</p>
           <h1 className="display">Guarda lo que importa.</h1>
         </div>
-        <Link to="/perfil" aria-label="Tu perfil"><Avatar name={user.full_name} src={user.avatar_url} /></Link>
+        <div className="home-actions">
+          <Link to="/avisos" className="icon-btn bell" aria-label={notices?.unread ? `Avisos: ${notices.unread} nuevos` : 'Avisos'}>
+            <Icon name="bell" />
+            {notices?.unread > 0 && <span className="bell-badge">{notices.unread > 9 ? '9+' : notices.unread}</span>}
+          </Link>
+          <Link to="/perfil" aria-label="Tu perfil"><Avatar name={user.full_name} src={user.avatar_url} /></Link>
+        </div>
       </header>
 
       {/* Tus personas, como "historias" */}
@@ -54,6 +63,14 @@ export default function Home() {
       </div>
 
       <ErrorBox error={error} />
+
+      {newTags.map((n) => (
+        <Link key={`n${n.id}`} to={`/recuerdo/${n.memory_id}`} className="highlight opened">
+          <Avatar name={n.actor_name} src={n.actor_avatar} size={40} />
+          <span><strong>{noticeText(n)}</strong><small>Toca para verlo</small></span>
+          <Icon name="chevron" className="muted" />
+        </Link>
+      ))}
 
       {requests?.opened.map((r) => (
         <Link key={`o${r.id}`} to={`/cofre-abierto/${r.id}`} className="highlight opened">

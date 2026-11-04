@@ -204,3 +204,19 @@ class CapsuleReaction(Base):
     capsule_id: Mapped[int] = mapped_column(ForeignKey("time_capsules.id", ondelete="CASCADE"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     emoji: Mapped[str] = mapped_column(String(8))
+
+
+class Notification(Base):
+    """Aviso para un usuario: alguien le etiquetó en un recuerdo o comentó en uno que comparten."""
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(20))          # memory_tag | comment
+    memory_id: Mapped[int] = mapped_column(ForeignKey("memories.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    actor: Mapped[User] = relationship(foreign_keys=[actor_id])
+    memory: Mapped[Memory] = relationship()

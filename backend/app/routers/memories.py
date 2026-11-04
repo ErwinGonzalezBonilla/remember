@@ -2,14 +2,15 @@ from collections import Counter
 from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import get_current_user, get_own_person, get_visible_memory, visible_to
-from ..models import Comment, Memory, MemoryTag, Person, Reaction, User
+from ..models import Comment, Memory, MemoryTag, Notification, Person, Reaction, User
 from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn
 from ..storage import save_media
+from .notifications import mark_memory_read, notify_comment, notify_tagged
 
 router = APIRouter(prefix="/api", tags=["recuerdos"])
 
@@ -124,12 +125,15 @@ async def create_memory(
     db.add(memory)
     db.commit()
     db.refresh(memory)
+    notify_tagged(memory, {p.id for p in people}, user, db)
     return to_out(memory, user)
 
 
 @router.get("/memories/{memory_id}", response_model=MemoryDetailOut)
 def get_memory(memory_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return to_detail(get_visible_memory(memory_id, user, db), user)
+    memory = get_visible_memory(memory_id, user, db)
+    mark_memory_read(memory.id, user, db)
+    return to_detail(memory, user)
 
 
 @router.put("/memories/{memory_id}", response_model=MemoryDetailOut)
@@ -143,10 +147,11 @@ def update_memory(memory_id: int, data: MemoryUpdate, user: User = Depends(get_c
     memory.location = (data.location or "").strip() or None
     memory.happened_on = data.happened_on
     wanted = {p.id for p in people}
-    memory.tags = [t for t in memory.tags if t.person_id in wanted] + [
-        MemoryTag(person_id=pid) for pid in wanted - {t.person_id for t in memory.tags}]
+    added = wanted - {t.person_id for t in memory.tags}
+    memory.tags = [t for t in memory.tags if t.person_id in wanted] + [MemoryTag(person_id=pid) for pid in added]
     db.commit()
     db.refresh(memory)
+    notify_tagged(memory, added, user, db)
     return to_detail(memory, user)
 
 
@@ -154,6 +159,7 @@ def update_memory(memory_id: int, data: MemoryUpdate, user: User = Depends(get_c
 def delete_memory(memory_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     memory = get_visible_memory(memory_id, user, db)
     _require_author(memory, user)
+    db.execute(delete(Notification).where(Notification.memory_id == memory.id))
     db.delete(memory)
     db.commit()
 
@@ -189,6 +195,7 @@ def add_comment(memory_id: int, data: CommentIn, user: User = Depends(get_curren
     memory.comments.append(Comment(author_id=user.id, body=data.body.strip()))
     db.commit()
     db.refresh(memory)
+    notify_comment(memory, user, db)
     return to_detail(memory, user)
 
 

@@ -5,6 +5,7 @@ import CalendarPage from './pages/CalendarPage'
 import Home from './pages/Home'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import Notifications from './pages/Notifications'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
@@ -56,6 +57,7 @@ export default function App() {
       <Route path="/calendario" element={<Private><CalendarPage /></Private>} />
       <Route path="/ajustes" element={<Private><Settings /></Private>} />
       <Route path="/perfil" element={<Private><Profile /></Private>} />
+      <Route path="/avisos" element={<Private><Notifications /></Private>} />
       <Route path="/bienvenida" element={<Private><Profile onboarding /></Private>} />
 
       <Route path="/personas" element={<Private><PeopleList /></Private>} />

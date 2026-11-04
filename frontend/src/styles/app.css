@@ -694,3 +694,12 @@ input:disabled { opacity: .65; }
 .profile-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; color: inherit; }
 .profile-link .row-text { flex: 1; min-width: 0; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .profile-hero h1, :root:not([data-theme="light"]) .profile-rel { color: var(--sky); } }
+
+/* Avisos */
+.home-actions { display: flex; align-items: center; gap: 10px; }
+.bell { position: relative; background: var(--surface); border: 1px solid var(--border); }
+.bell-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  background: var(--coral); color: #fff; font-size: .72rem; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--bg); }
+.notice .row-text > span { font-size: .95rem; line-height: 1.35; color: var(--text); }
+.notice.unread { background: color-mix(in srgb, var(--coral) 7%, transparent); }
+.notice-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); flex: none; }
