@@ -3,7 +3,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import and_, delete, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..database import get_db
 from ..deps import get_current_user, get_own_person, get_visible_memory, visible_to
@@ -15,6 +15,10 @@ from .notifications import mark_memory_read, notify_comment, notify_tagged
 router = APIRouter(prefix="/api", tags=["recuerdos"])
 
 KINDS = {"photo", "video", "audio", "text"}
+
+# Carga en bloque lo que necesita to_out(): ~5 consultas en total en vez de 3-4 por recuerdo
+EAGER = (joinedload(Memory.author), selectinload(Memory.tags).joinedload(MemoryTag.person),
+         selectinload(Memory.reactions), selectinload(Memory.comments))
 
 
 def to_out(memory: Memory, user: User) -> MemoryOut:
@@ -88,8 +92,8 @@ def list_memories(
         q = q.where(~Memory.tags.any())
     if kind in KINDS:
         q = q.where(Memory.kind == kind)
-    q = q.order_by(Memory.happened_on.desc().nulls_last(), Memory.created_at.desc()).limit(limit)
-    return [to_out(m, user) for m in db.scalars(q)]
+    q = q.order_by(Memory.happened_on.desc().nulls_last(), Memory.created_at.desc()).limit(limit).options(*EAGER)
+    return [to_out(m, user) for m in db.scalars(q).unique()]
 
 
 @router.post("/memories", response_model=MemoryOut, status_code=201)

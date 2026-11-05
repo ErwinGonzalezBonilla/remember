@@ -7,12 +7,12 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .database import Base, add_missing_columns, engine
+from . import models  # noqa: F401 - registra todas las tablas antes de revisar la base de datos
+from .database import ensure_schema
 from .routers import auth, capsules, connect, memories, notifications, people, push, users
 
-# MVP: crea las tablas al arrancar. Cuando el modelo se estabilice, pasar a Alembic.
-Base.metadata.create_all(bind=engine)
-add_missing_columns()
+# Crea tablas/columnas nuevas solo cuando el modelo cambió (1 consulta en los arranques normales).
+ensure_schema()
 
 app = FastAPI(title="REHOMI API", version="0.2.0",
               description="Conecta · Guarda · Siempre")

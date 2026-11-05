@@ -5,9 +5,6 @@ import base64
 import json
 import logging
 
-from cryptography.hazmat.primitives import serialization
-from py_vapid import Vapid02
-from pywebpush import WebPushException, webpush
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -19,7 +16,14 @@ CLAIMS = {"sub": "mailto:hola@rehomi.app"}
 _cache: dict[str, object] = {}
 
 
-def _vapid(db: Session) -> tuple[Vapid02, str]:
+def webpush(*args, **kwargs):
+    from pywebpush import webpush as _webpush   # import diferido: no retrasa el arranque
+    return _webpush(*args, **kwargs)
+
+
+def _vapid(db: Session):
+    from cryptography.hazmat.primitives import serialization
+    from py_vapid import Vapid02
     if "vapid" in _cache:
         return _cache["vapid"], _cache["public"]
     row = db.get(AppSetting, "vapid_private_pem")
@@ -59,14 +63,12 @@ def send_push(db: Session, user_ids, title: str, body: str, url: str = "/", tag:
             webpush({"endpoint": s.endpoint, "keys": {"p256dh": s.p256dh, "auth": s.auth}}, data=payload,
                     vapid_private_key=vapid, vapid_claims=dict(CLAIMS), ttl=86400, timeout=5)
             sent += 1
-        except WebPushException as exc:
-            status = getattr(exc.response, "status_code", None)
+        except Exception as exc:  # noqa: BLE001 - un aviso fallido no debe romper la app
+            status = getattr(getattr(exc, "response", None), "status_code", None)
             if status in (404, 410):
                 dead.append(s)
             else:
                 log.warning("Aviso no entregado (%s): %s", status, exc)
-        except Exception as exc:  # noqa: BLE001 - un aviso fallido no debe romper la app
-            log.warning("Aviso no entregado: %s", exc)
     for s in dead:
         db.delete(s)
     if dead:
