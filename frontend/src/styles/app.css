@@ -4,38 +4,39 @@
    fondos claros. Paleta del informe (sección 11).
    ========================================================= */
 :root {
-  --petrol: #0F4C5C;
-  --petrol-700: #0B3A47;
-  --petrol-50: #E6F0F2;
-  --sky: #A7D8F0;
-  --coral: #FF6B6B;
-  --coral-50: #FFECEC;
-  --sand: #F4E9D7;
-  --sand-50: #FBF6EE;
+  --petrol: #064F5B;
+  --petrol-700: #043C45;
+  --petrol-50: #E4EEEE;
+  --sky: #9FD3D8;
+  --coral: #E98F7D;
+  --coral-50: #FBEDE9;
+  --sand: #E9DCC6;
+  --sand-50: #F3ECE0;
   --mist: #E8EFF7;
   --lavender: #C9C5F6;
   --mint: #A7E3D9;
 
-  --bg: #F8F6F2;
+  --bg: #F8F7F1;
   --surface: #FFFFFF;
-  --text: #17323A;
-  --text-2: #5B7179;
-  --border: #E4E8EC;
+  --text: #15323A;
+  --text-2: #6B7F86;
+  --border: #E6E1D6;
   --danger: #D64545;
   --ok: #2E8B6E;
 
-  --radius: 18px;
-  --radius-sm: 12px;
-  --shadow: 0 1px 2px rgba(15, 76, 92, .06), 0 6px 20px rgba(15, 76, 92, .07);
-  --font: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --hand: 'Caveat', cursive;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --shadow: 0 1px 2px rgba(6, 79, 91, .05), 0 8px 24px rgba(6, 79, 91, .08);
+  --font: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hand: 'Allura', cursive;
+  --pattern: url('/brand/pattern.svg');
   --nav-h: 68px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E1D22;
-    --surface: #15292F;
+    --bg: #0B1C20;
+    --surface: #13292E;
     --text: #EAF2F4;
     --text-2: #9FB4BA;
     --border: #23404A;
@@ -703,3 +704,108 @@ input:disabled { opacity: .65; }
 .notice .row-text > span { font-size: .95rem; line-height: 1.35; color: var(--text); }
 .notice.unread { background: color-mix(in srgb, var(--coral) 7%, transparent); }
 .notice-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); flex: none; }
+
+
+/* =========================================================
+   Estilo 2026 · cabeceras petróleo con ondas, crema y formas
+   rectangulares redondeadas (guía de marca Rehomi)
+   ========================================================= */
+body { font-feature-settings: "ss01"; letter-spacing: -.005em; }
+.handwritten { font-size: 1.75rem; line-height: 1.1; }
+.chest-note, .chest-nick { font-size: 1.6rem; line-height: 1.15; }
+
+/* Banda petróleo con el patrón de ondas y el corazón */
+.band {
+  margin: -16px -16px 0; padding: 18px 18px 22px;
+  background: var(--pattern) center / cover no-repeat, var(--petrol);
+  color: #fff; border-radius: 0 0 28px 28px;
+}
+.band .muted, .band small, .band p { color: #CFE2E3 !important; }
+.band .display, .band h1 { color: #fff !important; }
+.band .icon-btn { color: #fff; }
+.band .icon-btn:hover { background: rgba(255,255,255,.12); }
+
+/* Inicio: la tarjeta de tus personas se monta sobre la banda */
+.band-hero { padding: 20px 18px 54px; border-radius: 0; }
+.band-hero + .people-card, .band-hero + * { margin-top: -42px; position: relative; }
+.home-head .display { font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; max-width: 12ch; }
+.heart-hand { font-weight: 400; color: #fff; }
+.home-head .bell { background: transparent; border: 1.5px solid rgba(255,255,255,.35); color: #fff; }
+.home-head .bell-badge { border-color: var(--petrol); }
+.home-head .avatar { box-shadow: 0 0 0 2px rgba(255,255,255,.5); }
+.people-card { border-radius: 24px 24px var(--radius) var(--radius); padding: 14px 14px 12px; gap: 10px; display: flex; flex-direction: column; }
+.people-card .section-head { margin: 0; }
+.people-card .section-head h2 { font-size: 1rem; }
+.people-card .stories { margin: 0 -14px; padding: 2px 14px 4px; }
+
+/* Títulos de sección y barra superior en banda */
+.page-head { margin: -16px -16px 0; padding: 22px 18px 22px; background: var(--pattern) center / cover no-repeat, var(--petrol);
+  color: #fff; border-radius: 0 0 28px 28px; gap: 6px; }
+.page-head .display { color: #fff; }
+.page-head .muted { color: #CFE2E3; }
+.topbar { margin: -16px -16px 0; padding: 10px 10px 14px; background: var(--pattern) center / cover no-repeat, var(--petrol);
+  color: #fff; border-radius: 0 0 24px 24px; min-height: 64px; }
+.topbar h1 { color: #fff; font-weight: 700; }
+.topbar .icon-btn { color: #fff; }
+.topbar .icon-btn:hover { background: rgba(255,255,255,.12); }
+
+/* Fotos y figuras: rectángulos redondeados */
+.avatar { border-radius: 28%; }
+.stories { gap: 10px; }
+.story { width: 68px; }
+.story .avatar { width: 68px !important; height: 80px !important; border-radius: 16px; font-size: 1.6rem !important; box-shadow: none; }
+.story.locked .avatar { box-shadow: none; opacity: .85; }
+.story > span:not(.add-circle) { max-width: 68px; }
+.add-circle { width: 68px; height: 80px; border-radius: 16px; border: 0; background: var(--petrol-50); color: var(--petrol); }
+.avatar-picker, .avatar-picker img { border-radius: 30% !important; }
+.chest .avatar, .profile-hero .avatar { border-radius: 30%; }
+
+/* Tarjetas y botones */
+.card { border-color: transparent; }
+.btn { border-radius: 999px; }
+.btn-primary { background: var(--petrol); box-shadow: 0 6px 16px rgba(6, 79, 91, .22); }
+.btn-ghost { border-color: var(--sand); }
+.chip { border-color: var(--sand); }
+.chip.active { background: var(--petrol); border-color: var(--petrol); }
+.highlight { border-color: transparent; background: var(--surface); box-shadow: var(--shadow); }
+.highlight.opened { background: var(--pattern) center / cover no-repeat, var(--petrol); }
+.highlight.request, .seen-as { background: var(--coral-50); }
+.private-note { background: var(--sand-50); border-color: var(--sand); }
+input, select, textarea { border-color: var(--sand) !important; background: var(--surface); }
+input:focus, select:focus, textarea:focus { border-color: var(--petrol) !important; }
+
+/* Barra inferior: activo con línea debajo */
+.bottom-nav { background: color-mix(in srgb, var(--surface) 96%, transparent); border-top-color: var(--sand); }
+.bottom-nav a { position: relative; color: var(--text-2); }
+.bottom-nav a.active { color: var(--petrol); }
+.bottom-nav a.active::after { content: ''; position: absolute; bottom: 8px; width: 22px; height: 3px; border-radius: 3px; background: var(--petrol); }
+.nav-create > span { background: var(--coral); box-shadow: 0 6px 16px color-mix(in srgb, var(--coral) 45%, transparent); }
+
+/* Acceso */
+.auth { padding-top: 0; justify-content: flex-start; }
+.auth-brand { margin: 0 -16px; padding: 44px 16px 30px; border-radius: 0 0 32px 32px; }
+.auth-brand .logo-tag { color: #CFE2E3; }
+.auth-brand .handwritten { color: #fff; font-size: 2rem; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .bottom-nav a.active::after { background: var(--sky); }
+  :root:not([data-theme="light"]) .add-circle { background: var(--petrol-50); color: var(--sky); }
+}
+
+/* Tus personas en cuadrícula */
+.row-actions .btn { white-space: nowrap; padding-inline: 14px; }
+.people-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
+.person-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; min-width: 0; color: inherit; }
+.tile-photo { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 18px; overflow: hidden; background: var(--sand);
+  display: grid; place-items: center; color: var(--petrol); font-size: 2rem; font-weight: 800; box-shadow: var(--shadow); margin-bottom: 6px; }
+.tile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.tile-badge { position: absolute; top: 6px; right: 6px; font-size: .75rem; background: rgba(255,255,255,.9); border-radius: 999px; padding: 2px 6px; }
+.person-tile strong { font-size: .92rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-tile small { font-size: .74rem; color: var(--text-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person-tile .tile-count { font-size: .7rem; opacity: .8; }
+.person-tile.add .tile-photo { background: var(--petrol-50); box-shadow: none; border: 1.5px dashed var(--sand); }
+.person-tile:active .tile-photo { transform: scale(.97); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn-ghost { color: var(--sky); border-color: var(--border); }
+  :root:not([data-theme="light"]) .tile-photo { background: var(--sand); }
+}

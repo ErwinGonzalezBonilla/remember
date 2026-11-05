@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
 import { relationText, AppShell, Avatar, EmptyState, ErrorBox, RELATIONS, Spinner } from '../../components/ui'
 import { useApi } from '../../hooks'
+import { mediaUrl } from '../../api/client'
 
 export default function PeopleList() {
   const { data: people, loading, error } = useApi('/api/people')
@@ -39,22 +40,26 @@ export default function PeopleList() {
         <EmptyState icon="users" title="Aún no has añadido a nadie"
           text="Añade a tu pareja, a tu bebé, a tu madre o a tu mejor amigo. Solo necesitas su nombre." />
       )}
-      <div className="stack-sm">
-        {people?.map((p) => (
-          <Link key={p.id} to={`/personas/${p.id}`} className="person-card">
-            <Avatar name={p.name} src={p.photo_url} size={60} />
-            <div className="person-info">
-              <small className="eyebrow">{relationText(p)}</small>
-              <strong>{p.name}</strong>
-              <small className="muted">
-                {p.memory_count} {p.memory_count === 1 ? 'recuerdo' : 'recuerdos'} ·{' '}
-                {p.is_linked ? '🔓 Conectada' : '🔒 Su cofre espera'}
-              </small>
-            </div>
-            <Icon name="chevron" className="muted" />
+      {people?.length > 0 && (
+        <div className="people-grid">
+          {people.map((p) => (
+            <Link key={p.id} to={`/personas/${p.id}`} className="person-tile">
+              <span className="tile-photo">
+                {p.photo_url ? <img src={mediaUrl(p.photo_url)} alt="" /> : <span>{p.name.trim().charAt(0).toUpperCase()}</span>}
+                <span className={`tile-badge ${p.is_linked ? 'open' : ''}`}
+                  title={p.is_linked ? 'Conectada' : 'Su cofre espera'}>{p.is_linked ? '🔓' : '🔒'}</span>
+              </span>
+              <strong>{p.name.split(' ')[0]}</strong>
+              <small>{relationText(p)}</small>
+              <small className="tile-count">{p.memory_count} {p.memory_count === 1 ? 'recuerdo' : 'recuerdos'}</small>
+            </Link>
+          ))}
+          <Link to="/personas/nueva" className="person-tile add">
+            <span className="tile-photo"><Icon name="plus" size={26} /></span>
+            <strong>Añadir</strong>
           </Link>
-        ))}
-      </div>
+        </div>
+      )}
     </AppShell>
   )
 }

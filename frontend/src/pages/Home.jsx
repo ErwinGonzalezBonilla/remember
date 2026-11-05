@@ -32,11 +32,11 @@ export default function Home() {
 
   return (
     <AppShell>
-      <header className="home-head">
+      <header className="home-head band band-hero">
         <div>
-          <Logo size={30} tagline={false} className="logo-inline" />
+          <Logo size={30} tagline={false} className="logo-inline" onDark />
           <p className="muted">{greeting()}, {user.full_name.split(' ')[0]}</p>
-          <h1 className="display">Guarda lo que importa.</h1>
+          <h1 className="display">Guarda lo que importa. <span className="heart-hand" aria-hidden="true">♡</span></h1>
         </div>
         <div className="home-actions">
           <Link to="/avisos" className="icon-btn bell" aria-label={notices?.unread ? `Avisos: ${notices.unread} nuevos` : 'Avisos'}>
@@ -48,6 +48,11 @@ export default function Home() {
       </header>
 
       {/* Tus personas, como "historias" */}
+      <section className="card people-card">
+      <div className="section-head">
+        <h2>Tus personas</h2>
+        <Link to="/personas" className="link-strong">Ver todas <Icon name="chevron" size={16} /></Link>
+      </div>
       <div className="stories" aria-label="Tus personas">
         <Link to="/personas/nueva" className="story">
           <span className="add-circle"><Icon name="plus" /></span>
@@ -61,6 +66,7 @@ export default function Home() {
           </Link>
         ))}
       </div>
+      </section>
 
       <ErrorBox error={error} />
 

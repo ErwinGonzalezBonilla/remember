@@ -4,8 +4,8 @@
   "description": "Conecta, guarda, siempre. Tu espacio privado para tus personas y recuerdos.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F8F6F2",
-  "theme_color": "#0F4C5C",
+  "background_color": "#F8F7F1",
+  "theme_color": "#064F5B",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
