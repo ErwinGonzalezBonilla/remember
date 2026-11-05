@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { AppShell, Avatar, EmptyState, ErrorBox, Spinner, TopBar } from '../components/ui'
 import { useApi } from '../hooks'
+import PushToggle from '../components/PushToggle'
 
 const KIND = { photo: 'una foto', video: 'un video', audio: 'un audio', text: 'una nota' }
 
@@ -33,6 +34,7 @@ export default function Notifications() {
   return (
     <AppShell>
       <TopBar title="Avisos" />
+      <PushToggle />
       <ErrorBox error={error} />
       {loading && !data && <Spinner />}
       {data && !data.items.length && (

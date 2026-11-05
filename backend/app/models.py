@@ -220,3 +220,23 @@ class Notification(Base):
 
     actor: Mapped[User] = relationship(foreign_keys=[actor_id])
     memory: Mapped[Memory] = relationship()
+
+
+class PushSubscription(Base):
+    """Un móvil o navegador donde el usuario activó los avisos (Web Push)."""
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(String(800), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class AppSetting(Base):
+    """Ajustes internos guardados en la base de datos (p. ej. las claves VAPID de los avisos)."""
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(50), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)

@@ -11,6 +11,7 @@ from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user, visible_to
 from ..mailer import first_name, send_email
+from ..push import send_push
 from ..models import Memory, Notification, Person, User
 from ..schemas import NotificationOut, NotificationsOut
 
@@ -32,6 +33,8 @@ def notify_tagged(memory: Memory, person_ids: set[int], author: User, db: Sessio
             continue
         db.add(Notification(user_id=to.id, actor_id=author.id, kind="memory_tag", memory_id=memory.id))
         db.commit()
+        send_push(db, [to.id], f"{author.full_name.split(' ')[0]} guardó {KIND_TEXT.get(memory.kind, 'un recuerdo')} contigo",
+                  f"«{memory.title}»", f"/recuerdo/{memory.id}", tag=f"memory-{memory.id}")
         send_email(
             to.email, f"{author.full_name} guardó un recuerdo contigo", "Tienes un recuerdo nuevo 💛",
             [f"Hola, {first_name(to.full_name)}. <b>{first_name(author.full_name)}</b> guardó {KIND_TEXT.get(memory.kind, 'un recuerdo')} "
@@ -41,14 +44,18 @@ def notify_tagged(memory: Memory, person_ids: set[int], author: User, db: Sessio
         )
 
 
-def notify_comment(memory: Memory, commenter: User, db: Session):
+def notify_comment(memory: Memory, commenter: User, db: Session, body: str = ""):
     """Avisa (solo en la app) al autor del recuerdo y a las demás personas conectadas etiquetadas."""
     tagged = set(db.scalars(select(Person.linked_user_id).where(
         Person.id.in_([t.person_id for t in memory.tags]), Person.owner_id == memory.author_id,
         Person.linked_user_id.is_not(None))))
-    for uid in (tagged | {memory.author_id}) - {commenter.id}:
+    to = (tagged | {memory.author_id}) - {commenter.id}
+    for uid in to:
         db.add(Notification(user_id=uid, actor_id=commenter.id, kind="comment", memory_id=memory.id))
     db.commit()
+    text = body if len(body) <= 90 else body[:88] + "…"
+    send_push(db, to, f"{commenter.full_name.split(' ')[0]} comentó en «{memory.title}»", text or "Nuevo comentario",
+              f"/recuerdo/{memory.id}", tag=f"comment-{memory.id}")
 
 
 def mark_memory_read(memory_id: int, user: User, db: Session):

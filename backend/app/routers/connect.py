@@ -14,6 +14,7 @@ from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..mailer import first_name, send_email
+from ..push import send_push
 from ..models import ConnectionRequest, Memory, MemoryTag, Person, User
 from .people import seen_as
 from ..schemas import AcceptIn, OpenedOut, PublicUser, RequestIn, RequestOut, RequestsOut
@@ -105,6 +106,8 @@ def send_request(data: RequestIn, user: User = Depends(get_current_user), db: Se
          "Al aceptarla, se abrirá su cofre: podréis ver los recuerdos que guardasteis juntos."],
         button=("Ver la solicitud", f"{settings.public_url}/conectar/solicitud/{req.id}"),
     )
+    send_push(db, [other.id], f"{user.full_name} quiere conectar contigo", "Toca para ver la solicitud",
+              f"/conectar/solicitud/{req.id}", tag=f"request-{req.id}")
     return out(req)
 
 
@@ -158,6 +161,8 @@ def accept(request_id: int, data: AcceptIn, user: User = Depends(get_current_use
          "Desde ahora compartís los recuerdos en los que os etiquetéis."],
         button=("Abrir REHOMI", f"{settings.public_url}/cofre-abierto/{req.id}"),
     )
+    send_push(db, [sender.id], f"¡{user.full_name.split(' ')[0]} aceptó tu solicitud! 🎁", "Tu cofre se ha abierto",
+              f"/cofre-abierto/{req.id}", tag=f"opened-{req.id}")
     return OpenedOut(request=out(req), shared_count=shared_count(user.id, sender.id, db), person_id=mine.id)
 
 

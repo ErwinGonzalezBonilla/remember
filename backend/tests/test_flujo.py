@@ -383,6 +383,50 @@ def test_avisos_al_etiquetar_y_comentar(monkeypatch):
     assert client.get("/api/notifications", headers=erwin).json()["items"] == []
 
 
+def test_avisos_en_el_movil(monkeypatch):
+    import app.push as push
+    from pywebpush import WebPushException
+
+    sent = []
+    gone = set()
+
+    class Resp:
+        status_code = 410
+
+    def fake_webpush(info, data, **kw):
+        if info["endpoint"] in gone:
+            raise WebPushException("Gone", response=Resp())
+        sent.append((info["endpoint"], __import__("json").loads(data)))
+
+    monkeypatch.setattr(push, "webpush", fake_webpush)
+    monkeypatch.setattr("app.routers.notifications.send_email", lambda *a, **k: True)
+    ana = register("Ana Push", "anapush@example.com")
+    client.patch("/api/me", headers=ana, json={"full_name": "Ana Push", "username": "ana_push"})
+    leo = register("Leo Push", "leopush@example.com")
+    client.patch("/api/me", headers=leo, json={"full_name": "Leo Push", "username": "leo_push"})
+    key = client.get("/api/push/key", headers=leo).json()["public_key"]
+    assert len(key) > 80 and client.get("/api/push/key", headers=ana).json()["public_key"] == key
+    sub = {"endpoint": "https://push.example/leo-movil", "keys": {"p256dh": "BPk", "auth": "xyz"}}
+    assert client.post("/api/push/subscribe", headers=leo, json=sub).status_code == 204
+    _connect(ana, "ana_push", leo, "amistad")     # Leo envía la solicitud; al aceptarla Ana, Leo recibe aviso
+    assert sent[-1][1]["title"].startswith("¡Ana aceptó tu solicitud")
+    leo_in_ana = [p for p in client.get("/api/people", headers=ana).json() if p["name"] == "Leo Push"][0]
+    m = save(ana, "Playa", people=[leo_in_ana], kind="photo")
+    assert sent[-1] == ("https://push.example/leo-movil",
+                        {"title": "Ana guardó una foto contigo", "body": "«Playa»", "url": f"/recuerdo/{m['id']}",
+                         "tag": f"memory-{m['id']}"})
+    # Un móvil que ya no existe se borra solo
+    gone.add(sub["endpoint"])
+    client.post(f"/api/memories/{m['id']}/comments", headers=ana, json={"body": "¡Qué día!"})
+    from app.database import SessionLocal
+    from app.models import PushSubscription
+    with SessionLocal() as db:
+        assert db.query(PushSubscription).filter_by(endpoint=sub["endpoint"]).count() == 0
+    # Darse de baja
+    client.post("/api/push/subscribe", headers=leo, json=sub)
+    assert client.post("/api/push/unsubscribe", headers=leo, json={"endpoint": sub["endpoint"]}).status_code == 204
+
+
 def test_rechazar_y_cancelar_solicitud():
     a = register("Ana Uno", "ana1@x.com")
     b = register("Beto Dos", "beto2@x.com")

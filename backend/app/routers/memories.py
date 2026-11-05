@@ -195,7 +195,7 @@ def add_comment(memory_id: int, data: CommentIn, user: User = Depends(get_curren
     memory.comments.append(Comment(author_id=user.id, body=data.body.strip()))
     db.commit()
     db.refresh(memory)
-    notify_comment(memory, user, db)
+    notify_comment(memory, user, db, data.body.strip())
     return to_detail(memory, user)
 
 

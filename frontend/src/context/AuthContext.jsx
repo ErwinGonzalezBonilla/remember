@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, setUnauthorizedHandler, tokenStore } from '../api/client'
+import { forgetDevice, syncPush } from '../push'
 
 const AuthContext = createContext(null)
 
@@ -10,10 +11,14 @@ export function AuthProvider({ children }) {
   const [isNew, setIsNew] = useState(false)
 
   const logout = useCallback(() => {
+    forgetDevice()            // lee el token antes de borrarlo
     tokenStore.clear()
     setUser(null)
     setIsNew(false)
   }, [])
+
+  // Si este móvil ya tenía permiso para avisos, lo enlaza con la cuenta que ha entrado
+  useEffect(() => { if (user) syncPush() }, [user?.id])
 
   useEffect(() => {
     setUnauthorizedHandler(logout)

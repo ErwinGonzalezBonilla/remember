@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PushToggle from '../components/PushToggle'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import Icon from '../components/Icon'
@@ -78,6 +79,9 @@ export default function Settings() {
           </form>
         )}
       </div>
+
+      <h2 className="small-title">Avisos</h2>
+      <PushToggle />
 
       <h2 className="small-title">Privacidad</h2>
       <div className="card list">

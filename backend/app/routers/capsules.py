@@ -19,6 +19,7 @@ from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..mailer import first_name, send_email
+from ..push import send_push
 from ..models import CapsuleComment, CapsuleItem, CapsuleReaction, Person, TimeCapsule, User
 from ..schemas import (CapsuleDetailOut, CapsuleIn, CapsuleItemOut, CapsuleOut, CapsulesOut, CommentIn, CommentOut,
                        PersonTag, ReactionIn)
@@ -236,6 +237,8 @@ def seal(capsule_id: int, user: User = Depends(get_current_user), db: Session = 
              f"La cápsula está sellada y se abrirá el <b>{human_date(c)}</b>. Hasta entonces, es una sorpresa."],
             button=("Ver la cuenta atrás", f"{settings.public_url}/capsula/{c.id}"),
         )
+        send_push(db, [to.id], f"{c.author.full_name.split(' ')[0]} te dejó una cápsula del tiempo 🎁",
+                  f"Se abrirá el {human_date(c)}", f"/capsula/{c.id}", tag=f"capsule-{c.id}")
     return to_detail(c, user)
 
 
@@ -320,7 +323,9 @@ def notify_opened(authorization: str | None = Header(None), db: Session = Depend
              "Entra para ver lo que te dejó y contarle qué te pareció."],
             button=("Abrir mi cápsula", f"{settings.public_url}/capsula/{c.id}"),
         )
-        if ok:
+        pushed = send_push(db, [to.id], "¡Tu cápsula del tiempo ya se puede abrir! 🎉", f"«{c.title}»",
+                           f"/capsula/{c.id}", tag=f"capsule-open-{c.id}")
+        if ok or pushed:
             c.open_notified = True
             sent += 1
     db.commit()

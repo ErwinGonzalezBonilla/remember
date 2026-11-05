@@ -7,6 +7,7 @@ import { useApi } from '../hooks'
 import { remainingText } from './capsules/capsuleUtils'
 import { MemoryThumb } from './memories/MemoryCard'
 import { noticeText } from './Notifications'
+import PushToggle from '../components/PushToggle'
 
 /** Próxima fecha especial (cumpleaños o aniversario) de tus personas, si cae en ≤ 30 días. */
 function upcoming(people) {
@@ -69,6 +70,7 @@ export default function Home() {
       </section>
 
       <ErrorBox error={error} />
+      <PushToggle compact />
 
       {newTags.map((n) => (
         <Link key={`n${n.id}`} to={`/recuerdo/${n.memory_id}`} className="highlight opened">
