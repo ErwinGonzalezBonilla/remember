@@ -820,3 +820,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 .push-card.denied, .push-card.ios-install { background: var(--sand-50); }
 .push-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .push-text small { font-size: .82rem; color: var(--text-2); line-height: 1.35; }
+
+/* Aviso de versión nueva */
+.update-banner {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 30;
+  bottom: calc(var(--nav-h) + 14px + env(safe-area-inset-bottom)); width: calc(100% - 24px); max-width: 456px;
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px;
+  background: var(--pattern) center / cover no-repeat, var(--petrol); color: #fff; box-shadow: 0 12px 30px rgba(6, 79, 91, .35);
+  animation: sheet-up .25s ease-out;
+}
+.update-banner span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.update-banner small { color: #CFE2E3; font-size: .8rem; }
+.update-banner .btn { background: var(--coral); color: #fff; }
