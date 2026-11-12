@@ -182,7 +182,7 @@ export default function Home() {
         </div>
       )}
       {memories?.length > 0 && (
-        <div className="thumb-row">{memories.map((m) => <MemoryThumb key={m.id} memory={m} />)}</div>
+        <div className="thumb-row home-grid">{memories.map((m) => <MemoryThumb key={m.id} memory={m} />)}</div>
       )}
 
       <PrivateBadge text="Solo tú decides quién ve cada recuerdo" />
