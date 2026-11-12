@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { Splash } from './components/Logo'
 import { useAuth } from './context/AuthContext'
 import CalendarPage from './pages/CalendarPage'
@@ -45,6 +45,12 @@ function PublicOnly({ children }) {
     : <Navigate to={from} replace />
 }
 
+/** Enlace del código QR: /c/<usuario> abre en Conectar la hoja para enviarle la solicitud. */
+function QrLink() {
+  const { username } = useParams()
+  return <Navigate to={`/conectar?u=${encodeURIComponent(username)}`} replace />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -66,6 +72,7 @@ export default function App() {
       <Route path="/personas/:id/perfil" element={<Private><PersonProfile /></Private>} />
       <Route path="/personas/:id/editar" element={<Private><PersonForm /></Private>} />
 
+      <Route path="/c/:username" element={<Private><QrLink /></Private>} />
       <Route path="/conectar" element={<Private><ConnectPage /></Private>} />
       <Route path="/conectar/solicitud/:id" element={<Private><RequestReview /></Private>} />
       <Route path="/cofre-abierto/:id" element={<Private><ChestOpened /></Private>} />

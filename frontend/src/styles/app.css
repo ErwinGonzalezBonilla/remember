@@ -832,3 +832,49 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 .update-banner span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .update-banner small { color: #CFE2E3; font-size: .8rem; }
 .update-banner .btn { background: var(--coral); color: #fff; }
+
+/* ---------- Vincular por QR ---------- */
+.qr-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 4px;
+  background: var(--sand-50); border: 1px solid var(--sand); border-radius: 999px; }
+.qr-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px;
+  border: 0; border-radius: 999px; background: transparent; color: var(--petrol); font: inherit; font-weight: 700; font-size: .92rem; }
+.qr-tabs button.on { background: var(--coral); color: #fff; box-shadow: 0 4px 12px color-mix(in srgb, var(--coral) 35%, transparent); }
+.my-qr { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 8px; }
+.my-qr p { margin: 0; max-width: 280px; }
+.my-qr .handle { font-size: 1.05rem; }
+.qr-code { line-height: 0; border-radius: 20px; padding: 10px; }
+.qr-code svg { display: block; width: min(232px, 64vw); height: auto; }
+.no-handle { display: flex; align-items: center; gap: 12px; }
+.no-handle .create-icon { margin: 0; flex: none; }
+.btn-big { min-height: 60px; font-size: 1.15rem; box-shadow: 0 8px 20px color-mix(in srgb, var(--coral) 35%, transparent); }
+.btn-coral:hover:not(:disabled) { background: color-mix(in srgb, var(--coral) 88%, #000); }
+
+.scan-box { position: relative; width: min(100%, 300px); aspect-ratio: 1; margin: 8px auto 0;
+  border-radius: 28px; overflow: hidden; background: var(--petrol-700); }
+.scan-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scan-box.blocked video { display: none; }
+.scan-corner { position: absolute; width: 44px; height: 44px; border: 4px solid var(--coral); pointer-events: none; }
+.scan-corner.tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; border-top-left-radius: 18px; }
+.scan-corner.tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; border-top-right-radius: 18px; }
+.scan-corner.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; border-bottom-left-radius: 18px; }
+.scan-corner.br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; border-bottom-right-radius: 18px; }
+.scan-msg { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 28px; text-align: center; color: #fff; }
+.scan-msg small { color: #CFE2E3; line-height: 1.35; }
+.scan-msg .btn { margin-top: 6px; }
+.scan-hint { text-align: center; margin: 0; min-height: 1.4em; font-size: .9rem; }
+
+.heart-sep { display: flex; align-items: center; gap: 12px; color: var(--coral); margin: 4px 8px; }
+.heart-sep::before, .heart-sep::after { content: ''; flex: 1; height: 1.5px; background: var(--sand); }
+.heart-sep svg { fill: currentColor; }
+.search-toggle { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 20px; text-align: left;
+  border: 1.5px solid color-mix(in srgb, var(--coral) 55%, transparent); border-radius: 999px;
+  background: var(--surface); color: var(--petrol); font: inherit; font-weight: 600; font-size: 1rem; }
+.search-toggle span { flex: 1; }
+.search-toggle .rot { transform: rotate(90deg); }
+.search-toggle svg { flex: none; transition: transform .15s; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .qr-code { background: var(--sand); } /* fondo claro: si no, no se lee */
+  :root:not([data-theme="light"]) .qr-tabs button:not(.on), :root:not([data-theme="light"]) .search-toggle { color: var(--sky); }
+}
