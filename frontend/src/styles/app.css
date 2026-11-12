@@ -357,25 +357,70 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 .quick-btn.text span { background: var(--coral-50); color: var(--coral); }
 .quick-btn.selected span { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--petrol); transform: scale(1.05); }
 
-.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.memory-card {
-  position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; background: var(--mist);
-  box-shadow: var(--shadow);
+/* Cuadrícula de recuerdos: 2 columnas pegadas (1 px) a todo el ancho, como en Instagram */
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 0 -16px; }
+.memory-card { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--mist); }
+.memory-card-link { position: absolute; inset: 0; display: block; color: #fff; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.memory-card-link:focus-visible { outline: 3px solid var(--coral); outline-offset: -3px; }
+.memory-card img, .memory-card video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.memory-card-link::after { content: ''; position: absolute; inset: 45% 0 0; pointer-events: none;
+  background: linear-gradient(transparent, rgba(0, 0, 0, .62)); }
+.memory-meta { position: absolute; left: 10px; right: 10px; bottom: 8px; z-index: 1; color: #fff; display: flex; flex-direction: column; min-width: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.memory-meta strong { font-size: .9rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memory-meta small { font-size: .72rem; opacity: .92; }
+.memory-meta .milestone-badge { font-size: .66rem; padding: 1px 8px; text-shadow: none; }
+.kind-badge { position: absolute; top: 9px; left: 9px; z-index: 1; color: #fff; display: grid; place-items: center;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .55)); }
+.memory-card .cover-placeholder { padding: 18px 14px 60px; justify-content: flex-start; }
+.memory-card .cover-placeholder.text { background: var(--sand-50); color: var(--coral); }
+.memory-card .cover-placeholder.text p { -webkit-line-clamp: 5; text-align: left; }
+.memory-card .cover-placeholder.audio { background: var(--petrol); color: #fff; justify-content: center; }
+.memory-card .cover-placeholder.audio svg { width: 44px; height: 44px; }
+
+/* Corazón: poner o quitar tu ❤️ sin abrir el recuerdo */
+.heart-btn { width: 32px; height: 32px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .92); color: var(--coral); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); touch-action: manipulation; }
+.heart-btn:active { transform: scale(.9); }
+.memory-card .heart-btn { position: absolute; top: 8px; right: 8px; z-index: 2; }
+.heart-burst { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; color: #fff; pointer-events: none;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .35)); animation: heart-pop .8s ease-out forwards; }
+@keyframes heart-pop {
+  0% { opacity: 0; transform: scale(.3); }
+  15% { opacity: 1; transform: scale(1.15); }
+  30% { transform: scale(.95); }
+  45% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
 }
-.memory-card img, .memory-card video { width: 100%; height: 100%; object-fit: cover; }
-.memory-card::after { content: ''; position: absolute; inset: 50% 0 0; background: linear-gradient(transparent, rgba(0,0,0,.6)); }
-.memory-card.kind-audio::after, .memory-card.kind-text::after { display: none; }
-.memory-meta { position: absolute; left: 12px; right: 12px; bottom: 10px; z-index: 1; color: #fff; display: flex; flex-direction: column; }
-.kind-audio .memory-meta, .kind-text .memory-meta { color: var(--text); }
-.memory-meta strong { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.memory-meta small { font-size: .75rem; opacity: .9; }
-.badge-heart, .badge-play {
-  position: absolute; top: 10px; z-index: 1; width: 30px; height: 30px; border-radius: 50%;
-  display: grid; place-items: center; background: rgba(255,255,255,.85); color: var(--text-2);
+/* Con movimiento reducido, la regla global quita la animación: el corazón aparece quieto y se va a los 0,8 s */
+.memory-row-wrap { position: relative; }
+.memory-row-wrap .memory-row { padding-right: 52px; }
+.row-heart { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); background: var(--coral-50); box-shadow: none; }
+.row-heart:active { transform: translateY(-50%) scale(.9); }
+
+/* Tus conexiones / Fotos, Videos y Notas */
+.gallery-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gallery-tabs button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 54px; padding: 8px 14px;
+  border-radius: 999px; border: 1.5px solid var(--sand); background: var(--surface); color: var(--petrol);
+  font: inherit; font-weight: 700; font-size: .88rem; line-height: 1.2; text-align: left; }
+.gallery-tabs button svg { flex: none; }
+.gallery-tabs button.on { background: var(--petrol); border-color: var(--petrol); color: #fff; box-shadow: 0 6px 16px rgba(6, 79, 91, .22); }
+.conn-strip { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 6px 16px 4px; scrollbar-width: none; }
+.conn-strip::-webkit-scrollbar { display: none; }
+.conn-item { flex: none; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0;
+  background: none; color: var(--text); font: inherit; font-size: .78rem; font-weight: 700; }
+.conn-item > span:last-child { max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conn-item .avatar, .conn-me { width: 64px !important; height: 78px !important; border-radius: 16px; font-size: 1.5rem !important; }
+.conn-me { display: grid; place-items: center; background: var(--petrol-50); color: var(--petrol); }
+.conn-item.on .avatar, .conn-item.on .conn-me { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--petrol); }
+.conn-item.on { color: var(--petrol); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .gallery-tabs button:not(.on) { color: var(--sky); border-color: var(--border); }
+  :root:not([data-theme="light"]) .conn-item.on, :root:not([data-theme="light"]) .conn-me { color: var(--sky); }
+  :root:not([data-theme="light"]) .conn-item.on .avatar, :root:not([data-theme="light"]) .conn-item.on .conn-me { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--sky); }
 }
-.badge-heart { right: 10px; }
-.badge-heart.on { color: var(--coral); }
-.badge-play { left: 10px; color: var(--petrol); }
 .cover-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px 14px 56px; text-align: center; }
 .cover-placeholder.audio { background: linear-gradient(160deg, #EEEBFD, var(--coral-50)); color: #5A54C4; }
 .cover-placeholder.text { background: var(--sand-50); color: var(--coral); }

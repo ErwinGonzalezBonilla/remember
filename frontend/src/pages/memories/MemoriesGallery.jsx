@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
 import { AppShell, Avatar, EmptyState, ErrorBox, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
@@ -10,44 +9,77 @@ const KINDS = [
   { value: 'audio', label: 'Notas de voz' }, { value: 'text', label: 'Notas' },
 ]
 
-/** Todos tus recuerdos, con filtros por tipo y por persona. */
+/** Todos tus recuerdos: "Fotos, Videos y Notas" o "Tus conexiones" (por persona), con filtro por tipo.
+ *  Lo elegido vive en la URL (?vista=conexiones&persona=3&tipo=photo&modo=lista) para que al volver
+ *  atrás desde un recuerdo siga igual. */
 export default function MemoriesGallery() {
-  const [kind, setKind] = useState('')
-  const [who, setWho] = useState('') // '' todos · 'none' sin etiquetar · id de persona
-  const [view, setView] = useState('grid')
-  const { data: people } = useApi('/api/people')
+  const [params, setParams] = useSearchParams()
+  const connections = params.get('vista') === 'conexiones'
+  const who = connections ? params.get('persona') || '' : '' // '' todas · 'none' solo para mí · id
+  const kind = KINDS.some((k) => k.value === params.get('tipo')) ? params.get('tipo') : ''
+  const view = params.get('modo') === 'lista' ? 'list' : 'grid'
+  const { data: people } = useApi(connections ? '/api/people' : null)
 
-  const params = new URLSearchParams()
-  if (kind) params.set('kind', kind)
-  if (who === 'none') params.set('untagged', 'true')
-  else if (who) params.set('person_id', who)
-  const { data: memories, loading, error } = useApi(`/api/memories?${params}`)
+  function update(changes) {
+    const next = new URLSearchParams(params)
+    Object.entries(changes).forEach(([k, v]) => (v ? next.set(k, v) : next.delete(k)))
+    setParams(next, { replace: true })
+  }
+
+  const query = new URLSearchParams()
+  if (kind) query.set('kind', kind)
+  if (who === 'none') query.set('untagged', 'true')
+  else if (who) query.set('person_id', who)
+  const { data: memories, setData, loading, error } = useApi(`/api/memories?${query}`)
+  const replace = (m) => setData((list) => list && list.map((x) => (x.id === m.id ? m : x)))
 
   return (
     <AppShell>
       <TopBar
         title="Tus recuerdos"
         right={
-          <button className="icon-btn" onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
+          <button className="icon-btn" onClick={() => update({ modo: view === 'grid' ? 'lista' : '' })}
             aria-label={view === 'grid' ? 'Ver en lista' : 'Ver en cuadrícula'}>
             <Icon name={view === 'grid' ? 'list' : 'grid'} />
           </button>
         }
       />
 
-      <div className="chips scroll people-filter" aria-label="Filtrar por persona">
-        <button className={`chip ${who === '' ? 'active' : ''}`} onClick={() => setWho('')}>Todas las personas</button>
-        {people?.map((p) => (
-          <button key={p.id} className={`chip with-avatar ${who === String(p.id) ? 'active' : ''}`} onClick={() => setWho(String(p.id))}>
-            <Avatar name={p.name} src={p.photo_url} size={22} /> {p.name.split(' ')[0]}
-          </button>
-        ))}
-        <button className={`chip ${who === 'none' ? 'active' : ''}`} onClick={() => setWho('none')}>Solo para mí</button>
+      <div className="gallery-tabs" role="tablist" aria-label="Qué recuerdos ver">
+        <button type="button" role="tab" aria-selected={connections} className={connections ? 'on' : ''}
+          onClick={() => update({ vista: 'conexiones' })}>
+          <Icon name="users" size={22} /> Tus conexiones
+        </button>
+        <button type="button" role="tab" aria-selected={!connections} className={!connections ? 'on' : ''}
+          onClick={() => update({ vista: '', persona: '' })}>
+          <Icon name="image" size={22} /> Fotos, Videos y Notas
+        </button>
       </div>
+
+      {connections && (
+        <div className="conn-strip" aria-label="Filtrar por persona">
+          {people?.map((p) => {
+            const on = who === String(p.id)
+            return (
+              <button type="button" key={p.id} className={`conn-item ${on ? 'on' : ''}`} aria-pressed={on}
+                onClick={() => update({ persona: on ? '' : String(p.id) })}>
+                <Avatar name={p.name} src={p.photo_url} size={58} />
+                <span>{p.name.split(' ')[0]}</span>
+              </button>
+            )
+          })}
+          <button type="button" className={`conn-item ${who === 'none' ? 'on' : ''}`} aria-pressed={who === 'none'}
+            onClick={() => update({ persona: who === 'none' ? '' : 'none' })}>
+            <span className="conn-me"><Icon name="lock" size={24} /></span>
+            <span>Solo para mí</span>
+          </button>
+        </div>
+      )}
+
       <div className="chips scroll" role="tablist" aria-label="Filtrar por tipo">
         {KINDS.map((k) => (
           <button key={k.value} role="tab" aria-selected={kind === k.value}
-            className={`chip small ${kind === k.value ? 'active' : ''}`} onClick={() => setKind(k.value)}>{k.label}</button>
+            className={`chip ${kind === k.value ? 'active' : ''}`} onClick={() => update({ tipo: k.value })}>{k.label}</button>
         ))}
       </div>
 
@@ -58,8 +90,8 @@ export default function MemoriesGallery() {
           action={<Link to="/recuerdos/nuevo" className="btn btn-primary">Guardar un recuerdo</Link>} />
       )}
       {memories?.length > 0 && (view === 'grid'
-        ? <div className="gallery">{memories.map((m) => <MemoryCard key={m.id} memory={m} />)}</div>
-        : <div className="stack-sm">{memories.map((m) => <MemoryRow key={m.id} memory={m} />)}</div>
+        ? <div className="gallery">{memories.map((m) => <MemoryCard key={m.id} memory={m} onChange={replace} />)}</div>
+        : <div className="stack-sm">{memories.map((m) => <MemoryRow key={m.id} memory={m} onChange={replace} />)}</div>
       )}
     </AppShell>
   )
