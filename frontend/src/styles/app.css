@@ -270,9 +270,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 }
 
 .thumb-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-/* "Tus recuerdos" del inicio: 3 columnas pegadas (1 px) a todo el ancho, como la cuadrícula de recuerdos */
-.thumb-row.home-grid { gap: 1px; margin: 0 -16px; }
-.home-grid .thumb { border-radius: 0; box-shadow: none; border: 0; }
+/* "Tus recuerdos" del inicio: igual que la cuadrícula de recuerdos (3 px, esquinas de 10 px, 3 px a los lados) */
+.thumb-row.home-grid { gap: 3px; margin: 0 -13px; }
+.home-grid .thumb { border-radius: 10px; overflow: hidden; isolation: isolate; box-shadow: none; border: 0; }
 .thumb { aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: var(--mist); }
 .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; }
 
@@ -360,9 +360,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 .quick-btn.text span { background: var(--coral-50); color: var(--coral); }
 .quick-btn.selected span { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--petrol); transform: scale(1.05); }
 
-/* Cuadrícula de recuerdos: 2 columnas pegadas (1 px) a todo el ancho, como en Instagram */
-.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 0 -16px; }
-.memory-card { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--mist); }
+/* Cuadrícula de recuerdos: 2 columnas separadas 3 px, con 3 px de margen a los lados (la pantalla tiene 16 px)
+   y esquinas de 10 px. isolation: isolate hace que Safari recorte también los videos con la esquina. */
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin: 0 -13px; }
+.memory-card { position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 10px; isolation: isolate; background: var(--mist); }
 .memory-card-link { position: absolute; inset: 0; display: block; color: #fff; touch-action: manipulation;
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .memory-card-link:focus-visible { outline: 3px solid var(--coral); outline-offset: -3px; }
