@@ -73,7 +73,7 @@ def to_out(c: TimeCapsule, user: User) -> CapsuleOut:
         sealed_at=c.sealed_at, created_at=c.created_at, is_author=is_author,
         author_name=c.author.full_name, author_avatar=c.author.avatar_url,
         person=PersonTag(id=c.person.id, name=c.person.name, relation=c.person.relation, relation_label=c.person.relation_label,
-                         photo_url=c.person.photo_url) if is_author and c.person else None,
+                         photo_url=c.person.photo_url, birth_date=c.person.birth_date) if is_author and c.person else None,
         message=None if locked else c.message,
         cover_url=None if locked else c.cover_url,
         items=[] if locked else [CapsuleItemOut(id=i.id, kind=i.kind, media_url=i.media_url) for i in c.items],

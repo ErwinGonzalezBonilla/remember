@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { hasFamily } from '../../components/About'
 import Icon from '../../components/Icon'
-import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence } from '../../components/ui'
+import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence, ageAt } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
@@ -115,18 +115,21 @@ export default function PersonChest() {
         <section key={y} className="timeline">
           <h2 className="year">{y}</h2>
           <div className="tl">
-            {byYear[y].map((m) => (
+            {byYear[y].map((m) => {
+              const age = ageAt(person.birth_date, m.happened_on || m.created_at)
+              return (
               <Link key={m.id} to={`/recuerdo/${m.id}`} className="tl-item">
                 <div className="tl-thumb"><MemoryThumb memory={m} asDiv /></div>
                 <span className="row-text">
                   <strong>{m.title}</strong>
-                  <small>{formatDate(m.happened_on || m.created_at)} · {KIND_LABEL[m.kind]}{m.author_id !== user.id && ` · de ${m.author_name.split(' ')[0]}`}</small>
+                  <small>{formatDate(m.happened_on || m.created_at)}{age && <span className="tl-age"> · {age}</span>} · {KIND_LABEL[m.kind]}{m.author_id !== user.id && ` · de ${m.author_name.split(' ')[0]}`}</small>
                   {m.people.length > 1 && (
                     <small className="muted">Con {m.people.filter((p) => String(p.id) !== id).map((p) => p.name).join(', ')}</small>
                   )}
                 </span>
               </Link>
-            ))}
+              )
+            })}
           </div>
         </section>
       ))}

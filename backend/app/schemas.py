@@ -186,6 +186,7 @@ class PersonTag(BaseModel):
     relation: str
     relation_label: str | None = None
     photo_url: str | None
+    birth_date: date | None = None     # solo para el autor o para la propia persona etiquetada
 
 
 # ---------- Recuerdos ----------

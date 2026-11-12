@@ -919,3 +919,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 /* Mensaje personalizado en la solicitud */
 .request-message { margin: 8px 0 0; padding: 10px 14px; border-left: 3px solid var(--coral); border-radius: 4px 14px 14px 4px;
   background: var(--coral-50); color: var(--text); font-style: italic; overflow-wrap: anywhere; }
+
+/* ---------- Edad en los recuerdos ---------- */
+.tag-age { font-weight: 600; color: var(--text-2); }
+.tl-age { color: var(--coral); font-weight: 700; }

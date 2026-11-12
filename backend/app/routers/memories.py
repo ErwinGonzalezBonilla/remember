@@ -21,6 +21,14 @@ EAGER = (joinedload(Memory.author), selectinload(Memory.tags).joinedload(MemoryT
          selectinload(Memory.reactions), selectinload(Memory.comments))
 
 
+def _tag(person: Person, memory: Memory, user: User) -> PersonTag:
+    """La fecha de nacimiento solo la ve quien guardó el recuerdo, o la propia persona etiquetada:
+    el resto de etiquetados no recibe el cumpleaños que el autor guardó de otras personas."""
+    own_birthday = memory.author_id == user.id or person.linked_user_id == user.id
+    return PersonTag(id=person.id, name=person.name, relation=person.relation, relation_label=person.relation_label,
+                     photo_url=person.photo_url, birth_date=person.birth_date if own_birthday else None)
+
+
 def to_out(memory: Memory, user: User) -> MemoryOut:
     counts = Counter(r.emoji for r in memory.reactions)
     mine = next((r.emoji for r in memory.reactions if r.user_id == user.id), None)
@@ -28,8 +36,7 @@ def to_out(memory: Memory, user: User) -> MemoryOut:
         id=memory.id, kind=memory.kind, title=memory.title, description=memory.description,
         media_url=memory.media_url, location=memory.location, happened_on=memory.happened_on,
         created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
-        people=[PersonTag(id=t.person.id, name=t.person.name, relation=t.person.relation, relation_label=t.person.relation_label,
-                          photo_url=t.person.photo_url) for t in memory.tags],
+        people=[_tag(t.person, memory, user) for t in memory.tags],
         reactions=dict(counts), my_reaction=mine, comment_count=len(memory.comments),
         can_edit=memory.author_id == user.id,
     )

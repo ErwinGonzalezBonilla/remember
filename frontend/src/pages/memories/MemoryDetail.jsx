@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
-import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar, formatDate } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar, formatDate, ageAt } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 
@@ -135,11 +135,13 @@ export default function MemoryDetail() {
             {m.description && <p className={m.kind === 'text' ? 'letter-body' : ''}>{m.description}</p>}
             {m.people.length > 0 ? (
               <div className="tagged">
-                {m.people.map((p) => (
-                  isAuthor
-                    ? <Link key={p.id} to={`/personas/${p.id}`} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{p.name}<small>{relationText(p)}</small></Link>
-                    : <span key={p.id} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{p.name}</span>
-                ))}
+                {m.people.map((p) => {
+                  const age = ageAt(p.birth_date, m.happened_on || m.created_at)
+                  const name = <>{p.name}{age && <span className="tag-age"> · {age}</span>}</>
+                  return isAuthor
+                    ? <Link key={p.id} to={`/personas/${p.id}`} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{name}<small>{relationText(p)}</small></Link>
+                    : <span key={p.id} className="tag-pill"><Avatar name={p.name} src={p.photo_url} size={24} />{name}</span>
+                })}
               </div>
             ) : isAuthor && <small className="muted">🔒 Solo para ti · edítalo para etiquetar a alguien</small>}
             <div className="author"><Avatar name={m.author_name} src={isAuthor ? user.avatar_url : null} size={28} /> <small>Guardado por {isAuthor ? 'ti' : m.author_name}</small></div>

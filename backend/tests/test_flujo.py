@@ -427,6 +427,24 @@ def test_avisos_en_el_movil(monkeypatch):
     assert client.post("/api/push/unsubscribe", headers=leo, json={"endpoint": sub["endpoint"]}).status_code == 204
 
 
+
+def test_edad_en_los_recuerdos():
+    """birth_date viaja en `people` para calcular la edad, pero solo al autor o a la propia persona."""
+    ana = register("Ana Edad", "anaedad@example.com")
+    client.patch("/api/me", headers=ana, json={"full_name": "Ana Edad", "username": "ana_edad"})
+    leo = register("Leo Edad", "leoedad@example.com")
+    _connect(ana, "ana_edad", leo, "amistad")
+    leo_in_ana = [p for p in client.get("/api/people", headers=ana).json() if p["name"] == "Leo Edad"][0]
+    client.put(f"/api/people/{leo_in_ana['id']}", headers=ana,
+               json={"name": "Leo Edad", "relation": "amistad", "birth_date": "1990-05-04"})
+    sobri = add_person(ana, "Allison", "familia", birth_date="2023-02-10")
+    m = save(ana, "Primer día de playa", people=[leo_in_ana, sobri], happened_on="2024-05-10")
+    mine = next(x for x in client.get("/api/memories", headers=ana).json() if x["id"] == m["id"])
+    assert {p["name"]: p["birth_date"] for p in mine["people"]} == {"Leo Edad": "1990-05-04", "Allison": "2023-02-10"}
+    # Leo ve su propio cumpleaños, pero no el de Allison
+    theirs = next(x for x in client.get("/api/memories", headers=leo).json() if x["id"] == m["id"])
+    assert {p["name"]: p["birth_date"] for p in theirs["people"]} == {"Leo Edad": "1990-05-04", "Allison": None}
+
 def test_rechazar_y_cancelar_solicitud():
     a = register("Ana Uno", "ana1@x.com")
     b = register("Beto Dos", "beto2@x.com")

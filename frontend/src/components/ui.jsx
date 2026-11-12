@@ -154,6 +154,36 @@ export function formatDate(iso, { year = true } = {}) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}${year ? ` ${d.getFullYear()}` : ''}`
 }
 
+/** Un día como fecha local a medianoche: "2024-05-10" o la fecha y hora de created_at. */
+function localDay(iso) {
+  if (!iso) return null
+  if (iso.length <= 10) return parseDay(iso)
+  const d = new Date(iso)
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
+/** Qué edad tenía alguien un día: "Recién nacido/a", "12 días", "3 semanas", "8 meses",
+ *  "1 año y 3 meses", "5 años". Nada si ese día aún no había nacido. */
+export function ageAt(birthIso, dayIso) {
+  const birth = parseDay(birthIso)
+  const day = localDay(dayIso)
+  if (!birth || !day || day < birth) return null
+  if (day.getTime() === birth.getTime()) return 'Recién nacido/a'
+  let months = (day.getFullYear() - birth.getFullYear()) * 12 + day.getMonth() - birth.getMonth()
+  if (day.getDate() < birth.getDate()) months -= 1
+  if (months < 1) {
+    const days = Math.round((day - birth) / 86400000)
+    return days >= 14 ? plural(Math.floor(days / 7), 'semana', 'semanas') : plural(days, 'día', 'días')
+  }
+  const years = Math.floor(months / 12)
+  if (years >= 2) return plural(years, 'año', 'años')
+  const rest = months % 12
+  if (years === 0) return plural(rest, 'mes', 'meses')
+  return rest ? `1 año y ${plural(rest, 'mes', 'meses')}` : '1 año'
+}
+
 export function timeTogether(iso) {
   const start = parseDay(iso)
   if (!start) return null
