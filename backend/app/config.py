@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     max_upload_mb: int = 25
     upload_dir: str = "uploads"
 
+    # Cloudflare R2 (archivos privados con URLs firmadas). Con las cuatro primeras, se usa R2.
+    r2_account_id: str | None = None
+    r2_access_key_id: str | None = None
+    r2_secret_access_key: str | None = None
+    r2_bucket: str | None = None
+    r2_url_ttl: int = 21600  # segundos que es válida, como mínimo, una URL para ver un archivo (6 h)
+
     # Correo: Resend (RESEND_API_KEY) o un servidor SMTP. Sin ninguno, los correos se escriben en el log (desarrollo).
     resend_api_key: str | None = None
     smtp_host: str | None = None
@@ -49,6 +56,15 @@ class Settings(BaseSettings):
     def uses_blob(self) -> bool:
         """Vercel Blob conectado al proyecto (Vercel añade estas variables al conectar el store)."""
         return bool(os.getenv("BLOB_STORE_ID") or os.getenv("BLOB_READ_WRITE_TOKEN"))
+
+    @property
+    def uses_r2(self) -> bool:
+        return bool(self.r2_account_id and self.r2_access_key_id and self.r2_secret_access_key and self.r2_bucket)
+
+    @property
+    def on_vercel(self) -> bool:
+        """En Vercel cada petición admite como mucho 4,5 MB (sin R2, las subidas pasan por aquí)."""
+        return bool(os.getenv("VERCEL"))
 
     @property
     def mail_enabled(self) -> bool:

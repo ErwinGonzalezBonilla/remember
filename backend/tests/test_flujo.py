@@ -718,3 +718,71 @@ def test_hitos():
     assert r.status_code == 422
     assert save(gus, "Sin hito", milestone="")["milestone"] is None
     assert save(gus, "Justo 40", milestone="y" * 40)["milestone"] == "y" * 40
+
+
+# ---------- Archivos privados (R2) ----------
+R2_FAKE = {"r2_account_id": "cuentaprueba", "r2_access_key_id": "AKIAPRUEBA", "r2_secret_access_key": "secreto/prueba+123",
+           "r2_bucket": "rehomi-prueba"}
+
+
+def _r2_on(monkeypatch):
+    from app.config import settings
+    for k, v in R2_FAKE.items():
+        monkeypatch.setattr(settings, k, v)
+    assert settings.uses_r2
+
+
+def test_sign_media_sin_r2_deja_las_urls():
+    from app.r2 import sign_media
+    for v in (None, "", "/uploads/u1/a.jpg", "https://x.public.blob.vercel-storage.com/rehomi/u1/a.jpg"):
+        assert sign_media(v) == v
+
+
+def test_sign_media_con_r2(monkeypatch):
+    from datetime import datetime, timezone
+    from urllib.parse import parse_qs, urlparse
+    from app import r2
+    _r2_on(monkeypatch)
+    a = r2.signed_get("u1/2026/11/foto.jpg", now=datetime(2026, 11, 12, 10, 5, tzinfo=timezone.utc))
+    b = r2.signed_get("u1/2026/11/foto.jpg", now=datetime(2026, 11, 12, 10, 55, tzinfo=timezone.utc))
+    c = r2.signed_get("u1/2026/11/foto.jpg", now=datetime(2026, 11, 12, 11, 1, tzinfo=timezone.utc))
+    assert a == b != c                      # la misma URL durante toda la hora (caché del navegador)
+    q = parse_qs(urlparse(a).query)
+    assert urlparse(a).netloc == "cuentaprueba.r2.cloudflarestorage.com" and urlparse(a).path == "/rehomi-prueba/u1/2026/11/foto.jpg"
+    assert q["X-Amz-Date"] == ["20261112T100000Z"] and int(q["X-Amz-Expires"][0]) >= 21600 + 3600 - 1
+    assert len(q["X-Amz-Signature"][0]) == 64
+    assert r2.sign_media("r2:u1/2026/11/foto.jpg").startswith("https://cuentaprueba.r2.cloudflarestorage.com/")
+    assert r2.sign_media("/uploads/u1/a.jpg") == "/uploads/u1/a.jpg"
+
+
+def test_firma_identica_a_botocore(monkeypatch):
+    """Nuestra firma SigV4 da exactamente la misma URL que botocore (solo en desarrollo) para la misma hora."""
+    import pytest
+    botocore = pytest.importorskip("botocore", reason="pip install -r requirements-dev.txt")
+    import botocore.auth
+    from botocore.config import Config
+    from botocore.session import Session
+    from datetime import datetime, timezone
+    from urllib.parse import parse_qsl, urlparse
+    from app import r2
+    _r2_on(monkeypatch)
+    frozen = datetime(2026, 11, 12, 9, 30, 15)
+    monkeypatch.setattr(botocore.auth, "get_current_datetime", lambda: frozen)
+    client = Session().create_client(
+        "s3", region_name="auto", endpoint_url="https://cuentaprueba.r2.cloudflarestorage.com",
+        aws_access_key_id=R2_FAKE["r2_access_key_id"], aws_secret_access_key=R2_FAKE["r2_secret_access_key"],
+        config=Config(signature_version="s3v4", s3={"addressing_style": "path"}))
+
+    def parts(url):
+        u = urlparse(url)
+        return u.netloc, u.path, sorted(parse_qsl(u.query))
+
+    now = frozen.replace(tzinfo=timezone.utc)
+    for key in ("u12/2026/11/ab12cd34.jpg", "u3/2026/01/nombre con espacios+ñ~(1).mov"):
+        for method, op, extra, headers in [
+                ("GET", "get_object", {}, None),
+                ("HEAD", "head_object", {}, None),
+                ("PUT", "put_object", {"ContentType": "video/mp4"}, {"content-type": "video/mp4"})]:
+            theirs = client.generate_presigned_url(op, Params={"Bucket": "rehomi-prueba", "Key": key, **extra}, ExpiresIn=900)
+            mine = r2.presign(method, key, 900, now=now, headers=headers)
+            assert parts(mine) == parts(theirs), (method, key)

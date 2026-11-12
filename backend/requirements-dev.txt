@@ -1,0 +1,3 @@
+# Solo para desarrollo y tests (no se instala en Vercel).
+-r requirements.txt
+botocore>=1.34  # para comprobar que nuestra firma SigV4 de R2 es idéntica a la de AWS

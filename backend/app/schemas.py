@@ -2,8 +2,9 @@ import re
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, PlainSerializer, field_validator, model_validator
 
+from .r2 import sign_media
 from .security import password_problems
 
 Relation = Literal["pareja", "hijo/a", "padre/madre", "hermano/a", "abuelo/a", "familia",
@@ -18,6 +19,10 @@ def _check_password(v: str) -> str:
 
 
 Password = Annotated[str, AfterValidator(_check_password)]
+
+# URL de un archivo (foto, video, audio, avatar…). En la base de datos los archivos de R2 son "r2:<clave>";
+# al responder en JSON se convierten en una URL firmada de corta duración. Las URLs antiguas salen tal cual.
+MediaURL = Annotated[str | None, PlainSerializer(sign_media, return_type=str | None, when_used="json")]
 
 MILESTONE_MAX = 40
 
@@ -99,7 +104,7 @@ class AboutOut(BaseModel):
     """Lo que ve de ti una persona conectada contigo."""
     full_name: str
     username: str | None = None
-    avatar_url: str | None = None
+    avatar_url: MediaURL = None
     birth_date: date | None = None
     bio: str | None = None
     relationship_status: str | None = None
@@ -113,7 +118,7 @@ class UserOut(BaseModel):
     full_name: str
     email: EmailStr
     username: str | None = None
-    avatar_url: str | None = None
+    avatar_url: MediaURL = None
     bio: str | None = None
     birth_date: date | None = None
     relationship_status: str | None = None
@@ -179,7 +184,7 @@ class PersonOut(BaseModel):
     nickname_emoji: str | None = None
     seen_as: SeenAs | None = None       # solo en el detalle de una persona conectada
     about: AboutOut | None = None       # su perfil (bio y familia), solo si estáis conectados
-    photo_url: str | None
+    photo_url: MediaURL
     birth_date: date | None
     special_date: date | None
     special_label: str | None
@@ -195,7 +200,7 @@ class PersonTag(BaseModel):
     name: str
     relation: str
     relation_label: str | None = None
-    photo_url: str | None
+    photo_url: MediaURL
     birth_date: date | None = None     # solo para el autor o para la propia persona etiquetada
 
 
@@ -209,7 +214,7 @@ class CommentOut(BaseModel):
     body: str
     author_id: int
     author_name: str
-    author_avatar: str | None = None
+    author_avatar: MediaURL = None
     created_at: datetime
 
 
@@ -222,7 +227,7 @@ class MemoryOut(BaseModel):
     kind: str
     title: str
     description: str | None
-    media_url: str | None
+    media_url: MediaURL
     location: str | None
     happened_on: date | None
     milestone: str | None = None
@@ -259,7 +264,7 @@ class PublicUser(BaseModel):
     id: int
     full_name: str
     username: str | None
-    avatar_url: str | None
+    avatar_url: MediaURL
 
 
 class RequestIn(BaseModel):
@@ -321,7 +326,7 @@ class CapsuleIn(BaseModel):
 class CapsuleItemOut(BaseModel):
     id: int
     kind: str
-    media_url: str
+    media_url: MediaURL
 
 
 class CapsuleOut(BaseModel):
@@ -335,10 +340,10 @@ class CapsuleOut(BaseModel):
     created_at: datetime
     is_author: bool
     author_name: str
-    author_avatar: str | None
+    author_avatar: MediaURL
     person: PersonTag | None               # destinataria (solo la ve quien la creó)
     message: str | None
-    cover_url: str | None
+    cover_url: MediaURL
     items: list[CapsuleItemOut]
     item_counts: dict[str, int]            # p. ej. {"photo": 3, "audio": 1}: se muestra aunque esté cerrada
     reactions: dict[str, int]
@@ -362,7 +367,7 @@ class NotificationOut(BaseModel):
     created_at: datetime
     read: bool
     actor_name: str
-    actor_avatar: str | None
+    actor_avatar: MediaURL
     memory_id: int
     memory_title: str
     memory_kind: str
