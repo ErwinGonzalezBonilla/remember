@@ -923,3 +923,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 /* ---------- Edad en los recuerdos ---------- */
 .tag-age { font-weight: 600; color: var(--text-2); }
 .tl-age { color: var(--coral); font-weight: 700; }
+
+/* ---------- Un día como hoy ---------- */
+.on-this-day { display: flex; flex-direction: column; gap: 10px; background: var(--coral-50); }
+.on-this-day h2 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; font-weight: 800; color: var(--petrol); }
+.on-this-day h2 svg { color: var(--coral); }
+.otd-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; scroll-snap-type: x mandatory; }
+.otd-row::-webkit-scrollbar { display: none; }
+.otd-item { flex: none; width: 104px; display: flex; flex-direction: column; gap: 4px; scroll-snap-align: start; }
+.otd-item small { font-weight: 700; color: var(--coral); font-size: .78rem; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .on-this-day h2 { color: var(--sky); }
+}

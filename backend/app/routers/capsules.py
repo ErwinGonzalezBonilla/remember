@@ -7,6 +7,7 @@ Reglas de privacidad (todas en el servidor):
   el mensaje, la portada y los archivos no salen del servidor.
 - Cualquier otra persona recibe 404: ni siquiera sabe que existe.
 """
+import logging
 from collections import Counter
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -19,6 +20,7 @@ from ..config import settings
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..mailer import first_name, send_email
+from ..on_this_day import notify_on_this_day
 from ..push import send_push
 from ..models import CapsuleComment, CapsuleItem, CapsuleReaction, Person, TimeCapsule, User
 from ..schemas import (CapsuleDetailOut, CapsuleIn, CapsuleItemOut, CapsuleOut, CapsulesOut, CommentIn, CommentOut,
@@ -26,6 +28,7 @@ from ..schemas import (CapsuleDetailOut, CapsuleIn, CapsuleItemOut, CapsuleOut, 
 from ..storage import save_media
 
 router = APIRouter(prefix="/api", tags=["cápsulas"])
+log = logging.getLogger("rehomi.cron")
 
 MAX_ITEMS = 10
 MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
@@ -329,7 +332,15 @@ def notify_opened(authorization: str | None = Header(None), db: Session = Depend
             c.open_notified = True
             sent += 1
     db.commit()
-    return {"pending": len(due), "sent": sent}
+    # Un día como hoy: va en la misma tarea diaria (el plan gratuito de Vercel limita los crons).
+    # Si falla, lo de las cápsulas ya está hecho y guardado.
+    try:
+        on_this_day = notify_on_this_day(db)
+    except Exception:  # noqa: BLE001
+        log.exception("Falló el aviso de 'Un día como hoy'")
+        db.rollback()
+        on_this_day = 0
+    return {"pending": len(due), "sent": sent, "on_this_day": on_this_day}
 
 
 def remove_user_capsules(user: User, db: Session):

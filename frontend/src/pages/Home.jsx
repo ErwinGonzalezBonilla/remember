@@ -19,6 +19,35 @@ function upcoming(people) {
   return events.filter((e) => e.next.days <= 30).sort((a, b) => a.next.days - b.next.days)[0]
 }
 
+/** Hoy en la fecha local del móvil (AAAA-MM-DD): el servidor va en UTC. */
+function localToday() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** "Un día como hoy": recuerdos de años anteriores con el mismo día y mes. Nada si no hay. */
+function OnThisDay({ today }) {
+  const { data: memories } = useApi(`/api/memories/on-this-day?today=${today}`)
+  if (!memories?.length) return null
+  const year = Number(today.slice(0, 4))
+  return (
+    <section className="card on-this-day">
+      <h2><Icon name="heart" size={18} filled /> Un día como hoy</h2>
+      <div className="otd-row">
+        {memories.map((m) => {
+          const n = year - Number((m.happened_on || m.created_at).slice(0, 4))
+          return (
+            <div key={m.id} className="otd-item">
+              <small>Hace {n} {n === 1 ? 'año' : 'años'}</small>
+              <MemoryThumb memory={m} />
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 export default function Home() {
   const { user } = useAuth()
   const { data: people, error } = useApi('/api/people')
@@ -135,6 +164,8 @@ export default function Home() {
           </span>
         </Link>
       )}
+
+      <OnThisDay today={localToday()} />
 
       <div className="section-head">
         <h2>Tus recuerdos</h2>

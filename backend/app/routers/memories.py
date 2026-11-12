@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..database import get_db
 from ..deps import get_current_user, get_own_person, get_visible_memory, visible_to
+from ..on_this_day import memory_day, on_this_day, utc_today
 from ..models import Comment, Memory, MemoryTag, Notification, Person, Reaction, User
 from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn
 from ..storage import save_media
@@ -138,6 +139,22 @@ async def create_memory(
     db.refresh(memory)
     notify_tagged(memory, {p.id for p in people}, user, db)
     return to_out(memory, user)
+
+
+# Declarada antes de /memories/{memory_id} para que "on-this-day" no se lea como un id
+@router.get("/memories/on-this-day", response_model=list[MemoryOut])
+def memories_on_this_day(
+    today: date | None = Query(None, description="Fecha local del móvil (AAAA-MM-DD)"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Un día como hoy: recuerdos visibles de años anteriores con el mismo día y mes, del más antiguo al más reciente.
+    `today` es la fecha local de quien mira; si se aleja más de un día de la fecha UTC, se usa la UTC."""
+    utc = utc_today()
+    if today is None or abs((today - utc).days) > 1:
+        today = utc
+    memories = db.scalars(on_this_day(user, today).options(*EAGER)).unique().all()
+    return [to_out(m, user) for m in sorted(memories, key=memory_day)]
 
 
 @router.get("/memories/{memory_id}", response_model=MemoryDetailOut)

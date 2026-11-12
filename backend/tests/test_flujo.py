@@ -586,9 +586,11 @@ def test_capsula_del_tiempo(monkeypatch):
 
     # Aviso diario: solo una vez por cápsula
     mails.clear()
-    assert client.get("/api/cron/capsules").json() == {"pending": 1, "sent": 1}
+    r = client.get("/api/cron/capsules").json()
+    assert (r["pending"], r["sent"]) == (1, 1) and "on_this_day" in r
     assert mails == [("leo@x.com", "¡Tu cápsula del tiempo ya se puede abrir! 🎉")]
-    assert client.get("/api/cron/capsules").json() == {"pending": 0, "sent": 0}
+    r = client.get("/api/cron/capsules").json()
+    assert (r["pending"], r["sent"]) == (0, 0)
 
     # Borrar a la persona: la cápsula queda sin destinataria (Leo deja de verla), no se borra
     tmp = client.post("/api/capsules", headers=mama, json={**base, "person_id": otra_p["id"], "open_at": future()}).json()
@@ -611,3 +613,85 @@ def test_cron_con_secreto(monkeypatch):
     monkeypatch.setattr(settings, "cron_secret", "s3creto")
     assert client.get("/api/cron/capsules").status_code == 401
     assert client.get("/api/cron/capsules", headers={"Authorization": "Bearer s3creto"}).status_code == 200
+
+
+# ---------- Un día como hoy ----------
+def _years_back(d, n):
+    """El mismo día y mes de hace n años (el 29 de febrero pasa al 28 si ese año no es bisiesto)."""
+    try:
+        return d.replace(year=d.year - n)
+    except ValueError:
+        return d.replace(year=d.year - n, day=28)
+
+
+def test_un_dia_como_hoy():
+    from datetime import timedelta
+    from app.on_this_day import utc_today
+    from app.database import SessionLocal
+    from app.models import Memory
+
+    hoy = utc_today()
+    eva = register("Eva Hoy", "evahoy@example.com")
+    otro = register("Otro Hoy", "otrohoy@example.com")
+    hace2 = save(eva, "Primer día de playa", happened_on=_years_back(hoy, 2).isoformat())
+    save(eva, "Hoy mismo", happened_on=hoy.isoformat())
+    save(eva, "Otro día", happened_on=_years_back(hoy - timedelta(days=3), 2).isoformat())
+    save(otro, "No es mío", happened_on=_years_back(hoy, 2).isoformat())
+    sin_fecha = save(eva, "Sin fecha")  # cuenta el día en que se guardó: lo movemos a hace 3 años
+    with SessionLocal() as db:
+        m = db.get(Memory, sin_fecha["id"])
+        m.created_at = m.created_at.replace(year=_years_back(hoy, 3).year, month=_years_back(hoy, 3).month,
+                                            day=_years_back(hoy, 3).day)
+        db.commit()
+
+    r = client.get("/api/memories/on-this-day", headers=eva)
+    assert r.status_code == 200, r.text
+    assert [m["title"] for m in r.json()] == ["Sin fecha", "Primer día de playa"]  # del más antiguo al más reciente
+    assert r.json()[1]["id"] == hace2["id"] and r.json()[1]["people"] == []
+    # La fecha local del móvil se acepta con ±1 día; si no, se usa la del servidor
+    assert [m["title"] for m in client.get(f"/api/memories/on-this-day?today={hoy.isoformat()}", headers=eva).json()]         == ["Sin fecha", "Primer día de playa"]
+    lejos = (hoy + timedelta(days=10)).isoformat()
+    assert len(client.get(f"/api/memories/on-this-day?today={lejos}", headers=eva).json()) == 2
+    manana = (hoy + timedelta(days=1)).isoformat()
+    assert client.get(f"/api/memories/on-this-day?today={manana}", headers=eva).json() == []
+    assert client.get("/api/memories/on-this-day", headers=otro).json()[0]["title"] == "No es mío"
+
+
+def test_aviso_un_dia_como_hoy(monkeypatch):
+    from datetime import date
+    import app.push as push
+    from app.database import SessionLocal
+    from app.on_this_day import notify_on_this_day
+
+    sent = []
+    monkeypatch.setattr(push, "webpush", lambda info, data, **kw: sent.append((info["endpoint"], __import__("json").loads(data))))
+    flo = register("Flo Hitos", "flohoy@example.com")
+    sub = {"endpoint": "https://push.example/flo-movil", "keys": {"p256dh": "BPk", "auth": "xyz"}}
+    assert client.post("/api/push/subscribe", headers=flo, json=sub).status_code == 204
+    save(flo, "Bisiesto", happened_on="2024-02-29")
+    save(flo, "Nieve", happened_on="2025-02-28")
+    save(flo, "Marzo", happened_on="2025-03-01")
+    # 28 de febrero de 2027 (no bisiesto): también salen los del 29 de febrero
+    with SessionLocal() as db:
+        assert notify_on_this_day(db, today=date(2027, 2, 28)) == 1
+    assert sent == [("https://push.example/flo-movil", {
+        "title": "Un día como hoy 💛", "body": "Hace 3 años: «Bisiesto» y 1 recuerdo más", "url": "/",
+        "tag": "on-this-day-2027-02-28"})]
+    # Un solo recuerdo, sin "y N más"; nada si no hay ninguno
+    sent.clear()
+    with SessionLocal() as db:
+        assert notify_on_this_day(db, today=date(2026, 3, 1)) == 1
+        assert notify_on_this_day(db, today=date(2026, 7, 15)) == 0
+    assert [s[1]["body"] for s in sent] == ["Hace 1 año: «Marzo»"]
+    # En un año bisiesto, el 28 de febrero no incluye los del 29
+    sent.clear()
+    with SessionLocal() as db:
+        notify_on_this_day(db, today=date(2028, 2, 28))
+    assert sent[0][1]["body"] == "Hace 3 años: «Nieve»"
+    # Va dentro de la tarea diaria, y un fallo ahí no rompe lo de las cápsulas
+    def boom(db):
+        raise RuntimeError("fallo")
+    monkeypatch.setattr("app.routers.capsules.notify_on_this_day", boom)
+    r = client.get("/api/cron/capsules")
+    assert r.status_code == 200 and r.json()["on_this_day"] == 0
+    client.post("/api/push/unsubscribe", headers=flo, json={"endpoint": sub["endpoint"]})
