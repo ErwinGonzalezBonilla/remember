@@ -119,6 +119,7 @@ class ConnectionRequest(Base):
     to_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     relation: Mapped[str] = mapped_column(String(30))            # quién es 'to' para 'from'
     from_person_id: Mapped[int | None] = mapped_column(ForeignKey("people.id", ondelete="SET NULL"))
+    message: Mapped[str | None] = mapped_column(String(120))     # dedicatoria opcional de quien la envía
     status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | accepted | rejected
     seen_by_sender: Mapped[bool] = mapped_column(default=False)  # ya vio "tu cofre se ha abierto"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)

@@ -44,7 +44,8 @@ def layout(title: str, paragraphs: list[str], button: tuple[str, str] | None = N
 
 def _text_version(title: str, paragraphs: list[str], button: tuple[str, str] | None) -> str:
     import re
-    plain = [re.sub(r"<[^>]+>", "", p) for p in paragraphs]
+    from html import unescape
+    plain = [unescape(re.sub(r"<[^>]+>", "", p)) for p in paragraphs]
     out = [title, "", *plain]
     if button:
         out += ["", f"{button[0]}: {button[1]}"]

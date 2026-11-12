@@ -248,6 +248,12 @@ class RequestIn(BaseModel):
     to_user_id: int
     relation: Relation                 # quién es esa persona para mí
     person_id: int | None = None       # si ya la tenía guardada en mi lista
+    message: str | None = Field(default=None, max_length=120)  # dedicatoria opcional
+
+    @field_validator("message")
+    @classmethod
+    def _clean_message(cls, v: str | None) -> str | None:
+        return (v or "").strip() or None
 
 
 class AcceptIn(BaseModel):
@@ -262,6 +268,7 @@ class RequestOut(BaseModel):
     created_at: datetime
     from_user: PublicUser
     to_user: PublicUser
+    message: str | None = None
 
 
 class RequestsOut(BaseModel):

@@ -4,6 +4,7 @@ vinculándola con una persona de tu lista y, al aceptar, abrir su cofre.
 Ejemplo: Allison busca a @felixflores, dice que es su padre y envía la solicitud.
 Félix la acepta, dice que Allison es su hija y la vincula con la "Allison" que ya tenía guardada.
 Desde ese momento Allison ve todo lo que Félix etiquetó con ella (regla en deps.visible_to)."""
+import html
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,7 +29,7 @@ def public(u: User) -> PublicUser:
 
 def out(r: ConnectionRequest) -> RequestOut:
     return RequestOut(id=r.id, status=r.status, relation=r.relation, created_at=r.created_at,
-                      from_user=public(r.from_user), to_user=public(r.to_user))
+                      from_user=public(r.from_user), to_user=public(r.to_user), message=r.message)
 
 
 def _linked_person(owner_id: int, other_id: int, db: Session) -> Person | None:
@@ -95,7 +96,7 @@ def send_request(data: RequestIn, user: User = Depends(get_current_user), db: Se
         if person.linked_user_id:
             raise HTTPException(409, "Esa persona de tu lista ya está conectada con otra cuenta.")
     req = ConnectionRequest(from_user_id=user.id, to_user_id=other.id, relation=data.relation,
-                            from_person_id=data.person_id)
+                            from_person_id=data.person_id, message=data.message)
     db.add(req)
     db.commit()
     db.refresh(req)
@@ -103,10 +104,12 @@ def send_request(data: RequestIn, user: User = Depends(get_current_user), db: Se
         other.email, f"{user.full_name} quiere conectar contigo en REHOMI",
         f"{user.full_name} quiere conectar contigo",
         [f"Hola, {first_name(other.full_name)}. <b>{first_name(user.full_name)}</b> te envió una solicitud de conexión en REHOMI.",
+         *([f"<i>«{html.escape(data.message)}»</i>"] if data.message else []),
          "Al aceptarla, se abrirá su cofre: podréis ver los recuerdos que guardasteis juntos."],
         button=("Ver la solicitud", f"{settings.public_url}/conectar/solicitud/{req.id}"),
     )
-    send_push(db, [other.id], f"{user.full_name} quiere conectar contigo", "Toca para ver la solicitud",
+    send_push(db, [other.id], f"{user.full_name} quiere conectar contigo",
+              f"«{data.message}»" if data.message else "Toca para ver la solicitud",
               f"/conectar/solicitud/{req.id}", tag=f"request-{req.id}")
     return out(req)
 

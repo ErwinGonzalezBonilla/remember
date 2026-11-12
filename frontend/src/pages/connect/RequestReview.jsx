@@ -72,6 +72,7 @@ export default function RequestReview() {
           <strong>{sender.full_name}</strong>
           {sender.username && <small className="muted">@{sender.username}</small>}
           <span>Quiere conectar contigo · dice que eres su <b>{(RELATIONS[req.relation] || req.relation).toLowerCase()}</b></span>
+          {req.message && <blockquote className="request-message">«{req.message}»</blockquote>}
         </span>
       </div>
 

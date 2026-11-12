@@ -441,6 +441,26 @@ def test_rechazar_y_cancelar_solicitud():
     assert client.get("/api/people", headers=a).json() == []
 
 
+
+def test_solicitud_con_mensaje():
+    a = register("Mara Mensaje", "mara@x.com")
+    b = register("Nico Nota", "nico@x.com")
+    client.patch("/api/me", headers=b, json={"full_name": "Nico Nota", "username": "niconota"})
+    bid = client.get("/api/connect/lookup?q=@niconota", headers=a).json()["id"]
+    largo = {"to_user_id": bid, "relation": "amistad", "message": "x" * 121}
+    assert client.post("/api/connect/requests", headers=a, json=largo).status_code == 422
+    r = client.post("/api/connect/requests", headers=a, json={
+        "to_user_id": bid, "relation": "amistad", "message": "   ¡Por fin te encuentro! 💛  "})
+    assert r.status_code == 201, r.text
+    assert r.json()["message"] == "¡Por fin te encuentro! 💛"
+    visto = client.get(f"/api/connect/requests/{r.json()['id']}", headers=b).json()
+    assert visto["message"] == "¡Por fin te encuentro! 💛"
+    assert client.get("/api/connect/requests", headers=b).json()["incoming"][0]["message"] == "¡Por fin te encuentro! 💛"
+    # Solo espacios = sin mensaje
+    client.delete(f"/api/connect/requests/{r.json()['id']}", headers=a)
+    r2 = client.post("/api/connect/requests", headers=a, json={"to_user_id": bid, "relation": "amistad", "message": "   "})
+    assert r2.json()["message"] is None
+
 # ---------- Cápsula del tiempo ----------
 def connect_users(a, b, b_person_for_a, relation_a_says="padre/madre", relation_b_says="hijo/a"):
     """`b` (que creó b_person_for_a en su lista) acepta la solicitud de `a`."""

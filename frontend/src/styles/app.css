@@ -915,3 +915,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   :root:not([data-theme="light"]) .found-badge { background: #173A31; }
   :root:not([data-theme="light"]) .found-again { color: var(--sky); }
 }
+
+/* Mensaje personalizado en la solicitud */
+.request-message { margin: 8px 0 0; padding: 10px 14px; border-left: 3px solid var(--coral); border-radius: 4px 14px 14px 4px;
+  background: var(--coral-50); color: var(--text); font-style: italic; overflow-wrap: anywhere; }
