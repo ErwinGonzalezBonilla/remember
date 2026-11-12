@@ -6,6 +6,7 @@ import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, 
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
+import { MilestoneBadge } from '../memories/Milestone'
 
 /** El cofre de una persona: su línea de tiempo con todo lo que has guardado con ella. */
 export default function PersonChest() {
@@ -13,6 +14,7 @@ export default function PersonChest() {
   const { user } = useAuth()
   const location = useLocation()
   const [copied, setCopied] = useState(false)
+  const [onlySpecial, setOnlySpecial] = useState(false)
   const { data: person, loading, error } = useApi(`/api/people/${id}`)
   const { data: memories } = useApi(`/api/memories?person_id=${id}`)
 
@@ -25,7 +27,8 @@ export default function PersonChest() {
 
   // Agrupar la línea de tiempo por año
   const byYear = {}
-  memories?.forEach((m) => {
+  const shown = onlySpecial ? memories?.filter((m) => m.milestone) : memories
+  shown?.forEach((m) => {
     const y = (m.happened_on || m.created_at).slice(0, 4)
     ;(byYear[y] ||= []).push(m)
   })
@@ -111,6 +114,16 @@ export default function PersonChest() {
         </div>
       )}
 
+      {memories?.length > 0 && (
+        <div className="chips chest-filter">
+          <button type="button" className={`chip chip-coral ${onlySpecial ? 'active' : ''}`} aria-pressed={onlySpecial}
+            onClick={() => setOnlySpecial((v) => !v)}>⭐ Solo momentos especiales</button>
+        </div>
+      )}
+      {onlySpecial && !shown.length && (
+        <p className="muted center">Aún no hay momentos especiales con {first}. Márcalos al guardar o editar un recuerdo.</p>
+      )}
+
       {years.map((y) => (
         <section key={y} className="timeline">
           <h2 className="year">{y}</h2>
@@ -121,6 +134,7 @@ export default function PersonChest() {
               <Link key={m.id} to={`/recuerdo/${m.id}`} className="tl-item">
                 <div className="tl-thumb"><MemoryThumb memory={m} asDiv /></div>
                 <span className="row-text">
+                  <MilestoneBadge milestone={m.milestone} />
                   <strong>{m.title}</strong>
                   <small>{formatDate(m.happened_on || m.created_at)}{age && <span className="tl-age"> · {age}</span>} · {KIND_LABEL[m.kind]}{m.author_id !== user.id && ` · de ${m.author_name.split(' ')[0]}`}</small>
                   {m.people.length > 1 && (

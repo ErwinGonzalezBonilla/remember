@@ -6,6 +6,7 @@ import PeoplePicker from '../../components/PeoplePicker'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar, formatDate, ageAt } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
+import { MilestoneBadge, MilestonePicker } from './Milestone'
 
 const EMOJIS = [
   { e: '❤️', label: 'Me encanta' }, { e: '😀', label: 'Me alegra' }, { e: '😂', label: 'Me hace reír' },
@@ -78,7 +79,7 @@ export default function MemoryDetail() {
         method: 'PUT',
         body: { title: editing.title, description: editing.description || null,
           location: editing.location || null, happened_on: editing.happened_on || null,
-          person_ids: editing.person_ids },
+          person_ids: editing.person_ids, milestone: editing.milestone.trim() || null },
       }))
       setEditing(null)
     })
@@ -95,7 +96,7 @@ export default function MemoryDetail() {
             <button className="icon-btn" aria-label="Editar recuerdo"
               onClick={() => setEditing({
                 title: m.title, description: m.description || '', location: m.location || '',
-                happened_on: m.happened_on || '', person_ids: m.people.map((p) => p.id),
+                happened_on: m.happened_on || '', person_ids: m.people.map((p) => p.id), milestone: m.milestone || '',
               })}>
               <Icon name="edit" />
             </button>
@@ -113,6 +114,7 @@ export default function MemoryDetail() {
             <Field label="Fecha" htmlFor="ef"><input id="ef" type="date" value={editing.happened_on} onChange={(e) => setEditing({ ...editing, happened_on: e.target.value })} /></Field>
             <Field label="Lugar" htmlFor="el"><input id="el" value={editing.location} onChange={(e) => setEditing({ ...editing, location: e.target.value })} /></Field>
           </div>
+          <MilestonePicker value={editing.milestone} onChange={(v) => setEditing({ ...editing, milestone: v })} />
           <Field label="¿Con quién es este recuerdo?" htmlFor="ep">
             {people
               ? <PeoplePicker people={people} setPeople={setPeople} selected={editing.person_ids}
@@ -131,6 +133,7 @@ export default function MemoryDetail() {
             <small className="eyebrow">
               {formatDate(m.happened_on || m.created_at)}{m.location && <> · <Icon name="pin" size={12} /> {m.location}</>}
             </small>
+            <MilestoneBadge milestone={m.milestone} className="big" />
             <h1>{m.title}</h1>
             {m.description && <p className={m.kind === 'text' ? 'letter-body' : ''}>{m.description}</p>}
             {m.people.length > 0 ? (

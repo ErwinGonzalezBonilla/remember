@@ -88,6 +88,7 @@ class Memory(Base):
     media_url: Mapped[str | None] = mapped_column(String(500))
     location: Mapped[str | None] = mapped_column(String(160))
     happened_on: Mapped[date | None] = mapped_column(Date)
+    milestone: Mapped[str | None] = mapped_column(String(40))  # hito: "Primeros pasos", "Primer diente"…
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     author: Mapped[User] = relationship()

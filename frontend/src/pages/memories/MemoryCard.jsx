@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { formatDate } from '../../components/ui'
+import { MilestoneBadge } from './Milestone'
 
 export const KIND_LABEL = { photo: 'Foto', video: 'Video', audio: 'Nota de voz', text: 'Nota' }
 const KIND_ICON = { photo: 'camera', video: 'video', audio: 'mic', text: 'note' }
@@ -27,6 +28,7 @@ export function MemoryCard({ memory }) {
       {memory.kind === 'video' && <span className="badge-play"><Icon name="play" size={14} filled /></span>}
       <span className={`badge-heart ${loved ? 'on' : ''}`}><Icon name="heart" size={16} filled={loved} /></span>
       <span className="memory-meta">
+        <MilestoneBadge milestone={memory.milestone} />
         <small>{formatDate(memory.happened_on || memory.created_at)}</small>
         <strong>{memory.title}</strong>
       </span>
@@ -41,6 +43,7 @@ export function MemoryRow({ memory }) {
       <div className="memory-row-cover"><Cover memory={memory} /></div>
       <span className="row-text">
         <small className="eyebrow">{formatDate(memory.happened_on || memory.created_at)}</small>
+        <MilestoneBadge milestone={memory.milestone} />
         <strong>{memory.title}</strong>
         <small className="muted">
           {KIND_LABEL[memory.kind]}{memory.location ? ` · ${memory.location}` : ''}

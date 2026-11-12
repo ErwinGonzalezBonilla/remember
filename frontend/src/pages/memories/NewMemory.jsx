@@ -7,6 +7,7 @@ import { AppShell, ErrorBox, Field, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
 import { MAX_UPLOAD_MB, compressImage, tooBig } from '../../media'
 import { KIND_LABEL } from './MemoryCard'
+import { MilestonePicker } from './Milestone'
 import VoiceRecorder from './VoiceRecorder'
 
 const ACCEPT = { photo: 'image/*', video: 'video/*', audio: 'audio/*' }
@@ -24,7 +25,7 @@ export default function NewMemory() {
   const [kind, setKind] = useState(KINDS.some((k) => k.kind === params.get('tipo')) ? params.get('tipo') : 'photo')
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '', location: '', happened_on: new Date().toLocaleDateString('sv') })
+  const [form, setForm] = useState({ title: '', description: '', location: '', happened_on: new Date().toLocaleDateString('sv'), milestone: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -58,7 +59,7 @@ export default function NewMemory() {
     setBusy(true); setError('')
     const fd = new FormData()
     fd.append('kind', kind)
-    Object.entries(form).forEach(([k, v]) => v && fd.append(k, v))
+    Object.entries(form).forEach(([k, v]) => v.trim() && fd.append(k, v.trim()))
     if (tagged.length) fd.append('person_ids', tagged.join(','))
     if (file) fd.append('file', file)
     try {
@@ -112,6 +113,7 @@ export default function NewMemory() {
             <Field label="Fecha" htmlFor="f"><input id="f" type="date" value={form.happened_on} onChange={set('happened_on')} /></Field>
             <Field label="Lugar (opcional)" htmlFor="l"><input id="l" value={form.location} onChange={set('location')} placeholder="Madrid" /></Field>
           </div>
+          <MilestonePicker value={form.milestone} onChange={(v) => setForm((f) => ({ ...f, milestone: v }))} />
         </div>
 
         <section className="card stack">

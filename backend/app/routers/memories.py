@@ -9,7 +9,7 @@ from ..database import get_db
 from ..deps import get_current_user, get_own_person, get_visible_memory, visible_to
 from ..on_this_day import memory_day, on_this_day, utc_today
 from ..models import Comment, Memory, MemoryTag, Notification, Person, Reaction, User
-from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn
+from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, clean_milestone
 from ..storage import save_media
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
@@ -36,7 +36,7 @@ def to_out(memory: Memory, user: User) -> MemoryOut:
     return MemoryOut(
         id=memory.id, kind=memory.kind, title=memory.title, description=memory.description,
         media_url=memory.media_url, location=memory.location, happened_on=memory.happened_on,
-        created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
+        milestone=memory.milestone, created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
         people=[_tag(t.person, memory, user) for t in memory.tags],
         reactions=dict(counts), my_reaction=mine, comment_count=len(memory.comments),
         can_edit=memory.author_id == user.id,
@@ -112,12 +112,17 @@ async def create_memory(
     location: str | None = Form(None),
     happened_on: date | None = Form(None),
     person_ids: str | None = Form(None, description="IDs separados por coma: 3,7"),
+    milestone: str | None = Form(None, description="Momento especial: 'Primeros pasos'…"),
     file: UploadFile | None = File(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if kind not in KINDS:
         raise HTTPException(422, "Tipo de recuerdo no válido.")
+    try:
+        milestone = clean_milestone(milestone)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     people = _own_people(_parse_ids(person_ids), user, db)
     media_url = None
     if kind == "text":
@@ -131,7 +136,7 @@ async def create_memory(
     memory = Memory(
         author_id=user.id, kind=kind, title=title.strip(),
         description=(description or "").strip() or None, location=(location or "").strip() or None,
-        happened_on=happened_on, media_url=media_url,
+        happened_on=happened_on, media_url=media_url, milestone=milestone,
         tags=[MemoryTag(person_id=p.id) for p in people],
     )
     db.add(memory)
@@ -174,6 +179,8 @@ def update_memory(memory_id: int, data: MemoryUpdate, user: User = Depends(get_c
     memory.description = (data.description or "").strip() or None
     memory.location = (data.location or "").strip() or None
     memory.happened_on = data.happened_on
+    if "milestone" in data.model_fields_set:  # si no lo envían, se queda como estaba
+        memory.milestone = data.milestone
     wanted = {p.id for p in people}
     added = wanted - {t.person_id for t in memory.tags}
     memory.tags = [t for t in memory.tags if t.person_id in wanted] + [MemoryTag(person_id=pid) for pid in added]

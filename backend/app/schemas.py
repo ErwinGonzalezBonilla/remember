@@ -19,6 +19,16 @@ def _check_password(v: str) -> str:
 
 Password = Annotated[str, AfterValidator(_check_password)]
 
+MILESTONE_MAX = 40
+
+
+def clean_milestone(v: str | None) -> str | None:
+    """Hito de un recuerdo: sin espacios a los lados, vacío = None y como mucho 40 caracteres."""
+    v = (v or "").strip()
+    if len(v) > MILESTONE_MAX:
+        raise ValueError(f"El momento especial puede tener como mucho {MILESTONE_MAX} caracteres.")
+    return v or None
+
 
 # ---------- Auth ----------
 class RegisterIn(BaseModel):
@@ -215,6 +225,7 @@ class MemoryOut(BaseModel):
     media_url: str | None
     location: str | None
     happened_on: date | None
+    milestone: str | None = None
     created_at: datetime
     author_id: int
     author_name: str
@@ -235,6 +246,12 @@ class MemoryUpdate(BaseModel):
     location: str | None = None
     happened_on: date | None = None
     person_ids: list[int] = []
+    milestone: str | None = None
+
+    @field_validator("milestone")
+    @classmethod
+    def _clean_milestone(cls, v: str | None) -> str | None:
+        return clean_milestone(v)
 
 
 # ---------- Conectar ----------

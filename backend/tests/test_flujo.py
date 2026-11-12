@@ -695,3 +695,26 @@ def test_aviso_un_dia_como_hoy(monkeypatch):
     r = client.get("/api/cron/capsules")
     assert r.status_code == 200 and r.json()["on_this_day"] == 0
     client.post("/api/push/unsubscribe", headers=flo, json={"endpoint": sub["endpoint"]})
+
+
+# ---------- Hitos ----------
+def test_hitos():
+    gus = register("Gus Hitos", "gushitos@example.com")
+    m = save(gus, "Sus primeros pasos", milestone="  Primeros pasos  ")
+    assert m["milestone"] == "Primeros pasos"
+    assert client.get("/api/memories", headers=gus).json()[0]["milestone"] == "Primeros pasos"
+    base = {"title": "Sus primeros pasos", "description": "Una nota", "person_ids": []}
+    # Editar sin enviar el hito no lo toca
+    r = client.put(f"/api/memories/{m['id']}", headers=gus, json=base)
+    assert r.status_code == 200 and r.json()["milestone"] == "Primeros pasos"
+    r = client.put(f"/api/memories/{m['id']}", headers=gus, json={**base, "milestone": "Primera palabra"})
+    assert r.json()["milestone"] == "Primera palabra"
+    r = client.put(f"/api/memories/{m['id']}", headers=gus, json={**base, "milestone": None})
+    assert r.json()["milestone"] is None
+    r = client.put(f"/api/memories/{m['id']}", headers=gus, json={**base, "milestone": "   "})
+    assert r.json()["milestone"] is None
+    assert client.put(f"/api/memories/{m['id']}", headers=gus, json={**base, "milestone": "x" * 41}).status_code == 422
+    r = client.post("/api/memories", headers=gus, data={"kind": "text", "title": "Largo", "description": "a", "milestone": "x" * 41})
+    assert r.status_code == 422
+    assert save(gus, "Sin hito", milestone="")["milestone"] is None
+    assert save(gus, "Justo 40", milestone="y" * 40)["milestone"] == "y" * 40
