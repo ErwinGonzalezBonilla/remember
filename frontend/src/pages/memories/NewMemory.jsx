@@ -5,7 +5,7 @@ import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
 import { AppShell, ErrorBox, Field, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { MAX_UPLOAD_MB, compressImage, tooBig } from '../../media'
+import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile } from '../../media'
 import { KIND_LABEL } from './MemoryCard'
 import { MilestonePicker } from './Milestone'
 import VoiceRecorder from './VoiceRecorder'
@@ -28,6 +28,7 @@ export default function NewMemory() {
   const [form, setForm] = useState({ title: '', description: '', location: '', happened_on: new Date().toLocaleDateString('sv'), milestone: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState('')
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function NewMemory() {
     setError('')
     if (!raw) return setFile(null)
     const f = await compressImage(raw)
-    const big = tooBig(f)
+    const big = tooBig(f, kind)
     if (big) return setError(big)
     setFile(f)
   }
@@ -61,13 +62,19 @@ export default function NewMemory() {
     fd.append('kind', kind)
     Object.entries(form).forEach(([k, v]) => v.trim() && fd.append(k, v.trim()))
     if (tagged.length) fd.append('person_ids', tagged.join(','))
-    if (file) fd.append('file', file)
     try {
+      if (file) {
+        // El archivo va directo al almacén; aquí solo se envía su clave
+        setProgress(progressText(kind))
+        fd.append('media_key', await uploadFile(file, kind, (pct) => setProgress(progressText(kind, pct))))
+        setProgress('Guardando…')
+      }
       const memory = await api('/api/memories', { method: 'POST', form: fd })
       navigate(`/recuerdo/${memory.id}`, { replace: true })
     } catch (err) {
       setError(err.message)
       setBusy(false)
+      setProgress('')
     }
   }
 
@@ -97,7 +104,7 @@ export default function NewMemory() {
               {file ? 'Cambiar archivo' : kind === 'audio' ? 'O sube un audio' : `Elegir ${KIND_LABEL[kind].toLowerCase()}`}
               <input type="file" accept={ACCEPT[kind]} hidden onChange={(e) => pick(e.target.files[0])} />
             </label>
-            <small className="hint">Máximo {MAX_UPLOAD_MB} MB. Las fotos se reducen solas.</small>
+            <small className="hint">Máximo {LIMITS_MB[kind]} MB. {kind === 'photo' ? 'Las fotos se reducen solas.' : ''}</small>
           </div>
         )}
 
@@ -127,7 +134,7 @@ export default function NewMemory() {
           {people && !tagged.length && <small className="hint">Sin etiquetar: será solo para ti (puedes etiquetar después).</small>}
         </section>
 
-        <button className="btn btn-primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar recuerdo'}</button>
+        <button className="btn btn-primary" disabled={busy}>{busy ? progress || 'Guardando…' : 'Guardar recuerdo'}</button>
       </form>
     </AppShell>
   )

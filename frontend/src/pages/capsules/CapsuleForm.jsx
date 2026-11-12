@@ -4,7 +4,7 @@ import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { MAX_UPLOAD_MB, compressImage, tooBig } from '../../media'
+import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile } from '../../media'
 import { countsText, openDateText } from './capsuleUtils'
 
 const MAX_ITEMS = 10
@@ -98,12 +98,15 @@ export default function CapsuleForm() {
         ? await api(`/api/capsules/${id}`, { method: 'PUT', body })
         : await api('/api/capsules', { method: 'POST', body })
       capsuleId = saved.id
-      // Uno por uno: en Vercel cada petición admite como máximo 4 MB.
+      // Uno por uno, directos al almacén; aquí solo se envía la clave de cada archivo
       for (let i = 0; i < pending.length; i += 1) {
-        setBusy(`Subiendo ${i + 1} de ${pending.length}…`)
+        const { kind, file } = pending[i]
+        const step = pending.length > 1 ? ` (${i + 1} de ${pending.length})` : ''
+        setBusy(progressText(kind) + step)
+        const key = await uploadFile(file, kind, (pct) => setBusy(progressText(kind, pct) + step))
         const fd = new FormData()
-        fd.append('kind', pending[i].kind)
-        fd.append('file', pending[i].file)
+        fd.append('kind', kind)
+        fd.append('media_key', key)
         const after = await api(`/api/capsules/${capsuleId}/items`, { method: 'POST', form: fd })
         setItems(after.items)
         setPending((p) => p.slice(1))
@@ -176,7 +179,7 @@ export default function CapsuleForm() {
         <section className="card stack">
           <div>
             <h2 className="field-title">Fotos, videos y audios <small className="muted">({total}/{MAX_ITEMS})</small></h2>
-            <small className="hint">Opcional. Máximo {MAX_UPLOAD_MB} MB por archivo; las fotos se reducen solas.</small>
+            <small className="hint">Opcional. Fotos hasta {LIMITS_MB.photo} MB, audios hasta {LIMITS_MB.audio} MB y videos hasta {LIMITS_MB.video} MB; las fotos se reducen solas.</small>
           </div>
           {total > 0 && (
             <div className="capsule-files">

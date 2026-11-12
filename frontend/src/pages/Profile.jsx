@@ -5,7 +5,7 @@ import Icon from '../components/Icon'
 import { AppShell, ErrorBox, FAMILY_GROUPS, FAMILY_RELATION, Field, NameList, PeopleSuggest, RELATIONSHIP, TopBar, matchPerson } from '../components/ui'
 import { useApi } from '../hooks'
 import { useAuth } from '../context/AuthContext'
-import { compressImage, tooBig } from '../media'
+import { compressImage, tooBig, uploadFile } from '../media'
 
 /** Sugerencia de @usuario a partir del nombre: "Félix Flores" → "felixflores". */
 export function suggestUsername(name) {
@@ -52,7 +52,7 @@ export default function Profile({ onboarding = false }) {
     if (!raw) return
     if (!raw.type.startsWith('image/')) return setError('Elige una imagen (JPG, PNG, WEBP…).')
     const f = await compressImage(raw, 800)
-    const big = tooBig(f)
+    const big = tooBig(f, 'photo')
     if (big) return setError(big)
     setFile(f)
     setRemovePhoto(false)
@@ -80,7 +80,7 @@ export default function Profile({ onboarding = false }) {
       })
       if (file) {
         const fd = new FormData()
-        fd.append('file', file)
+        fd.append('media_key', await uploadFile(file, 'photo'))
         updated = await api('/api/me/avatar', { method: 'POST', form: fd })
         setFile(null)
       } else if (removePhoto) {

@@ -1,4 +1,4 @@
-const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+export const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const TOKEN_KEY = 'rehomi_token'
 // Nombre anterior de la app: se migra la sesión guardada para que nadie tenga que volver a entrar.
 const OLD_TOKEN_KEY = 'remember_token'
@@ -45,8 +45,10 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   }
 
   if (res.status === 204) return null
-  if (res.status === 413) throw new ApiError('El archivo es demasiado grande para subirlo. Prueba con uno más pequeño.', 413)
   const data = await res.json().catch(() => ({}))
+  if (res.status === 413 && typeof data.detail !== 'string') {
+    throw new ApiError('El archivo es demasiado grande para subirlo. Prueba con uno más pequeño.', 413)
+  }
   if (!res.ok) {
     if (res.status === 401 && token) onUnauthorized()
     const detail = typeof data.detail === 'string' ? data.detail : 'Algo salió mal. Inténtalo de nuevo.'

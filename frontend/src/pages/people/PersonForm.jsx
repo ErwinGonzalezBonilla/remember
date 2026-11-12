@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { AppShell, ErrorBox, Field, RELATIONS, Spinner, TopBar, NICK_EMOJIS, suggestEmoji } from '../../components/ui'
-import { compressImage } from '../../media'
+import { compressImage, tooBig, uploadFile } from '../../media'
 
 const EMPTY = { name: '', relation: 'familia', relation_label: '', nickname: '', nickname_emoji: '', birth_date: '', special_date: '', special_label: '', note: '' }
 
@@ -63,7 +63,7 @@ export default function PersonForm() {
       const person = await api(editing ? `/api/people/${id}` : '/api/people', { method: editing ? 'PUT' : 'POST', body })
       if (file) {
         const fd = new FormData()
-        fd.append('file', file)
+        fd.append('media_key', await uploadFile(file, 'photo'))
         await api(`/api/people/${person.id}/photo`, { method: 'POST', form: fd })
       }
       navigate(`/personas/${person.id}`, { replace: true })
@@ -105,7 +105,12 @@ export default function PersonForm() {
           <label className="avatar-picker" aria-label="Foto de la persona">
             {current ? <img src={current} alt="" /> : <span className="avatar-initial">{form.name.trim().charAt(0).toUpperCase() || '?'}</span>}
             <span className="avatar-cam"><Icon name="camera" size={18} /></span>
-            <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files[0]; setFile(f ? await compressImage(f, 800) : null) }} />
+            <input type="file" accept="image/*" hidden onChange={async (e) => {
+              const f = e.target.files[0] && await compressImage(e.target.files[0], 800)
+              const big = f && tooBig(f, 'photo')
+              if (big) { setError(big); return }
+              setFile(f || null)
+            }} />
           </label>
           <small className="muted">Foto (opcional)</small>
         </div>
