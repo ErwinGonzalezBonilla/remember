@@ -938,3 +938,62 @@ def test_miniatura_de_los_videos():
     pk = _upload(ana, "photo", "image/jpeg", b"\xff\xd8\xff mini")
     item = client.post(f"/api/capsules/{cid}/items", headers=ana, data={"kind": "video", "media_key": v, "poster_key": pk}).json()["items"][0]
     assert item["media_url"] == v and item["poster_url"] == pk
+
+
+def test_script_migrar_a_r2(monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    from app import r2
+    from app.database import SessionLocal, engine
+    from app.models import Memory, Person, User
+
+    spec = importlib.util.spec_from_file_location("migrar", Path(__file__).resolve().parents[1] / "scripts" / "migrar_a_r2.py")
+    migrar = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migrar)
+    _r2_on(monkeypatch)
+    bucket, uploads = {}, []
+    monkeypatch.setattr(r2, "head", lambda key: (len(bucket[key][0]), bucket[key][1]) if key in bucket else None)
+
+    def fake_put(key, data, ct):
+        uploads.append(key)
+        bucket[key] = (data, ct)
+    monkeypatch.setattr(r2, "put", fake_put)
+    files = {"https://abc.public.blob.vercel-storage.com/rehomi/u1/foto-XyZ.jpg": (b"foto", "image/jpeg"),
+             "https://abc.public.blob.vercel-storage.com/rehomi/u1/video-Q1.mp4": (b"video!", "video/mp4")}
+    fetch = lambda url: files[url]  # noqa: E731
+
+    ana = register("Ana Migra", "anamigra@example.com")
+    foto, video = list(files)
+    m = save(ana, "Antiguo", kind="photo")
+    p = add_person(ana, "Copia", "familia")
+    with SessionLocal() as db:
+        db.get(Memory, m["id"]).media_url = video
+        db.get(Person, p["id"]).photo_url = foto
+        db.query(User).filter_by(email="anamigra@example.com").one().avatar_url = foto  # la misma URL en dos sitios
+        db.commit()
+
+    log = []
+    s = migrar.migrate(engine, dry_run=True, fetch=fetch, out=log.append)
+    assert (s["filas"], s["archivos"], uploads) == (3, 2, [])
+    with SessionLocal() as db:
+        assert db.get(Memory, m["id"]).media_url == video          # --dry-run no cambia nada
+
+    s = migrar.migrate(engine, fetch=fetch, out=log.append)
+    assert (s["subidos"], s["actualizadas"], s["errores"]) == (2, 3, 0)
+    assert sorted(uploads) == ["migrado/rehomi/u1/foto-XyZ.jpg", "migrado/rehomi/u1/video-Q1.mp4"]
+    assert bucket["migrado/rehomi/u1/video-Q1.mp4"] == (b"video!", "video/mp4")
+    with SessionLocal() as db:
+        assert db.get(Memory, m["id"]).media_url == "r2:migrado/rehomi/u1/video-Q1.mp4"
+        assert db.get(Person, p["id"]).photo_url == "r2:migrado/rehomi/u1/foto-XyZ.jpg"
+    assert client.get(f"/api/memories/{m['id']}", headers=ana).json()["media_url"].startswith(
+        "https://cuentaprueba.r2.cloudflarestorage.com/rehomi-prueba/migrado/rehomi/u1/video-Q1.mp4?")
+
+    # Otra vez: no hay nada que migrar ni se sube nada de nuevo
+    s = migrar.migrate(engine, fetch=fetch, out=log.append)
+    assert (s["filas"], s["subidos"]) == (0, 0) and len(uploads) == 2
+    # Si se cortó a medias (archivo ya en R2 pero la base de datos sin cambiar), no lo vuelve a subir
+    with SessionLocal() as db:
+        db.get(Memory, m["id"]).media_url = video
+        db.commit()
+    s = migrar.migrate(engine, fetch=fetch, out=log.append)
+    assert (s["ya_en_r2"], s["subidos"], s["actualizadas"]) == (1, 0, 1) and len(uploads) == 2
