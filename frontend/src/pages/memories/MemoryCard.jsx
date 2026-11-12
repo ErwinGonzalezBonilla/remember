@@ -14,7 +14,11 @@ const BURST_MS = 800
 function Cover({ memory }) {
   const url = mediaUrl(memory.media_url)
   if (memory.kind === 'photo') return <img src={url} alt="" loading="lazy" />
-  if (memory.kind === 'video') return <video src={`${url}#t=0.1`} muted playsInline preload="metadata" />
+  if (memory.kind === 'video') {
+    // Con miniatura no hace falta cargar el video: la cuadrícula va mucho más rápida
+    if (memory.poster_url) return <img src={mediaUrl(memory.poster_url)} alt="" loading="lazy" />
+    return <video src={`${url}#t=0.1`} muted playsInline preload="metadata" />
+  }
   return (
     <div className={`cover-placeholder ${memory.kind}`}>
       <Icon name={KIND_ICON[memory.kind]} size={28} />

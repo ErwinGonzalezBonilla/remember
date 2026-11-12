@@ -4,7 +4,7 @@ import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile } from '../../media'
+import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile, videoPoster } from '../../media'
 import { countsText, openDateText } from './capsuleUtils'
 
 const MAX_ITEMS = 10
@@ -17,10 +17,20 @@ function defaultDate() {
   return d.toLocaleDateString('sv')
 }
 
-function FilePreview({ kind, url }) {
-  if (kind === 'photo') return <img src={url} alt="" />
+function FilePreview({ kind, url, poster }) {
+  if (kind === 'photo' || (kind === 'video' && poster)) return <img src={poster || url} alt="" />
   if (kind === 'video') return <video src={url} muted playsInline />
   return <span className="file-audio"><Icon name="mic" size={22} /></span>
+}
+
+/** Miniatura de un video (opcional): si falla, el video se guarda sin ella. */
+async function uploadPoster(file) {
+  try {
+    const poster = await videoPoster(file)
+    return poster ? await uploadFile(poster, 'photo') : null
+  } catch {
+    return null
+  }
 }
 
 export default function CapsuleForm() {
@@ -107,6 +117,8 @@ export default function CapsuleForm() {
         const fd = new FormData()
         fd.append('kind', kind)
         fd.append('media_key', key)
+        const poster = kind === 'video' && await uploadPoster(file)
+        if (poster) fd.append('poster_key', poster)
         const after = await api(`/api/capsules/${capsuleId}/items`, { method: 'POST', form: fd })
         setItems(after.items)
         setPending((p) => p.slice(1))
@@ -185,7 +197,7 @@ export default function CapsuleForm() {
             <div className="capsule-files">
               {items.map((it) => (
                 <div key={`i${it.id}`} className="capsule-file">
-                  <FilePreview kind={it.kind} url={mediaUrl(it.media_url)} />
+                  <FilePreview kind={it.kind} url={mediaUrl(it.media_url)} poster={mediaUrl(it.poster_url)} />
                   <button type="button" className="file-x" aria-label="Quitar archivo" onClick={() => removeItem(it.id)}><Icon name="x" size={14} /></button>
                 </div>
               ))}

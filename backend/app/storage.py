@@ -115,6 +115,16 @@ async def media_from(file: UploadFile | None, media_key: str | None, user_id: in
     raise HTTPException(422, "Adjunta el archivo.")
 
 
+async def poster_from(poster_key: str | None, user_id: int) -> str | None:
+    """Miniatura de un video (opcional): si no es válida, el video se guarda igual, sin miniatura."""
+    if not poster_key:
+        return None
+    try:
+        return await media_from(None, poster_key, user_id, "photo", "")
+    except HTTPException:
+        return None
+
+
 def resolve_media_key(key: str, user_id: int, kind: str) -> str:
     """Comprueba un archivo ya subido (media_key) y devuelve lo que se guarda en la base de datos.
     Solo se aceptan archivos del propio usuario, que existan y con tamaño y tipo válidos."""

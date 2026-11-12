@@ -25,7 +25,7 @@ from ..push import send_push
 from ..models import CapsuleComment, CapsuleItem, CapsuleReaction, Person, TimeCapsule, User
 from ..schemas import (CapsuleDetailOut, CapsuleIn, CapsuleItemOut, CapsuleOut, CapsulesOut, CommentIn, CommentOut,
                        PersonTag, ReactionIn)
-from ..storage import media_from
+from ..storage import media_from, poster_from
 
 router = APIRouter(prefix="/api", tags=["cápsulas"])
 log = logging.getLogger("rehomi.cron")
@@ -79,7 +79,8 @@ def to_out(c: TimeCapsule, user: User) -> CapsuleOut:
                          photo_url=c.person.photo_url, birth_date=c.person.birth_date) if is_author and c.person else None,
         message=None if locked else c.message,
         cover_url=None if locked else c.cover_url,
-        items=[] if locked else [CapsuleItemOut(id=i.id, kind=i.kind, media_url=i.media_url) for i in c.items],
+        items=[] if locked else [CapsuleItemOut(id=i.id, kind=i.kind, media_url=i.media_url, poster_url=i.poster_url)
+                                 for i in c.items],
         item_counts=dict(Counter(i.kind for i in c.items)),
         reactions=dict(counts), my_reaction=next((r.emoji for r in c.reactions if r.user_id == user.id), None),
         comment_count=len(c.comments),
@@ -177,7 +178,7 @@ def update(capsule_id: int, data: CapsuleIn, user: User = Depends(get_current_us
 
 @router.post("/capsules/{capsule_id}/items", response_model=CapsuleDetailOut, status_code=201)
 async def add_item(capsule_id: int, kind: str = Form(...), file: UploadFile | None = File(None),
-                   media_key: str | None = Form(None),
+                   media_key: str | None = Form(None), poster_key: str | None = Form(None),
                    user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     c = own_draft(capsule_id, user, db)
     if kind not in {"photo", "video", "audio"}:
@@ -185,7 +186,8 @@ async def add_item(capsule_id: int, kind: str = Form(...), file: UploadFile | No
     if len(c.items) >= MAX_ITEMS:
         raise HTTPException(422, f"Una cápsula puede tener como máximo {MAX_ITEMS} archivos.")
     url = await media_from(file, media_key, user.id, kind, f"u{user.id}/capsulas")
-    c.items.append(CapsuleItem(kind=kind, media_url=url))
+    poster = await poster_from(poster_key, user.id) if kind == "video" else None
+    c.items.append(CapsuleItem(kind=kind, media_url=url, poster_url=poster))
     db.commit()
     db.refresh(c)
     return to_detail(c, user)

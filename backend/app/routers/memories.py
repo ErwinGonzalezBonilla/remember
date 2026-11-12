@@ -10,7 +10,7 @@ from ..deps import get_current_user, get_own_person, get_visible_memory, visible
 from ..on_this_day import memory_day, on_this_day, utc_today
 from ..models import Comment, Memory, MemoryTag, Notification, Person, Reaction, User
 from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, clean_milestone
-from ..storage import media_from
+from ..storage import media_from, poster_from
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
 router = APIRouter(prefix="/api", tags=["recuerdos"])
@@ -35,7 +35,7 @@ def to_out(memory: Memory, user: User) -> MemoryOut:
     mine = next((r.emoji for r in memory.reactions if r.user_id == user.id), None)
     return MemoryOut(
         id=memory.id, kind=memory.kind, title=memory.title, description=memory.description,
-        media_url=memory.media_url, location=memory.location, happened_on=memory.happened_on,
+        media_url=memory.media_url, poster_url=memory.poster_url, location=memory.location, happened_on=memory.happened_on,
         milestone=memory.milestone, created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
         people=[_tag(t.person, memory, user) for t in memory.tags],
         reactions=dict(counts), my_reaction=mine, comment_count=len(memory.comments),
@@ -115,6 +115,7 @@ async def create_memory(
     milestone: str | None = Form(None, description="Momento especial: 'Primeros pasos'…"),
     file: UploadFile | None = File(None),
     media_key: str | None = Form(None, description="Clave del archivo ya subido con /api/uploads"),
+    poster_key: str | None = Form(None, description="Miniatura del video (JPEG) ya subida"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -125,7 +126,7 @@ async def create_memory(
     except ValueError as e:
         raise HTTPException(422, str(e))
     people = _own_people(_parse_ids(person_ids), user, db)
-    media_url = None
+    media_url = poster_url = None
     if kind == "text":
         if not (description or "").strip():
             raise HTTPException(422, "Escribe el texto de tu nota.")
@@ -133,11 +134,13 @@ async def create_memory(
         if not file and not media_key:
             raise HTTPException(422, "Adjunta el archivo del recuerdo.")
         media_url = await media_from(file, media_key, user.id, kind, f"u{user.id}")
+        if kind == "video":
+            poster_url = await poster_from(poster_key, user.id)
 
     memory = Memory(
         author_id=user.id, kind=kind, title=title.strip(),
         description=(description or "").strip() or None, location=(location or "").strip() or None,
-        happened_on=happened_on, media_url=media_url, milestone=milestone,
+        happened_on=happened_on, media_url=media_url, poster_url=poster_url, milestone=milestone,
         tags=[MemoryTag(person_id=p.id) for p in people],
     )
     db.add(memory)

@@ -913,3 +913,28 @@ def test_subida_directa_con_r2(monkeypatch):
         assert db.get(Memory, r.json()["id"]).media_url == up["key"]   # en la base de datos, la clave
     # La clave de otra persona: 403
     assert client.post("/api/memories", headers=ana, data={**data, "media_key": "r2:u999999/2026/11/x.mp4"}).status_code == 403
+
+
+def test_miniatura_de_los_videos():
+    ana = register("Ana Poster", "anaposter@example.com")
+    leo = register("Leo Poster", "leoposter@example.com")
+    video = _upload(ana, "video", "video/mp4", b"\x00\x00\x00\x18ftypmp42")
+    poster = _upload(ana, "photo", "image/jpeg", b"\xff\xd8\xff miniatura")
+    r = client.post("/api/memories", headers=ana, data={"kind": "video", "title": "Con miniatura", "media_key": video,
+                                                        "poster_key": poster})
+    assert r.status_code == 201 and r.json()["poster_url"] == poster
+    assert client.get(f"/api/memories/{r.json()['id']}", headers=ana).json()["poster_url"] == poster
+    # Una miniatura que no vale (de otra persona) no impide guardar el video
+    ajena = _upload(leo, "photo", "image/jpeg", b"\xff\xd8\xff de leo")
+    video2 = _upload(ana, "video", "video/mp4", b"\x00\x00\x00\x18ftypmp42")
+    r = client.post("/api/memories", headers=ana, data={"kind": "video", "title": "Sin miniatura", "media_key": video2,
+                                                        "poster_key": ajena})
+    assert r.status_code == 201 and r.json()["poster_url"] is None
+    # En las cápsulas
+    p = add_person(ana, "Pipo", "familia")
+    cid = client.post("/api/capsules", headers=ana, json={"title": "Con video", "person_id": p["id"],
+                                                         "timezone": "Europe/Madrid", "open_at": future()}).json()["id"]
+    v = _upload(ana, "video", "video/webm", b"\x1aE\xdf\xa3 webm")
+    pk = _upload(ana, "photo", "image/jpeg", b"\xff\xd8\xff mini")
+    item = client.post(f"/api/capsules/{cid}/items", headers=ana, data={"kind": "video", "media_key": v, "poster_key": pk}).json()["items"][0]
+    assert item["media_url"] == v and item["poster_url"] == pk

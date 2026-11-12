@@ -86,6 +86,7 @@ class Memory(Base):
     title: Mapped[str] = mapped_column(String(120))
     description: Mapped[str | None] = mapped_column(Text)
     media_url: Mapped[str | None] = mapped_column(String(500))
+    poster_url: Mapped[str | None] = mapped_column(String(500))  # miniatura de los videos (JPEG)
     location: Mapped[str | None] = mapped_column(String(160))
     happened_on: Mapped[date | None] = mapped_column(Date)
     milestone: Mapped[str | None] = mapped_column(String(40))  # hito: "Primeros pasos", "Primer diente"…
@@ -184,6 +185,7 @@ class CapsuleItem(Base):
     capsule_id: Mapped[int] = mapped_column(ForeignKey("time_capsules.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str] = mapped_column(String(10))  # photo | video | audio
     media_url: Mapped[str] = mapped_column(String(500))
+    poster_url: Mapped[str | None] = mapped_column(String(500))  # miniatura de los videos (JPEG)
 
 
 class CapsuleComment(Base):

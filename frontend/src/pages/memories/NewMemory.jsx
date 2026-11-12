@@ -5,7 +5,7 @@ import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
 import { AppShell, ErrorBox, Field, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile } from '../../media'
+import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile, videoPoster } from '../../media'
 import { KIND_LABEL } from './MemoryCard'
 import { MilestonePicker } from './Milestone'
 import VoiceRecorder from './VoiceRecorder'
@@ -67,6 +67,13 @@ export default function NewMemory() {
         // El archivo va directo al almacén; aquí solo se envía su clave
         setProgress(progressText(kind))
         fd.append('media_key', await uploadFile(file, kind, (pct) => setProgress(progressText(kind, pct))))
+        if (kind === 'video') {
+          // Miniatura (fotograma del segundo 0,5): la cuadrícula la muestra sin cargar el video
+          try {
+            const poster = await videoPoster(file)
+            if (poster) fd.append('poster_key', await uploadFile(poster, 'photo'))
+          } catch { /* sin miniatura: el video se guarda igual */ }
+        }
         setProgress('Guardando…')
       }
       const memory = await api('/api/memories', { method: 'POST', form: fd })

@@ -27,7 +27,9 @@ function Countdown({ iso, onDone }) {
 function Item({ it }) {
   const url = mediaUrl(it.media_url)
   if (it.kind === 'photo') return <img src={url} alt="" className="detail-media" loading="lazy" />
-  if (it.kind === 'video') return <video src={url} controls playsInline className="detail-media" />
+  if (it.kind === 'video') {
+    return <video src={url} poster={mediaUrl(it.poster_url) || undefined} controls playsInline preload="metadata" className="detail-media" />
+  }
   return (
     <div className="detail-audio card">
       <span className="hl-icon"><Icon name="mic" size={22} /></span>

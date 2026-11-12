@@ -228,6 +228,7 @@ class MemoryOut(BaseModel):
     title: str
     description: str | None
     media_url: MediaURL
+    poster_url: MediaURL = None        # miniatura de los videos
     location: str | None
     happened_on: date | None
     milestone: str | None = None
@@ -327,6 +328,7 @@ class CapsuleItemOut(BaseModel):
     id: int
     kind: str
     media_url: MediaURL
+    poster_url: MediaURL = None
 
 
 class CapsuleOut(BaseModel):

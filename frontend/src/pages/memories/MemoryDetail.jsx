@@ -16,7 +16,9 @@ const EMOJIS = [
 function Media({ memory }) {
   const url = mediaUrl(memory.media_url)
   if (memory.kind === 'photo') return <img src={url} alt={memory.title} className="detail-media" />
-  if (memory.kind === 'video') return <video src={url} controls playsInline className="detail-media" />
+  if (memory.kind === 'video') {
+    return <video src={url} poster={mediaUrl(memory.poster_url) || undefined} controls playsInline preload="metadata" className="detail-media" />
+  }
   if (memory.kind === 'audio') {
     return (
       <div className="detail-audio card">
