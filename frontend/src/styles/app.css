@@ -878,3 +878,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   :root:not([data-theme="light"]) .qr-code { background: var(--sand); } /* fondo claro: si no, no se lee */
   :root:not([data-theme="light"]) .qr-tabs button:not(.on), :root:not([data-theme="light"]) .search-toggle { color: var(--sky); }
 }
+
+/* ---------- Hoja "Perfil encontrado" ---------- */
+.sheet-backdrop { position: fixed; inset: 0; z-index: 30; background: rgba(9, 30, 36, .5);
+  display: flex; align-items: flex-end; justify-content: center; animation: fade-in .15s ease-out; }
+.found-sheet { width: 100%; max-width: 480px; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); border-radius: 28px 28px 0 0;
+  padding: 10px 20px calc(16px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 16px; animation: sheet-up .25s ease-out; }
+.found-head { display: flex; align-items: center; justify-content: space-between; }
+.found-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+  background: #E7F6F1; color: var(--ok); font-weight: 700; font-size: .85rem; }
+.found-close { background: var(--sand-50); width: 38px; height: 38px; }
+.found-profile { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.found-photo { position: relative; margin-bottom: 8px; }
+.found-photo .avatar { border: 4px solid var(--coral); border-radius: 50%; box-shadow: var(--shadow); }
+.found-check { position: absolute; right: 2px; bottom: 2px; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--ok); color: #fff; border: 3px solid var(--surface); }
+.found-profile h2 { margin: 0; font-size: 1.45rem; font-weight: 800; color: var(--text); }
+.found-handle { color: var(--coral); font-weight: 700; }
+.chip.chip-coral { display: inline-flex; align-items: center; gap: 4px; background: var(--sand-50); }
+.chip.chip-coral.active { background: var(--coral); border-color: var(--coral); color: #fff; }
+.msg-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.msg-label small { font-weight: 500; }
+.found-sheet textarea { min-height: 72px; background: var(--sand-50); }
+.secure-note { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--coral-50); border: 1px solid color-mix(in srgb, var(--coral) 35%, transparent); }
+.secure-note > span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.secure-note strong { font-size: .92rem; }
+.secure-note small { color: var(--text-2); line-height: 1.35; }
+.secure-icon { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--surface); color: var(--coral); }
+.found-again { align-self: center; font-size: .92rem; }
+@media (prefers-reduced-motion: reduce) { .sheet-backdrop, .found-sheet { animation: none; } }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .found-badge { background: #173A31; }
+  :root:not([data-theme="light"]) .found-again { color: var(--sky); }
+}
