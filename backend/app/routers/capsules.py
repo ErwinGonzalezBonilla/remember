@@ -25,7 +25,7 @@ from ..push import send_push
 from ..models import CapsuleComment, CapsuleItem, CapsuleReaction, Person, TimeCapsule, User
 from ..schemas import (CapsuleDetailOut, CapsuleIn, CapsuleItemOut, CapsuleOut, CapsulesOut, CommentIn, CommentOut,
                        PersonTag, ReactionIn)
-from ..storage import save_media
+from ..storage import media_from
 
 router = APIRouter(prefix="/api", tags=["cápsulas"])
 log = logging.getLogger("rehomi.cron")
@@ -176,14 +176,15 @@ def update(capsule_id: int, data: CapsuleIn, user: User = Depends(get_current_us
 
 
 @router.post("/capsules/{capsule_id}/items", response_model=CapsuleDetailOut, status_code=201)
-async def add_item(capsule_id: int, kind: str = Form(...), file: UploadFile = File(...),
+async def add_item(capsule_id: int, kind: str = Form(...), file: UploadFile | None = File(None),
+                   media_key: str | None = Form(None),
                    user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     c = own_draft(capsule_id, user, db)
     if kind not in {"photo", "video", "audio"}:
         raise HTTPException(422, "Tipo de archivo no válido.")
     if len(c.items) >= MAX_ITEMS:
         raise HTTPException(422, f"Una cápsula puede tener como máximo {MAX_ITEMS} archivos.")
-    url = await save_media(file, kind, f"u{user.id}/capsulas")
+    url = await media_from(file, media_key, user.id, kind, f"u{user.id}/capsulas")
     c.items.append(CapsuleItem(kind=kind, media_url=url))
     db.commit()
     db.refresh(c)
@@ -203,10 +204,10 @@ def remove_item(capsule_id: int, item_id: int, user: User = Depends(get_current_
 
 
 @router.post("/capsules/{capsule_id}/cover", response_model=CapsuleDetailOut)
-async def set_cover(capsule_id: int, file: UploadFile = File(...),
+async def set_cover(capsule_id: int, file: UploadFile | None = File(None), media_key: str | None = Form(None),
                     user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     c = own_draft(capsule_id, user, db)
-    c.cover_url = await save_media(file, "photo", f"u{user.id}/capsulas")
+    c.cover_url = await media_from(file, media_key, user.id, "photo", f"u{user.id}/capsulas")
     db.commit()
     return to_detail(c, user)
 

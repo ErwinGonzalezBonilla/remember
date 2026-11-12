@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from . import models  # noqa: F401 - registra todas las tablas antes de revisar la base de datos
 from .database import ensure_schema
-from .routers import auth, capsules, connect, memories, notifications, people, push, users
+from .routers import auth, capsules, connect, memories, notifications, people, push, uploads, users
 
 # Crea tablas/columnas nuevas solo cuando el modelo cambió (1 consulta en los arranques normales).
 ensure_schema()
@@ -58,6 +58,7 @@ app.include_router(connect.router)
 app.include_router(capsules.router)
 app.include_router(notifications.router)
 app.include_router(push.router)
+app.include_router(uploads.router)
 
 if not settings.uses_blob and not settings.cloudinary_url:
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)

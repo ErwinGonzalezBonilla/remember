@@ -10,7 +10,7 @@ from ..deps import get_current_user, get_own_person, get_visible_memory, visible
 from ..on_this_day import memory_day, on_this_day, utc_today
 from ..models import Comment, Memory, MemoryTag, Notification, Person, Reaction, User
 from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, clean_milestone
-from ..storage import save_media
+from ..storage import media_from
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
 router = APIRouter(prefix="/api", tags=["recuerdos"])
@@ -114,6 +114,7 @@ async def create_memory(
     person_ids: str | None = Form(None, description="IDs separados por coma: 3,7"),
     milestone: str | None = Form(None, description="Momento especial: 'Primeros pasos'…"),
     file: UploadFile | None = File(None),
+    media_key: str | None = Form(None, description="Clave del archivo ya subido con /api/uploads"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -129,9 +130,9 @@ async def create_memory(
         if not (description or "").strip():
             raise HTTPException(422, "Escribe el texto de tu nota.")
     else:
-        if not file:
+        if not file and not media_key:
             raise HTTPException(422, "Adjunta el archivo del recuerdo.")
-        media_url = await save_media(file, kind, f"u{user.id}")
+        media_url = await media_from(file, media_key, user.id, kind, f"u{user.id}")
 
     memory = Memory(
         author_id=user.id, kind=kind, title=title.strip(),

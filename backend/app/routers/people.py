@@ -1,5 +1,5 @@
 """Personas: tu lista de gente importante. Cada una tiene su cofre de recuerdos."""
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..models import Memory, MemoryTag, Person, User
 from ..schemas import AboutFamily, AboutMember, AboutOut, Family, PersonIn, PersonOut, SeenAs
-from ..storage import save_media
+from ..storage import media_from
 
 router = APIRouter(prefix="/api/people", tags=["personas"])
 
@@ -128,10 +128,10 @@ def update_person(person_id: int, data: PersonIn, user: User = Depends(get_curre
 
 
 @router.post("/{person_id}/photo", response_model=PersonOut)
-async def upload_photo(person_id: int, file: UploadFile = File(...), user: User = Depends(get_current_user),
-                       db: Session = Depends(get_db)):
+async def upload_photo(person_id: int, file: UploadFile | None = File(None), media_key: str | None = Form(None),
+                       user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     person = get_own_person(person_id, user, db)
-    person.photo_url = await save_media(file, "photo", f"u{user.id}")
+    person.photo_url = await media_from(file, media_key, user.id, "photo", f"u{user.id}")
     db.commit()
     return serialize(person, _stats(db, [person.id]))
 

@@ -786,3 +786,130 @@ def test_firma_identica_a_botocore(monkeypatch):
             theirs = client.generate_presigned_url(op, Params={"Bucket": "rehomi-prueba", "Key": key, **extra}, ExpiresIn=900)
             mine = r2.presign(method, key, 900, now=now, headers=headers)
             assert parts(mine) == parts(theirs), (method, key)
+
+
+# ---------- Subida directa ----------
+def _upload(h, kind, content_type, data):
+    """Flujo del móvil: pedir la subida, hacer PUT y devolver la clave."""
+    r = client.post("/api/uploads", headers=h, json={"kind": kind, "content_type": content_type, "size": len(data)})
+    assert r.status_code == 200, r.text
+    up = r.json()
+    assert up["upload_url"].startswith("/api/uploads/local/") and up["headers"] == {"Content-Type": content_type}
+    put = client.put(up["upload_url"], content=data, headers=up["headers"])
+    assert put.status_code == 200, put.text
+    assert put.json()["key"] == up["key"]
+    return up["key"]
+
+
+def test_subida_directa_sin_r2():
+    from pathlib import Path
+    from app.config import settings
+    ana = register("Ana Sube", "anasube@example.com")
+    me = client.get("/api/me", headers=ana).json()
+    key = _upload(ana, "photo", "image/jpeg", b"\xff\xd8\xff foto")
+    assert key.startswith(f"/uploads/u{me['id']}/") and key.endswith(".jpg")
+    assert (Path(settings.upload_dir) / key.removeprefix("/uploads/")).read_bytes() == b"\xff\xd8\xff foto"
+    r = client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "Subida directa", "media_key": key})
+    assert r.status_code == 201, r.text
+    assert r.json()["media_url"] == key
+    assert client.get(key).content == b"\xff\xd8\xff foto"  # se sirve desde /uploads en local
+
+    # Video y audio
+    vkey = _upload(ana, "video", "video/mp4", b"\x00\x00\x00\x18ftypmp42")
+    assert client.post("/api/memories", headers=ana, data={"kind": "video", "title": "V", "media_key": vkey}).status_code == 201
+    akey = _upload(ana, "audio", "audio/webm", b"\x1aE\xdf\xa3")
+    assert client.post("/api/memories", headers=ana, data={"kind": "audio", "title": "A", "media_key": akey}).status_code == 201
+    # Un audio no vale como foto
+    assert client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "X", "media_key": akey}).status_code == 422
+
+    # Avatar, foto de persona, archivo y portada de cápsula
+    k = _upload(ana, "photo", "image/png", b"\x89PNG avatar")
+    assert client.post("/api/me/avatar", headers=ana, data={"media_key": k}).json()["avatar_url"] == k
+    p = add_person(ana, "Bea", "amistad")
+    k = _upload(ana, "photo", "image/png", b"\x89PNG bea")
+    assert client.post(f"/api/people/{p['id']}/photo", headers=ana, data={"media_key": k}).json()["photo_url"] == k
+    cid = client.post("/api/capsules", headers=ana, json={"title": "Cápsula", "person_id": p["id"],
+                                                         "timezone": "Europe/Madrid", "open_at": future()}).json()["id"]
+    k = _upload(ana, "audio", "audio/ogg", b"OggS audio")
+    r = client.post(f"/api/capsules/{cid}/items", headers=ana, data={"kind": "audio", "media_key": k})
+    assert r.status_code == 201 and r.json()["items"][0]["media_url"] == k
+    k = _upload(ana, "photo", "image/webp", b"RIFF portada")
+    assert client.post(f"/api/capsules/{cid}/cover", headers=ana, data={"media_key": k}).json()["cover_url"] == k
+
+    # El camino antiguo (archivo en el formulario) sigue funcionando
+    old = save(ana, "Por formulario", kind="photo")
+    assert old["media_url"].startswith(f"/uploads/u{me['id']}/")
+
+
+def test_subida_directa_errores():
+    ana = register("Ana Errores", "anaerr@example.com")
+    leo = register("Leo Errores", "leoerr@example.com")
+    key = _upload(ana, "photo", "image/jpeg", b"\xff\xd8\xff de ana")
+    # Una clave de otra persona: 403
+    r = client.post("/api/memories", headers=leo, data={"kind": "photo", "title": "Ajena", "media_key": key})
+    assert r.status_code == 403
+    assert client.post("/api/me/avatar", headers=leo, data={"media_key": key}).status_code == 403
+    me_leo = client.get("/api/me", headers=leo).json()["id"]
+    for bad in (f"/uploads/u{me_leo}/../u1/x.jpg", f"/uploads/u{me_leo}/2026/11/no-existe.jpg"):
+        assert client.post("/api/memories", headers=leo, data={"kind": "photo", "title": "X", "media_key": bad}).status_code == 422
+    # Video de más de 300 MB: se rechaza al pedir la subida
+    r = client.post("/api/uploads", headers=ana, json={"kind": "video", "content_type": "video/mp4", "size": 300 * 1024 * 1024 + 1})
+    assert r.status_code == 413 and "300 MB" in r.json()["detail"]
+    assert client.post("/api/uploads", headers=ana, json={"kind": "video", "content_type": "video/mp4",
+                                                          "size": 300 * 1024 * 1024}).status_code == 200
+    # Formato no permitido y sin sesión
+    assert client.post("/api/uploads", headers=ana, json={"kind": "photo", "content_type": "application/pdf", "size": 10}).status_code == 422
+    assert client.post("/api/uploads", json={"kind": "photo", "content_type": "image/jpeg", "size": 10}).status_code == 401
+    # Token falso o de otro tipo, y tipo distinto al pedido
+    up = client.post("/api/uploads", headers=ana, json={"kind": "photo", "content_type": "image/jpeg", "size": 5}).json()
+    assert client.put(up["upload_url"] + "x", content=b"12345", headers={"Content-Type": "image/jpeg"}).status_code == 403
+    login_token = ana["Authorization"].split()[1]
+    assert client.put(f"/api/uploads/local/{login_token}", content=b"1", headers={"Content-Type": "image/jpeg"}).status_code == 403
+    assert client.put(up["upload_url"], content=b"12345", headers={"Content-Type": "image/png"}).status_code == 422
+
+
+def test_subida_en_vercel_sin_r2(monkeypatch):
+    """Sin R2, en Vercel el máximo sigue siendo 4 MB (límite de Vercel), con un mensaje claro."""
+    monkeypatch.setenv("VERCEL", "1")
+    ana = register("Ana Vercel", "anavercel@example.com")
+    r = client.post("/api/uploads", headers=ana, json={"kind": "video", "content_type": "video/mp4", "size": 5 * 1024 * 1024})
+    assert r.status_code == 413 and r.json()["detail"] == "El archivo pesa 5.0 MB. Por ahora el máximo es 4 MB por archivo."
+    assert client.post("/api/uploads", headers=ana, json={"kind": "photo", "content_type": "image/jpeg",
+                                                          "size": 4 * 1024 * 1024}).status_code == 200
+
+
+def test_subida_directa_con_r2(monkeypatch):
+    from urllib.parse import parse_qs, urlparse
+    from app import r2
+    _r2_on(monkeypatch)
+    monkeypatch.setenv("VERCEL", "1")  # con R2, el límite de Vercel ya no cuenta
+    heads = {}
+    monkeypatch.setattr(r2, "head", lambda path: heads.get(path))
+    ana = register("Ana R2", "anar2@example.com")
+    me = client.get("/api/me", headers=ana).json()["id"]
+    r = client.post("/api/uploads", headers=ana, json={"kind": "video", "content_type": "video/mp4", "size": 200 * 1024 * 1024})
+    assert r.status_code == 200, r.text
+    up = r.json()
+    assert up["key"].startswith(f"r2:u{me}/") and up["key"].endswith(".mp4")
+    u = urlparse(up["upload_url"])
+    q = parse_qs(u.query)
+    assert u.netloc == "cuentaprueba.r2.cloudflarestorage.com" and u.path == f"/rehomi-prueba/{up['key'][3:]}"
+    assert q["X-Amz-SignedHeaders"] == ["content-type;host"] and q["X-Amz-Expires"] == ["900"] and "X-Amz-Signature" in q
+
+    data = {"kind": "video", "title": "Video grande", "media_key": up["key"]}
+    assert client.post("/api/memories", headers=ana, data=data).status_code == 422          # aún no está subido
+    heads[up["key"][3:]] = (301 * 1024 * 1024, "video/mp4")
+    assert client.post("/api/memories", headers=ana, data=data).status_code == 413          # pesa más de lo permitido
+    heads[up["key"][3:]] = (2048, "image/jpeg")
+    assert client.post("/api/memories", headers=ana, data=data).status_code == 422          # no es un video
+    heads[up["key"][3:]] = (200 * 1024 * 1024, "video/mp4")
+    r = client.post("/api/memories", headers=ana, data=data)
+    assert r.status_code == 201, r.text
+    signed = r.json()["media_url"]
+    assert signed.startswith(f"https://cuentaprueba.r2.cloudflarestorage.com/rehomi-prueba/u{me}/") and "X-Amz-Signature=" in signed
+    from app.database import SessionLocal
+    from app.models import Memory
+    with SessionLocal() as db:
+        assert db.get(Memory, r.json()["id"]).media_url == up["key"]   # en la base de datos, la clave
+    # La clave de otra persona: 403
+    assert client.post("/api/memories", headers=ana, data={**data, "media_key": "r2:u999999/2026/11/x.mp4"}).status_code == 403

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,7 @@ from ..deps import get_current_user
 from ..models import Comment, ConnectionRequest, Memory, Notification, Person, PushSubscription, Reaction, User
 from ..schemas import ChangePasswordIn, UserOut, UserUpdate
 from ..security import hash_password, verify_password
-from ..storage import save_media
+from ..storage import media_from
 
 router = APIRouter(prefix="/api/me", tags=["usuario"])
 
@@ -51,9 +51,9 @@ def update_me(data: UserUpdate, user: User = Depends(get_current_user), db: Sess
 
 
 @router.post("/avatar", response_model=UserOut)
-async def upload_avatar(file: UploadFile = File(...), user: User = Depends(get_current_user),
-                        db: Session = Depends(get_db)):
-    user.avatar_url = await save_media(file, "photo", f"u{user.id}")
+async def upload_avatar(file: UploadFile | None = File(None), media_key: str | None = Form(None),
+                        user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user.avatar_url = await media_from(file, media_key, user.id, "photo", f"u{user.id}")
     db.commit()
     return user
 
