@@ -32,7 +32,12 @@ export function useHeart(memory, onChange) {
   const loved = memory.my_reaction === HEART
   async function set(on) {
     const before = memory
-    onChange?.({ ...memory, my_reaction: on ? HEART : null })
+    // Al momento: tu reacción y los totales (quitar la que tuvieras y sumar la nueva)
+    const reactions = { ...memory.reactions }
+    const mine = memory.my_reaction
+    if (mine) { reactions[mine] = (reactions[mine] || 1) - 1; if (reactions[mine] <= 0) delete reactions[mine] }
+    if (on) reactions[HEART] = (reactions[HEART] || 0) + 1
+    onChange?.({ ...memory, my_reaction: on ? HEART : null, reactions })
     try {
       onChange?.(await api(`/api/memories/${memory.id}/reaction`,
         on ? { method: 'PUT', body: { emoji: HEART } } : { method: 'DELETE' }))
@@ -40,7 +45,26 @@ export function useHeart(memory, onChange) {
       onChange?.(before)
     }
   }
-  return { loved, toggle: () => set(!loved), like: () => !loved && set(true) }
+  return { loved, set, toggle: () => set(!loved), like: () => !loved && set(true) }
+}
+
+/**
+ * Corazón de la cuadrícula, sutil como en Instagram: solo el icono (o tu emoji) con sombra y el total al lado.
+ * Un toque pone ❤️, o quita tu reacción si ya tienes una. No abre el recuerdo.
+ */
+function CardHeart({ memory, onSet }) {
+  const mine = memory.my_reaction
+  const total = Object.values(memory.reactions || {}).reduce((a, b) => a + b, 0)
+  return (
+    <button type="button" className={`card-heart ${mine ? 'on' : ''}`} aria-pressed={Boolean(mine)}
+      aria-label={`${mine ? `Quitar mi ${mine}` : 'Darle ❤️'}${total ? ` (${total} ${total === 1 ? 'reacción' : 'reacciones'})` : ''}`}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSet(!mine) }}>
+      {mine && mine !== HEART
+        ? <span className="card-heart-emoji" aria-hidden="true">{mine}</span>
+        : <Icon name="heart" size={18} filled={Boolean(mine)} />}
+      {total > 0 && <span className="card-heart-count" aria-hidden="true">{total}</span>}
+    </button>
+  )
 }
 
 function HeartButton({ loved, onToggle, className = '' }) {
@@ -59,7 +83,7 @@ export function MemoryCard({ memory, onChange }) {
   const timer = useRef(null)
   const burstTimer = useRef(null)
   const [burst, setBurst] = useState(0) // 0 = oculto; cambia en cada doble toque para reiniciar la animación
-  const { loved, toggle, like } = useHeart(memory, onChange)
+  const { set, like } = useHeart(memory, onChange)
   const to = `/recuerdo/${memory.id}`
 
   useEffect(() => () => { clearTimeout(timer.current); clearTimeout(burstTimer.current) }, [])
@@ -100,7 +124,7 @@ export function MemoryCard({ memory, onChange }) {
         </span>
         {burst > 0 && <span key={burst} className="heart-burst" aria-hidden="true"><Icon name="heart" size={84} filled /></span>}
       </Link>
-      <HeartButton loved={loved} onToggle={toggle} />
+      <CardHeart memory={memory} onSet={set} />
     </div>
   )
 }
