@@ -96,6 +96,23 @@ class Memory(Base):
     tags: Mapped[list["MemoryTag"]] = relationship(back_populates="memory", cascade="all, delete-orphan")
     comments: Mapped[list["Comment"]] = relationship(cascade="all, delete-orphan", order_by="Comment.created_at")
     reactions: Mapped[list["Reaction"]] = relationship(cascade="all, delete-orphan")
+    # Álbum: varias fotos y videos. media_url/poster_url/kind del recuerdo son siempre la portada (el primero).
+    # Los recuerdos antiguos no tienen filas aquí: se tratan como un álbum de un solo elemento (media_url).
+    media: Mapped[list["MemoryMedia"]] = relationship(
+        cascade="all, delete-orphan", order_by="MemoryMedia.position")
+
+
+class MemoryMedia(Base):
+    """Una foto o un video del álbum de un recuerdo."""
+    __tablename__ = "memory_media"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    memory_id: Mapped[int] = mapped_column(ForeignKey("memories.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # photo | video
+    url: Mapped[str] = mapped_column(String(500))
+    poster_url: Mapped[str | None] = mapped_column(String(500))  # miniatura de los videos (JPEG)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
 
 class MemoryTag(Base):

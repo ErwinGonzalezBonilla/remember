@@ -8,18 +8,67 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from ..database import get_db
 from ..deps import get_current_user, get_own_person, get_visible_memory, visible_to
 from ..on_this_day import memory_day, on_this_day, utc_today
-from ..models import Comment, Memory, MemoryTag, Notification, Person, Reaction, User
-from ..schemas import CommentIn, CommentOut, MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, clean_milestone
+from pydantic import TypeAdapter, ValidationError
+
+from ..models import Comment, Memory, MemoryMedia, MemoryTag, Notification, Person, Reaction, User
+from ..schemas import (MEDIA_MAX, CommentIn, CommentOut, MediaAddIn, MediaItemOut, MediaKeyIn, MediaOrderIn,
+                       MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, clean_milestone)
 from ..storage import media_from, poster_from
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
 router = APIRouter(prefix="/api", tags=["recuerdos"])
 
 KINDS = {"photo", "video", "audio", "text"}
+ALBUM_KINDS = {"photo", "video"}
 
-# Carga en bloque lo que necesita to_out(): ~5 consultas en total en vez de 3-4 por recuerdo
+# Carga en bloque lo que necesita to_out(): ~6 consultas en total en vez de 4-5 por recuerdo
 EAGER = (joinedload(Memory.author), selectinload(Memory.tags).joinedload(MemoryTag.person),
-         selectinload(Memory.reactions), selectinload(Memory.comments))
+         selectinload(Memory.reactions), selectinload(Memory.comments), selectinload(Memory.media))
+
+
+def media_items(memory: Memory) -> list[MediaItemOut]:
+    """El álbum. Un recuerdo antiguo de foto o video, sin filas en memory_media, es un álbum de un elemento."""
+    if memory.media:
+        return [MediaItemOut(id=m.id, kind=m.kind, url=m.url, poster_url=m.poster_url, position=i)
+                for i, m in enumerate(memory.media)]
+    if memory.kind in ALBUM_KINDS and memory.media_url:
+        return [MediaItemOut(id=None, kind=memory.kind, url=memory.media_url, poster_url=memory.poster_url, position=0)]
+    return []
+
+
+def _media_count(memory: Memory) -> int:
+    return len(memory.media) or (1 if memory.kind in ALBUM_KINDS and memory.media_url else 0)
+
+
+def _sync_cover(memory: Memory):
+    """Numera el álbum de nuevo y copia el primer elemento a la portada (media_url, poster_url y kind)."""
+    for i, m in enumerate(memory.media):
+        m.position = i
+    if memory.media:
+        first = memory.media[0]
+        memory.media_url, memory.poster_url, memory.kind = first.url, first.poster_url, first.kind
+
+
+async def _resolve_items(items: list[MediaKeyIn], user: User) -> list[MemoryMedia]:
+    """Comprueba cada archivo como media_key: que sea tuyo, que exista y que su tamaño y tipo sean válidos."""
+    out = []
+    for it in items:
+        url = await media_from(None, it.key, user.id, it.kind, f"u{user.id}")
+        poster = await poster_from(it.poster_key, user.id) if it.kind == "video" else None
+        out.append(MemoryMedia(kind=it.kind, url=url, poster_url=poster))
+    return out
+
+
+def _parse_media_keys(raw: str) -> list[MediaKeyIn]:
+    try:
+        items = TypeAdapter(list[MediaKeyIn]).validate_json(raw)
+    except ValidationError:
+        raise HTTPException(422, "La lista de archivos no es válida.")
+    if not items:
+        raise HTTPException(422, "Adjunta al menos una foto o un video.")
+    if len(items) > MEDIA_MAX:
+        raise HTTPException(422, f"Un recuerdo puede tener como mucho {MEDIA_MAX} fotos y videos.")
+    return items
 
 
 def _tag(person: Person, memory: Memory, user: User) -> PersonTag:
@@ -39,7 +88,7 @@ def to_out(memory: Memory, user: User) -> MemoryOut:
         milestone=memory.milestone, created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
         people=[_tag(t.person, memory, user) for t in memory.tags],
         reactions=dict(counts), my_reaction=mine, comment_count=len(memory.comments),
-        can_edit=memory.author_id == user.id,
+        can_edit=memory.author_id == user.id, media_count=_media_count(memory),
     )
 
 
@@ -48,6 +97,7 @@ def to_detail(memory: Memory, user: User) -> MemoryDetailOut:
         **to_out(memory, user).model_dump(),
         comments=[CommentOut(id=c.id, body=c.body, author_id=c.author_id, author_name=c.author.full_name,
                              author_avatar=c.author.avatar_url, created_at=c.created_at) for c in memory.comments],
+        media=media_items(memory),
     )
 
 
@@ -116,6 +166,7 @@ async def create_memory(
     file: UploadFile | None = File(None),
     media_key: str | None = Form(None, description="Clave del archivo ya subido con /api/uploads"),
     poster_key: str | None = Form(None, description="Miniatura del video (JPEG) ya subida"),
+    media_keys: str | None = Form(None, description='Álbum: lista JSON [{"key", "kind", "poster_key"}]'),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -127,7 +178,10 @@ async def create_memory(
         raise HTTPException(422, str(e))
     people = _own_people(_parse_ids(person_ids), user, db)
     media_url = poster_url = None
-    if kind == "text":
+    album: list[MemoryMedia] = []
+    if media_keys:
+        album = await _resolve_items(_parse_media_keys(media_keys), user)
+    elif kind == "text":
         if not (description or "").strip():
             raise HTTPException(422, "Escribe el texto de tu nota.")
     else:
@@ -136,13 +190,16 @@ async def create_memory(
         media_url = await media_from(file, media_key, user.id, kind, f"u{user.id}")
         if kind == "video":
             poster_url = await poster_from(poster_key, user.id)
+        if kind in ALBUM_KINDS:
+            album = [MemoryMedia(kind=kind, url=media_url, poster_url=poster_url)]
 
     memory = Memory(
         author_id=user.id, kind=kind, title=title.strip(),
         description=(description or "").strip() or None, location=(location or "").strip() or None,
         happened_on=happened_on, media_url=media_url, poster_url=poster_url, milestone=milestone,
-        tags=[MemoryTag(person_id=p.id) for p in people],
+        tags=[MemoryTag(person_id=p.id) for p in people], media=album,
     )
+    _sync_cover(memory)  # con álbum, el tipo y la portada son los del primer elemento
     db.add(memory)
     db.commit()
     db.refresh(memory)
@@ -201,6 +258,58 @@ def delete_memory(memory_id: int, user: User = Depends(get_current_user), db: Se
     db.execute(delete(Notification).where(Notification.memory_id == memory.id))
     db.delete(memory)
     db.commit()
+
+
+# ---------- Álbum ----------
+def _album_memory(memory_id: int, user: User, db: Session) -> Memory:
+    memory = get_visible_memory(memory_id, user, db)
+    _require_author(memory, user)
+    if memory.kind not in ALBUM_KINDS:
+        raise HTTPException(422, "Solo los recuerdos de fotos y videos tienen álbum.")
+    if not memory.media and memory.media_url:  # recuerdo antiguo: su foto pasa a ser la primera fila
+        memory.media.append(MemoryMedia(kind=memory.kind, url=memory.media_url, poster_url=memory.poster_url))
+        db.flush()
+    return memory
+
+
+def _album_saved(memory: Memory, user: User, db: Session) -> MemoryDetailOut:
+    _sync_cover(memory)
+    db.commit()
+    db.refresh(memory)
+    return to_detail(memory, user)
+
+
+@router.post("/memories/{memory_id}/media", response_model=MemoryDetailOut, status_code=201)
+async def add_media(memory_id: int, data: MediaAddIn, user: User = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    memory = _album_memory(memory_id, user, db)
+    if len(memory.media) + len(data.items) > MEDIA_MAX:
+        raise HTTPException(422, f"Un recuerdo puede tener como mucho {MEDIA_MAX} fotos y videos.")
+    memory.media.extend(await _resolve_items(data.items, user))
+    return _album_saved(memory, user, db)
+
+
+@router.delete("/memories/{memory_id}/media/{media_id}", response_model=MemoryDetailOut)
+def remove_media(memory_id: int, media_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    memory = _album_memory(memory_id, user, db)
+    item = next((m for m in memory.media if m.id == media_id), None)
+    if not item:
+        raise HTTPException(404, "Esa foto no está en el recuerdo.")
+    if len(memory.media) == 1:
+        raise HTTPException(422, "El recuerdo necesita al menos una foto o un video.")
+    memory.media.remove(item)
+    return _album_saved(memory, user, db)
+
+
+@router.put("/memories/{memory_id}/media/order", response_model=MemoryDetailOut)
+def reorder_media(memory_id: int, data: MediaOrderIn, user: User = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
+    memory = _album_memory(memory_id, user, db)
+    by_id = {m.id: m for m in memory.media}
+    if len(data.ids) != len(by_id) or set(data.ids) != set(by_id):
+        raise HTTPException(422, "El orden debe incluir todas las fotos del recuerdo, una vez cada una.")
+    memory.media = [by_id[i] for i in data.ids]
+    return _album_saved(memory, user, db)
 
 
 # ---------- Reacciones ----------

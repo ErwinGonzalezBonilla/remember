@@ -222,6 +222,32 @@ class ReactionIn(BaseModel):
     emoji: Literal["❤️", "😀", "😂", "😮", "😢"]
 
 
+MEDIA_MAX = 20   # fotos y videos por recuerdo
+
+
+class MediaKeyIn(BaseModel):
+    """Un archivo ya subido con /api/uploads para el álbum de un recuerdo."""
+    key: str = Field(min_length=1, max_length=500)
+    kind: Literal["photo", "video"]
+    poster_key: str | None = Field(default=None, max_length=500)
+
+
+class MediaAddIn(BaseModel):
+    items: list[MediaKeyIn] = Field(min_length=1, max_length=MEDIA_MAX)
+
+
+class MediaOrderIn(BaseModel):
+    ids: list[int] = Field(min_length=1, max_length=MEDIA_MAX)
+
+
+class MediaItemOut(BaseModel):
+    id: int | None                     # None: recuerdo antiguo sin álbum (su único elemento es media_url)
+    kind: str
+    url: MediaURL
+    poster_url: MediaURL = None
+    position: int
+
+
 class MemoryOut(BaseModel):
     id: int
     kind: str
@@ -240,10 +266,12 @@ class MemoryOut(BaseModel):
     my_reaction: str | None
     comment_count: int
     can_edit: bool
+    media_count: int = 0               # fotos y videos del álbum (1 en los recuerdos antiguos de foto o video)
 
 
 class MemoryDetailOut(MemoryOut):
     comments: list[CommentOut]
+    media: list[MediaItemOut] = []
 
 
 class MemoryUpdate(BaseModel):

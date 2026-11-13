@@ -997,3 +997,108 @@ def test_script_migrar_a_r2(monkeypatch):
         db.commit()
     s = migrar.migrate(engine, fetch=fetch, out=log.append)
     assert (s["ya_en_r2"], s["subidos"], s["actualizadas"]) == (1, 0, 1) and len(uploads) == 2
+
+
+# ---------- Álbumes ----------
+def _album_keys(h, n, kinds=None):
+    out = []
+    for i in range(n):
+        kind = (kinds or ["photo"] * n)[i]
+        if kind == "video":
+            out.append({"key": _upload(h, "video", "video/mp4", b"\x00\x00\x00\x18ftypmp42" + bytes([i])), "kind": "video",
+                        "poster_key": _upload(h, "photo", "image/jpeg", b"\xff\xd8\xff poster" + bytes([i]))})
+        else:
+            out.append({"key": _upload(h, "photo", "image/jpeg", b"\xff\xd8\xff foto" + bytes([i])), "kind": "photo"})
+    return out
+
+
+def test_album_crear_anadir_quitar_y_reordenar():
+    import json
+    ana = register("Ana Album", "anaalbum@example.com")
+    leo = register("Leo Album", "leoalbum@example.com")
+    keys = _album_keys(ana, 3, ["video", "photo", "photo"])
+    r = client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "Navidad", "media_keys": json.dumps(keys)})
+    assert r.status_code == 201, r.text
+    m = r.json()
+    # La portada y el tipo son los del primer elemento (un video, con su miniatura)
+    assert m["media_count"] == 3 and m["kind"] == "video"
+    assert m["media_url"] == keys[0]["key"] and m["poster_url"] == keys[0]["poster_key"]
+    d = client.get(f"/api/memories/{m['id']}", headers=ana).json()
+    assert [x["url"] for x in d["media"]] == [k["key"] for k in keys]
+    assert [x["position"] for x in d["media"]] == [0, 1, 2] and d["media"][1]["poster_url"] is None
+    assert client.get("/api/memories", headers=ana).json()[0]["media_count"] == 3
+
+    # Añadir
+    extra = _album_keys(ana, 1)
+    r = client.post(f"/api/memories/{m['id']}/media", headers=ana, json={"items": extra})
+    assert r.status_code == 201 and r.json()["media_count"] == 4 and r.json()["media"][-1]["url"] == extra[0]["key"]
+    ids = [x["id"] for x in r.json()["media"]]
+
+    # Reordenar: la foto añadida pasa a ser la portada
+    new_order = [ids[3], ids[0], ids[1], ids[2]]
+    r = client.put(f"/api/memories/{m['id']}/media/order", headers=ana, json={"ids": new_order})
+    assert r.status_code == 200 and [x["id"] for x in r.json()["media"]] == new_order
+    assert r.json()["media_url"] == extra[0]["key"] and r.json()["kind"] == "photo" and r.json()["poster_url"] is None
+    assert client.put(f"/api/memories/{m['id']}/media/order", headers=ana, json={"ids": new_order[:2]}).status_code == 422
+
+    # Quitar la portada: la siguiente (el video) pasa a ser la portada
+    r = client.delete(f"/api/memories/{m['id']}/media/{ids[3]}", headers=ana)
+    assert r.status_code == 200 and r.json()["media_count"] == 3
+    assert r.json()["kind"] == "video" and r.json()["media_url"] == keys[0]["key"] and r.json()["poster_url"] == keys[0]["poster_key"]
+    for mid in (ids[1], ids[2]):
+        assert client.delete(f"/api/memories/{m['id']}/media/{mid}", headers=ana).status_code == 200
+    # No se puede quitar el último
+    assert client.delete(f"/api/memories/{m['id']}/media/{ids[0]}", headers=ana).status_code == 422
+
+    # Solo el autor
+    assert client.post(f"/api/memories/{m['id']}/media", headers=leo, json={"items": extra}).status_code == 404
+    from app.database import SessionLocal
+    from app.models import Memory
+    with SessionLocal() as db:
+        assert len(db.get(Memory, m["id"]).media) == 1
+
+
+def test_album_limites_y_claves_ajenas():
+    import json
+    ana = register("Ana Limite", "analimite@example.com")
+    leo = register("Leo Limite", "leolimite@example.com")
+    # Más de 20 da 422 (no hace falta subirlos: se rechaza antes)
+    many = [{"key": f"/uploads/x{i}.jpg", "kind": "photo"} for i in range(21)]
+    r = client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "Muchas", "media_keys": json.dumps(many)})
+    assert r.status_code == 422 and "20" in r.json()["detail"]
+    assert client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "Mal", "media_keys": "no-json"}).status_code == 422
+    # Una clave de otra persona: 403
+    ajena = _album_keys(leo, 1)
+    mias = _album_keys(ana, 1)
+    r = client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "Ajena", "media_keys": json.dumps(mias + ajena)})
+    assert r.status_code == 403
+    m = client.post("/api/memories", headers=ana, data={"kind": "photo", "title": "Mía", "media_keys": json.dumps(mias)}).json()
+    assert client.post(f"/api/memories/{m['id']}/media", headers=ana, json={"items": ajena}).status_code == 403
+    # Añadir hasta pasar de 20 da 422
+    r = client.post(f"/api/memories/{m['id']}/media", headers=ana, json={"items": many[:20]})
+    assert r.status_code == 422
+    # Las notas no tienen álbum
+    nota = save(ana, "Nota")
+    assert nota["media_count"] == 0
+    assert client.post(f"/api/memories/{nota['id']}/media", headers=ana, json={"items": mias}).status_code == 422
+
+
+def test_album_recuerdo_antiguo():
+    """Un recuerdo sin filas en memory_media (de antes de los álbumes) es un álbum de un elemento."""
+    from app.database import SessionLocal
+    from app.models import Memory
+    ana = register("Ana Antigua", "anaantigua@example.com")
+    me = client.get("/api/me", headers=ana).json()["id"]
+    with SessionLocal() as db:
+        old = Memory(author_id=me, kind="photo", title="Antiguo", media_url="/uploads/u1/viejo.jpg")
+        db.add(old)
+        db.commit()
+        old_id = old.id
+    d = client.get(f"/api/memories/{old_id}", headers=ana).json()
+    assert d["media_count"] == 1 and d["media"] == [
+        {"id": None, "kind": "photo", "url": "/uploads/u1/viejo.jpg", "poster_url": None, "position": 0}]
+    # Al añadir, su foto se conserva como la primera
+    r = client.post(f"/api/memories/{old_id}/media", headers=ana, json={"items": _album_keys(ana, 1)})
+    assert r.status_code == 201, r.text
+    assert [x["url"] for x in r.json()["media"]][0] == "/uploads/u1/viejo.jpg" and r.json()["media_count"] == 2
+    assert all(x["id"] for x in r.json()["media"])
