@@ -24,17 +24,50 @@ function slidesOf(m) {
   return m.media?.length ? m.media : [{ id: null, kind: m.kind, url: m.media_url, poster_url: m.poster_url }]
 }
 
-function Slide({ item, title, near }) {
+/** Vertical (ancho/alto < 0,85): a pantalla completa, recortando un poco los lados. Si no, entera. */
+const PORTRAIT = 0.85
+const autoFit = (ratio) => (ratio && ratio < PORTRAIT ? 'cover' : 'contain')
+
+/**
+ * Copia diminuta (32 px) de la foto o del fotograma ya cargado. Escalada a pantalla completa se ve borrosa por sí
+ * sola, así que el fondo sigue funcionando aunque el navegador no aplique bien `filter` (Safari del iPhone con
+ * capas muy grandes). Si la imagen es de otro dominio sin CORS, el canvas queda bloqueado y devuelve null.
+ */
+function tinyCopy(el, w, h) {
+  try {
+    if (!w || !h) return null
+    const canvas = document.createElement('canvas')
+    canvas.width = 32
+    canvas.height = Math.max(1, Math.round((32 * h) / w))
+    canvas.getContext('2d').drawImage(el, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.7)
+  } catch {
+    return null
+  }
+}
+
+function Slide({ item, title, near, fit, onRatio }) {
   const url = mediaUrl(item.url)
-  const bg = mediaUrl(item.kind === 'video' ? item.poster_url : item.url)
+  const [tiny, setTiny] = useState(null)
+  const bg = tiny || mediaUrl(item.kind === 'video' ? item.poster_url : item.url)
+
+  function loaded(el, w, h) {
+    if (w && h) onRatio(w / h)
+    setTiny(tinyCopy(el, w, h))
+  }
+
   return (
-    <div className="viewer-slide">
-      {bg && near && <div className="viewer-blur" style={{ backgroundImage: `url("${bg}")` }} aria-hidden="true" />}
+    <div className={`viewer-slide fit-${fit}`}>
+      {/* Detrás, la misma imagen desenfocada en su propia capa: rellena los lados sin franjas negras */}
+      {bg && near && <img className={`viewer-blur ${tiny ? 'tiny' : ''}`} src={bg} alt="" aria-hidden="true" draggable={false} />}
       {item.kind === 'video' ? (
         <video className="viewer-media" src={url} poster={mediaUrl(item.poster_url) || undefined}
-          controls playsInline preload={near ? 'metadata' : 'none'} />
+          controls playsInline preload={near ? 'metadata' : 'none'}
+          onLoadedMetadata={(e) => onRatio(e.currentTarget.videoWidth / e.currentTarget.videoHeight || 0)}
+          onLoadedData={(e) => !item.poster_url && loaded(e.currentTarget, e.currentTarget.videoWidth, e.currentTarget.videoHeight)} />
       ) : (
-        <img className="viewer-media" src={url} alt={title} draggable={false} loading={near ? 'eager' : 'lazy'} />
+        <img className="viewer-media" src={url} alt={title} draggable={false} loading={near ? 'eager' : 'lazy'}
+          onLoad={(e) => loaded(e.currentTarget, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />
       )}
     </div>
   )
@@ -95,6 +128,11 @@ function Viewer({ memory: m, setMemory, me }) {
   const burstTimer = useRef(null)
   const toastTimer = useRef(null)
   const touch = useRef(null)
+  const stage = useRef(null)
+  const pointers = useRef(new Map())   // dedos sobre la foto, para pellizcar
+  const pinchStart = useRef(0)
+  const [ratios, setRatios] = useState({})   // proporción (ancho/alto) de cada elemento, al cargar
+  const [fits, setFits] = useState({})       // "cover" o "contain" elegido a mano para un elemento
 
   const merge = useCallback((u) => setMemory((prev) => ({ ...prev, ...u })), [setMemory])
   const { like } = useHeart(m, merge)
@@ -111,8 +149,13 @@ function Viewer({ memory: m, setMemory, me }) {
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    // La barra de estado del navegador (Safari usa theme-color) en negro, para que no corte la foto con petróleo
+    const meta = document.querySelector('meta[name="theme-color"]')
+    const prevTheme = meta?.getAttribute('content')
+    meta?.setAttribute('content', '#000000')
     return () => {
       document.body.style.overflow = prev
+      if (meta && prevTheme) meta.setAttribute('content', prevTheme)
       clearTimeout(tapTimer.current); clearTimeout(burstTimer.current); clearTimeout(toastTimer.current)
     }
   }, [])
@@ -180,6 +223,63 @@ function Viewer({ memory: m, setMemory, me }) {
     if (dy < -SWIPE_UP_PX && Math.abs(dy) > Math.abs(dx) * 1.5) { setChrome(true); setSheet(true) }
   }
 
+  // Pantalla completa (cover) o ver entera (contain): automático según la proporción, o elegido a mano
+  const slideKey = (it, i) => it.id ?? `s${i}`
+  const fitAt = (i) => {
+    const k = slides[i] && slideKey(slides[i], i)
+    return fits[k] || autoFit(ratios[k])
+  }
+  const setFitAt = useCallback((i, fit) => {
+    const it = slides[i]
+    if (!it) return
+    const k = slideKey(it, i)
+    setFits((f) => ({ ...f, [k]: fit }))
+  }, [slides]) // eslint-disable-line react-hooks/exhaustive-deps
+  const currentFit = fitAt(index)
+
+  // Pellizcar: abrir los dedos llena la pantalla; cerrarlos muestra la foto entera.
+  // En iOS con los gestos de Safari; en el resto, con dos punteros.
+  const pinched = useCallback((scale) => {
+    if (scale > 1.12) setFitAt(index, 'cover')
+    else if (scale < 0.89) setFitAt(index, 'contain')
+  }, [index, setFitAt])
+
+  useEffect(() => {
+    const el = stage.current
+    if (!el || !('GestureEvent' in window)) return
+    const stop = (e) => e.preventDefault()   // que Safari no amplíe toda la página
+    const end = (e) => { e.preventDefault(); pinched(e.scale) }
+    el.addEventListener('gesturestart', stop, { passive: false })
+    el.addEventListener('gesturechange', stop, { passive: false })
+    el.addEventListener('gestureend', end, { passive: false })
+    return () => {
+      el.removeEventListener('gesturestart', stop)
+      el.removeEventListener('gesturechange', stop)
+      el.removeEventListener('gestureend', end)
+    }
+  }, [pinched])
+
+  const distance = () => {
+    const [a, b] = [...pointers.current.values()]
+    return Math.hypot(a.x - b.x, a.y - b.y)
+  }
+  function onPointerDown(e) {
+    if (e.pointerType !== 'touch') return
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pointers.current.size === 2) pinchStart.current = distance()
+  }
+  function onPointerMove(e) {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  }
+  function onPointerUp(e) {
+    if (!pointers.current.has(e.pointerId)) return
+    if (pointers.current.size === 2 && pinchStart.current && !('GestureEvent' in window)) {
+      pinched(distance() / pinchStart.current)
+    }
+    if (pointers.current.size <= 2) pinchStart.current = 0
+    pointers.current.delete(e.pointerId)
+  }
+
   function back() {
     if (window.history.state?.idx > 0) navigate(-1)
     else navigate('/recuerdos', { replace: true })
@@ -222,14 +322,19 @@ function Viewer({ memory: m, setMemory, me }) {
   return (
     <div className={`viewer kind-${m.kind} ${chrome ? '' : 'chrome-off'} ${sheet ? 'sheet-open' : ''}`}
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div className="viewer-stage" onClick={onTap}>
+      <div className="viewer-stage" ref={stage} onClick={onTap} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
         {slides.length > 0 && (
           <div className="viewer-track" ref={track} onScroll={onScroll}
             aria-roledescription="carrusel" aria-label={`${m.title}: ${slides.length} ${slides.length === 1 ? 'elemento' : 'elementos'}`}>
-            {slides.map((it, i) => (
-              <Slide key={it.id ?? `s${i}`} item={it} title={multi ? `${m.title} (${i + 1} de ${slides.length})` : m.title}
-                near={Math.abs(i - index) <= 1} />
-            ))}
+            {slides.map((it, i) => {
+              const k = slideKey(it, i)
+              return (
+                <Slide key={k} item={it} title={multi ? `${m.title} (${i + 1} de ${slides.length})` : m.title}
+                  near={Math.abs(i - index) <= 1} fit={fitAt(i)}
+                  onRatio={(r) => setRatios((prev) => (prev[k] === r ? prev : { ...prev, [k]: r }))} />
+              )
+            })}
           </div>
         )}
         {m.kind === 'audio' && <VoicePlayer src={mediaUrl(m.media_url)} />}
@@ -258,11 +363,20 @@ function Viewer({ memory: m, setMemory, me }) {
         </div>
       </div>
 
-      {multi && (
-        <div className="viewer-counter">
-          <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Anterior"><Icon name="back" size={16} /></button>
-          <span aria-live="polite">{index + 1} / {slides.length}</span>
-          <button type="button" onClick={() => go(index + 1)} disabled={index === slides.length - 1} aria-label="Siguiente"><Icon name="chevron" size={16} /></button>
+      {slides.length > 0 && (
+        <div className="viewer-sub">
+          {multi && (
+            <div className="viewer-counter">
+              <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Anterior"><Icon name="back" size={16} /></button>
+              <span aria-live="polite">{index + 1} / {slides.length}</span>
+              <button type="button" onClick={() => go(index + 1)} disabled={index === slides.length - 1} aria-label="Siguiente"><Icon name="chevron" size={16} /></button>
+            </div>
+          )}
+          <button type="button" className="viewer-fit" onClick={() => setFitAt(index, currentFit === 'cover' ? 'contain' : 'cover')}
+            aria-label={currentFit === 'cover' ? 'Ver la foto entera' : 'Ver a pantalla completa'}
+            title={currentFit === 'cover' ? 'Ver entera' : 'Pantalla completa'}>
+            <Icon name={currentFit === 'cover' ? 'shrink' : 'expand'} size={18} />
+          </button>
         </div>
       )}
 

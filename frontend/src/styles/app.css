@@ -1030,23 +1030,31 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
    ========================================================= */
 .viewer { position: fixed; inset: 0; z-index: 50; background: #000; color: #fff; overflow: hidden;
   --viewer-glass: rgba(8, 28, 33, .5); --viewer-pad: 16px; }
-.viewer-stage { position: absolute; inset: 0; }
+/* La foto llega hasta los bordes, también por detrás de la barra de estado (viewport-fit=cover):
+   las zonas seguras solo dan margen a los botones y los textos */
+.viewer-stage { position: absolute; inset: 0; touch-action: pan-x pan-y; }
 .viewer-track { position: absolute; inset: 0; display: flex; overflow-x: auto; overflow-y: hidden;
   scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
 .viewer-track::-webkit-scrollbar { display: none; }
 .viewer-slide { position: relative; flex: 0 0 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always;
-  display: grid; place-items: center; overflow: hidden; }
-/* La misma foto, muy desenfocada y oscurecida, rellena los lados: sin franjas negras */
-.viewer-blur { position: absolute; inset: -60px; background: center / cover no-repeat;
-  filter: blur(36px) brightness(.45) saturate(1.15); transform: scale(1.1); }
-.viewer-media { position: relative; width: 100%; height: 100%; max-width: 100%; object-fit: contain; user-select: none;
-  -webkit-user-select: none; -webkit-touch-callout: none; }
+  overflow: hidden; isolation: isolate; }
+/* Detrás, la misma imagen desenfocada en su propia capa (sin franjas negras). La copia diminuta (.tiny) ya se ve
+   borrosa por sí sola, por si Safari no aplica el filtro a una capa tan grande. */
+.viewer-blur { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; z-index: 0;
+  transform: scale(1.2) translateZ(0); will-change: transform; pointer-events: none; user-select: none;
+  -webkit-filter: blur(28px) brightness(.7) saturate(1.2); filter: blur(28px) brightness(.7) saturate(1.2); }
+.viewer-blur.tiny { image-rendering: auto; }
+.viewer-media { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; max-width: none; object-fit: contain;
+  object-position: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* Vertical: a pantalla completa, recortando un poco los lados (o a mano con ⤢ / pellizcando) */
+.viewer-slide.fit-cover .viewer-media { object-fit: cover; }
+.viewer-slide.fit-cover .viewer-blur { display: none; }
 .viewer .heart-burst { position: absolute; z-index: 4; }
 
 .viewer-top { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; justify-content: space-between;
-  padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + var(--viewer-pad)) 28px
+  padding: calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + var(--viewer-pad)) 48px
     calc(env(safe-area-inset-left) + var(--viewer-pad));
-  background: linear-gradient(rgba(0, 0, 0, .28), transparent); pointer-events: none; }
+  background: linear-gradient(rgba(0, 0, 0, .55), transparent); pointer-events: none; }
 .viewer-top > *, .viewer-actions > * { pointer-events: auto; }
 .viewer-actions { display: flex; gap: 10px; }
 .viewer-btn { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center;
@@ -1054,8 +1062,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   box-shadow: 0 2px 10px rgba(0, 0, 0, .15); touch-action: manipulation; }
 .viewer-btn:active { transform: scale(.94); }
 .viewer-btn:disabled { opacity: .6; }
-.viewer-counter { position: absolute; z-index: 5; top: calc(env(safe-area-inset-top) + 72px);
-  right: calc(env(safe-area-inset-right) + var(--viewer-pad)); display: flex; align-items: center; gap: 2px;
+.viewer-sub { position: absolute; z-index: 5; top: calc(env(safe-area-inset-top) + 72px);
+  right: calc(env(safe-area-inset-right) + var(--viewer-pad)); display: flex; align-items: center; gap: 8px; }
+.viewer-fit { width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center;
+  background: var(--viewer-glass); color: #fff; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  touch-action: manipulation; }
+.viewer-fit:active { transform: scale(.92); }
+.viewer-counter { display: flex; align-items: center; gap: 2px;
   border-radius: 999px; padding: 3px; background: var(--viewer-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   font-weight: 700; font-size: .88rem; font-variant-numeric: tabular-nums; }
 .viewer-counter button { width: 32px; height: 32px; border: 0; padding: 0; border-radius: 50%; background: none; color: #fff;
@@ -1074,7 +1087,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 
 .viewer-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; pointer-events: none;
   padding: 120px calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 6px) calc(env(safe-area-inset-left) + 20px);
-  background: linear-gradient(transparent, rgba(0, 0, 0, .38) 35%, rgba(0, 0, 0, .78)); }
+  background: linear-gradient(transparent, rgba(0, 0, 0, .55)); }
+.viewer-info { text-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
 .viewer-bottom > * { pointer-events: auto; }
 .viewer-info-row { display: flex; align-items: flex-end; gap: 12px; max-width: 680px; margin: 0 auto; }
 .viewer-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
@@ -1089,8 +1103,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   border: 0; background: none; color: #fff; font-weight: 600; font-size: .9rem; text-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
 
 /* Un toque: se ocultan todos los textos y botones para ver la foto limpia */
-.viewer-top, .viewer-bottom, .viewer-counter { transition: opacity .2s ease; }
-.viewer.chrome-off .viewer-top, .viewer.chrome-off .viewer-bottom, .viewer.chrome-off .viewer-counter,
+.viewer-top, .viewer-bottom, .viewer-sub { transition: opacity .2s ease; }
+.viewer.chrome-off .viewer-top, .viewer.chrome-off .viewer-bottom, .viewer.chrome-off .viewer-sub,
 .viewer.sheet-open .viewer-bottom { opacity: 0; pointer-events: none; }
 .viewer.chrome-off .viewer-top > *, .viewer.chrome-off .viewer-bottom > *, .viewer.sheet-open .viewer-bottom > *,
 .viewer.chrome-off .viewer-actions > * { pointer-events: none; }
@@ -1215,7 +1229,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 
 @media (prefers-reduced-motion: reduce) {
   .sheet, .sheet-backdrop { animation: none; transition: none; }
-  .viewer-top, .viewer-bottom, .viewer-counter { transition: none; }
+  .viewer-top, .viewer-bottom, .viewer-sub { transition: none; }
   .viewer .heart-burst { animation: none; }
   .react-bar { animation: none; }
   .react-opt, .react-btn, .react-chip { transition: none; }
