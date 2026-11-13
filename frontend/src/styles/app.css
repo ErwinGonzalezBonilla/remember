@@ -445,6 +445,28 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 .upload .btn { width: 100%; cursor: pointer; }
 .preview { width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; }
 .upload audio, .detail-audio audio { width: 100%; }
+.upload .btn.disabled { opacity: .55; pointer-events: none; }
+
+/* Álbum al crear un recuerdo: tira de miniaturas */
+.album-strip-wrap { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.album-strip { list-style: none; margin: 0; padding: 2px 2px 6px; display: flex; gap: 10px; overflow-x: auto;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+.album-thumb { position: relative; flex: none; width: 96px; height: 96px; border-radius: 12px; overflow: hidden;
+  background: var(--mist); scroll-snap-align: start; }
+.album-thumb.failed { outline: 2px solid var(--danger); outline-offset: -2px; }
+.album-thumb img, .album-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-thumb-kind { position: absolute; left: 6px; bottom: 30px; color: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.album-cover-tag { position: absolute; top: 6px; left: 6px; font-size: .62rem; font-weight: 800; color: #fff;
+  background: var(--petrol); border-radius: 999px; padding: 1px 7px; }
+.album-thumb-done { position: absolute; top: 30px; left: 6px; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--ok); color: #fff; }
+.album-thumb-x { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; padding: 0;
+  display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; }
+.album-thumb-move { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between;
+  background: linear-gradient(transparent, rgba(0,0,0,.55)); }
+.album-thumb-move button { border: 0; background: none; color: #fff; font-size: .8rem; width: 36px; height: 26px; padding: 0; }
+.album-thumb-move button:disabled { opacity: .3; }
+.album-thumb button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
 .recorder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
 .rec-btn { width: 72px; height: 72px; border-radius: 50%; border: 0; background: #E7E4FB; color: #5A54C4; display: grid; place-items: center; }
 .rec-btn.on { background: var(--coral); color: #fff; animation: pulse 1.4s ease-in-out infinite; }

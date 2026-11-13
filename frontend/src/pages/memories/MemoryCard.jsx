@@ -89,7 +89,9 @@ export function MemoryCard({ memory, onChange }) {
     <div className={`memory-card kind-${memory.kind}`}>
       <Link to={to} className="memory-card-link" onClick={onClick} aria-label={memory.title}>
         <Cover memory={memory} />
-        {memory.kind === 'video' && <span className="kind-badge"><Icon name="play" size={16} filled /></span>}
+        {memory.media_count > 1
+          ? <span className="kind-badge" title={`${memory.media_count} fotos y videos`}><Icon name="album" size={18} /></span>
+          : memory.kind === 'video' && <span className="kind-badge"><Icon name="play" size={16} filled /></span>}
         {memory.kind === 'audio' && <span className="kind-badge"><Icon name="mic" size={16} /></span>}
         <span className="memory-meta">
           <MilestoneBadge milestone={memory.milestone} />

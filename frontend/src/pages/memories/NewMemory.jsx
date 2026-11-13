@@ -5,12 +5,13 @@ import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
 import { AppShell, ErrorBox, Field, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile, videoPoster } from '../../media'
+import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile } from '../../media'
+import { ALBUM_ACCEPT, ALBUM_MAX, AlbumStrip, moveItem, prepareFiles, uploadAlbum, useRevokeOnUnmount } from './Album'
 import { KIND_LABEL } from './MemoryCard'
 import { MilestonePicker } from './Milestone'
 import VoiceRecorder from './VoiceRecorder'
 
-const ACCEPT = { photo: 'image/*', video: 'video/*', audio: 'audio/*' }
+const isAlbum = (kind) => kind === 'photo' || kind === 'video'
 const KINDS = [
   { kind: 'photo', icon: 'camera' }, { kind: 'video', icon: 'video' },
   { kind: 'audio', icon: 'mic' }, { kind: 'text', icon: 'note' },
@@ -23,7 +24,9 @@ export default function NewMemory() {
   const [tagged, setTagged] = useState(preselected)
   const navigate = useNavigate()
   const [kind, setKind] = useState(KINDS.some((k) => k.kind === params.get('tipo')) ? params.get('tipo') : 'photo')
-  const [file, setFile] = useState(null)
+  const [file, setFile] = useState(null)        // nota de voz
+  const [album, setAlbum] = useState([])        // fotos y videos: [{ id, file, kind, preview, key }]
+  useRevokeOnUnmount(album)
   const [preview, setPreview] = useState(null)
   const [form, setForm] = useState({ title: '', description: '', location: '', happened_on: new Date().toLocaleDateString('sv'), milestone: '' })
   const [error, setError] = useState('')
@@ -47,33 +50,48 @@ export default function NewMemory() {
     setFile(f)
   }
 
+  async function pickMany(list) {
+    setError('')
+    const { items, error: problem } = await prepareFiles(list, ALBUM_MAX - album.length)
+    if (problem) setError(problem)
+    if (items.length) setAlbum((a) => [...a, ...items])
+  }
+
+  function removeItem(id) {
+    setAlbum((a) => {
+      const it = a.find((x) => x.id === id)
+      if (it) URL.revokeObjectURL(it.preview)
+      return a.filter((x) => x.id !== id)
+    })
+  }
+
   function changeKind(k) {
     setKind(k)
     setFile(null)
+    setError('')
   }
 
   async function submit(e) {
     e.preventDefault()
     if (!form.title.trim()) return setError('Dale un título a tu recuerdo.')
     if (kind === 'text' && !form.description.trim()) return setError('Escribe el texto de tu nota.')
-    if (kind !== 'text' && !file) return setError('Adjunta el archivo del recuerdo.')
+    if (kind === 'audio' && !file) return setError('Adjunta el archivo del recuerdo.')
+    if (isAlbum(kind) && !album.length) return setError('Elige al menos una foto o un video.')
     setBusy(true); setError('')
     const fd = new FormData()
-    fd.append('kind', kind)
+    fd.append('kind', isAlbum(kind) ? album[0].kind : kind)
     Object.entries(form).forEach(([k, v]) => v.trim() && fd.append(k, v.trim()))
     if (tagged.length) fd.append('person_ids', tagged.join(','))
     try {
-      if (file) {
+      if (isAlbum(kind)) {
+        // Uno detrás de otro, directos al almacén; si uno falla, al reintentar no se repiten los ya subidos
+        const keys = await uploadAlbum(album, setProgress, () => setAlbum((a) => [...a]))
+        fd.append('media_keys', JSON.stringify(keys))
+        setProgress('Guardando…')
+      } else if (file) {
         // El archivo va directo al almacén; aquí solo se envía su clave
         setProgress(progressText(kind))
         fd.append('media_key', await uploadFile(file, kind, (pct) => setProgress(progressText(kind, pct))))
-        if (kind === 'video') {
-          // Miniatura (fotograma del segundo 0,5): la cuadrícula la muestra sin cargar el video
-          try {
-            const poster = await videoPoster(file)
-            if (poster) fd.append('poster_key', await uploadFile(poster, 'photo'))
-          } catch { /* sin miniatura: el video se guarda igual */ }
-        }
         setProgress('Guardando…')
       }
       const memory = await api('/api/memories', { method: 'POST', form: fd })
@@ -100,18 +118,35 @@ export default function NewMemory() {
 
         <ErrorBox error={error} />
 
-        {kind !== 'text' && (
+        {isAlbum(kind) && (
           <div className="card upload">
-            {preview && kind === 'photo' && <img src={preview} alt="Vista previa" className="preview" />}
-            {preview && kind === 'video' && <video src={preview} controls className="preview" />}
-            {preview && kind === 'audio' && <audio src={preview} controls />}
-            {kind === 'audio' && !file && <VoiceRecorder onRecorded={pick} />}
+            <AlbumStrip items={album} disabled={busy} onRemove={removeItem}
+              onMove={(i, dir) => setAlbum((a) => moveItem(a, i, dir))} />
+            {album.length < ALBUM_MAX && (
+              <label className={`btn btn-ghost ${busy ? 'disabled' : ''}`}>
+                <Icon name="plus" size={18} />
+                {album.length ? 'Añadir más fotos o videos' : 'Elegir fotos o videos'}
+                <input type="file" accept={ALBUM_ACCEPT} multiple hidden disabled={busy}
+                  onChange={(e) => { pickMany(e.target.files); e.target.value = '' }} />
+              </label>
+            )}
+            <small className="hint">
+              Hasta {ALBUM_MAX} a la vez, fotos y videos mezclados. Fotos de hasta {LIMITS_MB.photo} MB (se reducen solas)
+              y videos de hasta {LIMITS_MB.video} MB.
+            </small>
+          </div>
+        )}
+
+        {kind === 'audio' && (
+          <div className="card upload">
+            {preview && <audio src={preview} controls />}
+            {!file && <VoiceRecorder onRecorded={pick} />}
             <label className="btn btn-ghost">
               <Icon name={file ? 'refresh' : 'plus'} size={18} />
-              {file ? 'Cambiar archivo' : kind === 'audio' ? 'O sube un audio' : `Elegir ${KIND_LABEL[kind].toLowerCase()}`}
-              <input type="file" accept={ACCEPT[kind]} hidden onChange={(e) => pick(e.target.files[0])} />
+              {file ? 'Cambiar archivo' : 'O sube un audio'}
+              <input type="file" accept="audio/*" hidden onChange={(e) => pick(e.target.files[0])} />
             </label>
-            <small className="hint">Máximo {LIMITS_MB[kind]} MB. {kind === 'photo' ? 'Las fotos se reducen solas.' : ''}</small>
+            <small className="hint">Máximo {LIMITS_MB.audio} MB.</small>
           </div>
         )}
 
@@ -141,7 +176,9 @@ export default function NewMemory() {
           {people && !tagged.length && <small className="hint">Sin etiquetar: será solo para ti (puedes etiquetar después).</small>}
         </section>
 
-        <button className="btn btn-primary" disabled={busy}>{busy ? progress || 'Guardando…' : 'Guardar recuerdo'}</button>
+        <button className="btn btn-primary" disabled={busy}>
+          {busy ? progress || 'Guardando…' : album.some((it) => it.failed) ? 'Reintentar' : 'Guardar recuerdo'}
+        </button>
       </form>
     </AppShell>
   )
