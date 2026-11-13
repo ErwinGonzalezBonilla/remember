@@ -7,9 +7,9 @@ import { MilestoneBadge } from './Milestone'
 
 export const KIND_LABEL = { photo: 'Foto', video: 'Video', audio: 'Nota de voz', text: 'Nota' }
 const KIND_ICON = { photo: 'camera', video: 'video', audio: 'mic', text: 'note' }
-const HEART = '❤️'
+export const HEART = '❤️'
 const DOUBLE_TAP_MS = 280
-const BURST_MS = 800
+export const BURST_MS = 800
 
 function Cover({ memory }) {
   const url = mediaUrl(memory.media_url)
@@ -28,7 +28,7 @@ function Cover({ memory }) {
 }
 
 /** Poner o quitar tu ❤️. Actualiza la tarjeta al momento y después con lo que devuelve el servidor. */
-function useHeart(memory, onChange) {
+export function useHeart(memory, onChange) {
   const loved = memory.my_reaction === HEART
   async function set(on) {
     const before = memory
