@@ -9,6 +9,7 @@ import CommentsSheet from './CommentsSheet'
 import { BURST_MS, useHeart } from './MemoryCard'
 import MemoryEdit from './MemoryEdit'
 import { MilestoneBadge } from './Milestone'
+import { ReactionButton } from './Reactions'
 import { copyLink, downloadItem, shareMemory } from './share'
 
 const DOUBLE_TAP_MS = 280
@@ -167,7 +168,7 @@ function Viewer({ memory: m, setMemory, me }) {
 
   // Deslizar hacia arriba abre los comentarios
   function onTouchStart(e) {
-    if (e.touches.length !== 1 || e.target.closest('.viewer-letter, video, input')) { touch.current = null; return }
+    if (e.touches.length !== 1 || e.target.closest('.viewer-letter, video, input, .react-wrap')) { touch.current = null; return }
     touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }
   function onTouchEnd(e) {
@@ -295,6 +296,7 @@ function Viewer({ memory: m, setMemory, me }) {
             {m.author_id !== me.id && <p className="viewer-people">Guardado por {m.author_name}</p>}
             {m.description && m.kind !== 'text' && <p className="viewer-desc">{m.description}</p>}
           </div>
+          <ReactionButton memory={m} onChange={merge} />
         </div>
         <button type="button" className="viewer-hint" onClick={() => { setChrome(true); setSheet(true) }}
           aria-label={`Ver comentarios (${commentCount})`}>

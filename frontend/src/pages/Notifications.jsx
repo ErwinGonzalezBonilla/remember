@@ -18,9 +18,9 @@ export function timeAgo(iso) {
 
 export function noticeText(n) {
   const first = n.actor_name.split(' ')[0]
-  return n.kind === 'comment'
-    ? <><b>{first}</b> comentó en «{n.memory_title}»</>
-    : <><b>{first}</b> guardó {KIND[n.memory_kind] || 'un recuerdo'} contigo: «{n.memory_title}»</>
+  if (n.kind === 'comment') return <><b>{first}</b> comentó en «{n.memory_title}»</>
+  if (n.kind === 'reply') return <><b>{first}</b> respondió a tu comentario en «{n.memory_title}»</>
+  return <><b>{first}</b> guardó {KIND[n.memory_kind] || 'un recuerdo'} contigo: «{n.memory_title}»</>
 }
 
 /** Avisos: quién te etiquetó en un recuerdo o comentó. Al abrir la pantalla quedan como leídos. */

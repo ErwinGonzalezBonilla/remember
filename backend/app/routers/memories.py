@@ -96,7 +96,8 @@ def to_detail(memory: Memory, user: User) -> MemoryDetailOut:
     return MemoryDetailOut(
         **to_out(memory, user).model_dump(),
         comments=[CommentOut(id=c.id, body=c.body, author_id=c.author_id, author_name=c.author.full_name,
-                             author_avatar=c.author.avatar_url, created_at=c.created_at) for c in memory.comments],
+                             author_avatar=c.author.avatar_url, created_at=c.created_at, parent_id=c.parent_id)
+                  for c in memory.comments],
         media=media_items(memory),
     )
 
@@ -340,10 +341,17 @@ def unreact(memory_id: int, user: User = Depends(get_current_user), db: Session 
 def add_comment(memory_id: int, data: CommentIn, user: User = Depends(get_current_user),
                 db: Session = Depends(get_db)):
     memory = get_visible_memory(memory_id, user, db)
-    memory.comments.append(Comment(author_id=user.id, body=data.body.strip()))
+    parent = None
+    if data.parent_id is not None:
+        parent = db.get(Comment, data.parent_id)
+        if not parent or parent.memory_id != memory.id:
+            raise HTTPException(422, "Ese comentario no es de este recuerdo.")
+        if parent.parent_id:  # responder a una respuesta la cuelga del mismo comentario principal
+            parent = db.get(Comment, parent.parent_id)
+    memory.comments.append(Comment(author_id=user.id, body=data.body.strip(), parent_id=parent.id if parent else None))
     db.commit()
     db.refresh(memory)
-    notify_comment(memory, user, db, data.body.strip())
+    notify_comment(memory, user, db, data.body.strip(), reply_to=parent)
     return to_detail(memory, user)
 
 

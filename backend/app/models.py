@@ -154,10 +154,14 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     memory_id: Mapped[int] = mapped_column(ForeignKey("memories.id", ondelete="CASCADE"), index=True)
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    # Respuesta a otro comentario (un solo nivel: siempre apunta a un comentario principal)
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("comments.id", ondelete="CASCADE"), index=True)
     body: Mapped[str] = mapped_column(String(1000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     author: Mapped[User] = relationship()
+    # Al borrar un comentario se borran sus respuestas (también en bases de datos sin la FK, como SQLite)
+    replies: Mapped[list["Comment"]] = relationship(cascade="all, delete")
 
 
 class Reaction(Base):

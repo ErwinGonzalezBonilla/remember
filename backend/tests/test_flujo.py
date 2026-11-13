@@ -1102,3 +1102,71 @@ def test_album_recuerdo_antiguo():
     assert r.status_code == 201, r.text
     assert [x["url"] for x in r.json()["media"]][0] == "/uploads/u1/viejo.jpg" and r.json()["media_count"] == 2
     assert all(x["id"] for x in r.json()["media"])
+
+
+# ---------- Reacciones nuevas y respuestas ----------
+def test_reacciones_nuevas_y_antiguas():
+    ana = register("Ana Reacciona", "anareacciona@example.com")
+    m = save(ana, "Para reaccionar")
+    for emoji in ("❤️", "😍", "😂", "🥰", "😮", "👏", "😀", "😢"):
+        r = client.put(f"/api/memories/{m['id']}/reaction", headers=ana, json={"emoji": emoji})
+        assert r.status_code == 200, (emoji, r.text)
+        assert r.json()["my_reaction"] == emoji and r.json()["reactions"] == {emoji: 1}
+    assert client.put(f"/api/memories/{m['id']}/reaction", headers=ana, json={"emoji": "🤡"}).status_code == 422
+
+
+def test_respuestas_a_comentarios(monkeypatch):
+    pushed = []
+    monkeypatch.setattr("app.routers.notifications.send_email", lambda *a, **k: True)
+    monkeypatch.setattr("app.routers.notifications.send_push",
+                        lambda db, ids, title, body, url="/", tag=None: pushed.append((set(ids), title, body)) or 1)
+    felix = register("Félix Responde", "felixresp@example.com")
+    client.patch("/api/me", headers=felix, json={"full_name": "Félix Responde", "username": "felix_resp"})
+    erwin = register("Erwin Responde", "erwinresp@example.com")
+    client.patch("/api/me", headers=erwin, json={"full_name": "Erwin Responde", "username": "erwin_resp"})
+    _connect(felix, "felix_resp", erwin, "amistad")
+    erwin_p = [p for p in client.get("/api/people", headers=felix).json() if p["name"] == "Erwin Responde"][0]
+    felix_id = client.get("/api/me", headers=felix).json()["id"]
+    erwin_id = client.get("/api/me", headers=erwin).json()["id"]
+    m = save(felix, "Playa", people=[erwin_p])
+    otro = save(felix, "Otro recuerdo")
+
+    # Félix comenta; Erwin responde: Félix recibe "respondió a tu comentario" (y no además "comentó")
+    top = client.post(f"/api/memories/{m['id']}/comments", headers=felix, json={"body": "¡Qué linda!"}).json()["comments"][0]
+    assert top["parent_id"] is None
+    client.post("/api/notifications/read", headers=felix)
+    pushed.clear()
+    r = client.post(f"/api/memories/{m['id']}/comments", headers=erwin, json={"body": "¡Sí!", "parent_id": top["id"]})
+    assert r.status_code == 201, r.text
+    reply = [c for c in r.json()["comments"] if c["body"] == "¡Sí!"][0]
+    assert reply["parent_id"] == top["id"]
+    n = client.get("/api/notifications", headers=felix).json()
+    assert n["unread"] == 1 and n["items"][0]["kind"] == "reply" and n["items"][0]["actor_name"] == "Erwin Responde"
+    assert pushed == [({felix_id}, "Erwin respondió a tu comentario", "¡Sí!")]
+
+    # Una respuesta a una respuesta queda en el nivel 1 (colgada del comentario principal)
+    pushed.clear()
+    r = client.post(f"/api/memories/{m['id']}/comments", headers=felix, json={"body": "Gracias", "parent_id": reply["id"]})
+    assert r.status_code == 201
+    assert [c for c in r.json()["comments"] if c["body"] == "Gracias"][0]["parent_id"] == top["id"]
+    # Félix responde a su propio comentario: no se avisa a sí mismo; Erwin recibe el aviso normal de comentario
+    assert pushed == [({erwin_id}, "Félix comentó en «Playa»", "Gracias")]
+    assert all(i["kind"] != "reply" for i in client.get("/api/notifications", headers=erwin).json()["items"])
+
+    # Un parent_id de otro recuerdo (o que no existe) da 422
+    other_c = client.post(f"/api/memories/{otro['id']}/comments", headers=felix, json={"body": "x"}).json()["comments"][0]
+    for bad in (other_c["id"], 999999):
+        assert client.post(f"/api/memories/{m['id']}/comments", headers=felix,
+                           json={"body": "y", "parent_id": bad}).status_code == 422
+
+    # Borrar un comentario borra sus respuestas
+    assert client.delete(f"/api/comments/{top['id']}", headers=felix).status_code == 204
+    assert client.get(f"/api/memories/{m['id']}", headers=felix).json()["comments"] == []
+    from app.database import SessionLocal
+    from app.models import Comment
+    with SessionLocal() as db:
+        assert db.query(Comment).filter(Comment.memory_id == m["id"]).count() == 0
+    # Y borrar el recuerdo con respuestas también funciona
+    t2 = client.post(f"/api/memories/{m['id']}/comments", headers=felix, json={"body": "otra"}).json()["comments"][0]
+    client.post(f"/api/memories/{m['id']}/comments", headers=erwin, json={"body": "resp", "parent_id": t2["id"]})
+    assert client.delete(f"/api/memories/{m['id']}", headers=felix).status_code == 204

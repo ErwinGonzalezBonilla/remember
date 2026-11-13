@@ -207,6 +207,7 @@ class PersonTag(BaseModel):
 # ---------- Recuerdos ----------
 class CommentIn(BaseModel):
     body: str = Field(min_length=1, max_length=1000)
+    parent_id: int | None = None       # responder a un comentario del mismo recuerdo
 
 
 class CommentOut(BaseModel):
@@ -216,10 +217,15 @@ class CommentOut(BaseModel):
     author_name: str
     author_avatar: MediaURL = None
     created_at: datetime
+    parent_id: int | None = None
+
+
+# Las seis de la app y, para que sigan siendo válidas las ya guardadas, las antiguas 😀 y 😢
+REACTIONS = ("❤️", "😍", "😂", "🥰", "😮", "👏")
 
 
 class ReactionIn(BaseModel):
-    emoji: Literal["❤️", "😀", "😂", "😮", "😢"]
+    emoji: Literal["❤️", "😍", "😂", "🥰", "😮", "👏", "😀", "😢"]
 
 
 MEDIA_MAX = 20   # fotos y videos por recuerdo

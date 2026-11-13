@@ -74,3 +74,5 @@ def add_missing_columns():
             conn.execute(text(f'ALTER TABLE {table_name} ADD COLUMN {col.name} {col.type.compile(dialect=engine.dialect)}'))
         # Columnas añadidas a posteriori que deben ser únicas
         conn.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username ON users (username)'))
+        # Respuestas a comentarios: la columna llega sin índice en las bases de datos ya existentes
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_comments_parent_id ON comments (parent_id)'))

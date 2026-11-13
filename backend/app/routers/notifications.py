@@ -1,4 +1,4 @@
-"""Avisos: "Félix guardó un recuerdo contigo", "Félix comentó en «…»".
+"""Avisos: "Félix guardó un recuerdo contigo", "Félix comentó en «…»", "Félix respondió a tu comentario".
 Se crean al etiquetar a una persona conectada o al comentar, y se marcan como leídos al verlos."""
 from datetime import datetime, timezone
 from html import escape
@@ -12,7 +12,7 @@ from ..database import get_db
 from ..deps import get_current_user, visible_to
 from ..mailer import first_name, send_email
 from ..push import send_push
-from ..models import Memory, Notification, Person, User
+from ..models import Comment, Memory, Notification, Person, User
 from ..schemas import NotificationOut, NotificationsOut
 
 router = APIRouter(prefix="/api/notifications", tags=["avisos"])
@@ -44,18 +44,26 @@ def notify_tagged(memory: Memory, person_ids: set[int], author: User, db: Sessio
         )
 
 
-def notify_comment(memory: Memory, commenter: User, db: Session, body: str = ""):
-    """Avisa (solo en la app) al autor del recuerdo y a las demás personas conectadas etiquetadas."""
+def notify_comment(memory: Memory, commenter: User, db: Session, body: str = "", reply_to: Comment | None = None):
+    """Avisa (en la app y en el móvil) al autor del recuerdo y a las demás personas conectadas etiquetadas.
+    Si es una respuesta, quien escribió el comentario original recibe "respondió a tu comentario" en su lugar
+    (nunca si se responde a sí mismo)."""
     tagged = set(db.scalars(select(Person.linked_user_id).where(
         Person.id.in_([t.person_id for t in memory.tags]), Person.owner_id == memory.author_id,
         Person.linked_user_id.is_not(None))))
-    to = (tagged | {memory.author_id}) - {commenter.id}
+    replied = {reply_to.author_id} - {commenter.id} if reply_to else set()
+    to = (tagged | {memory.author_id}) - {commenter.id} - replied
     for uid in to:
         db.add(Notification(user_id=uid, actor_id=commenter.id, kind="comment", memory_id=memory.id))
+    for uid in replied:
+        db.add(Notification(user_id=uid, actor_id=commenter.id, kind="reply", memory_id=memory.id))
     db.commit()
-    text = body if len(body) <= 90 else body[:88] + "…"
-    send_push(db, to, f"{commenter.full_name.split(' ')[0]} comentó en «{memory.title}»", text or "Nuevo comentario",
-              f"/recuerdo/{memory.id}", tag=f"comment-{memory.id}")
+    text = (body if len(body) <= 90 else body[:88] + "…") or "Nuevo comentario"
+    first = commenter.full_name.split(' ')[0]
+    if to:
+        send_push(db, to, f"{first} comentó en «{memory.title}»", text, f"/recuerdo/{memory.id}", tag=f"comment-{memory.id}")
+    if replied:
+        send_push(db, replied, f"{first} respondió a tu comentario", text, f"/recuerdo/{memory.id}", tag=f"reply-{memory.id}")
 
 
 def mark_memory_read(memory_id: int, user: User, db: Session):
