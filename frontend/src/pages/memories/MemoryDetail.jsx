@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
-import { AppShell, ErrorBox, Spinner, TopBar, ageAt, formatDate } from '../../components/ui'
+import { AppShell, ErrorBox, Spinner, TopBar, formatDate } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import CommentsSheet from './CommentsSheet'
@@ -98,18 +98,6 @@ function VoicePlayer({ src }) {
       <div className="voice-times"><span>{clock(time)}</span><span>{known ? clock(duration) : ''}</span></div>
     </div>
   )
-}
-
-/** Personas etiquetadas, con su edad ese día si se conoce: "Con Allison (8 meses) y Sofía". */
-function PeopleLine({ memory }) {
-  if (!memory.people.length) return null
-  const day = memory.happened_on || memory.created_at
-  const names = memory.people.map((p) => {
-    const age = ageAt(p.birth_date, day)
-    return age ? `${p.name} (${age})` : p.name
-  })
-  const text = names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names.at(-1)}` : names[0]
-  return <p className="viewer-people">Con {text}</p>
 }
 
 function Viewer({ memory: m, setMemory, me }) {
@@ -400,15 +388,11 @@ function Viewer({ memory: m, setMemory, me }) {
       <div className="viewer-bottom">
         <div className="viewer-info-row">
           <div className="viewer-info">
-            <MilestoneBadge milestone={m.milestone} className="viewer-badge" />
             <h1 className="viewer-title">{m.title}</h1>
             <p className="viewer-meta">
-              <Icon name="calendar" size={17} /> {formatDate(m.happened_on || m.created_at)}
-              {m.location && <><span className="viewer-dot" aria-hidden="true">·</span><Icon name="pin" size={15} /> {m.location}</>}
+              <Icon name="calendar" size={16} /> {formatDate(m.happened_on || m.created_at)}
+              <MilestoneBadge milestone={m.milestone} className="viewer-badge" />
             </p>
-            <PeopleLine memory={m} />
-            {m.author_id !== me.id && <p className="viewer-people">Guardado por {m.author_name}</p>}
-            {m.description && m.kind !== 'text' && <p className="viewer-desc">{m.description}</p>}
           </div>
           <ReactionButton memory={m} onChange={merge} />
         </div>

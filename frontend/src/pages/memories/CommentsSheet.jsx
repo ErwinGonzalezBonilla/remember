@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../api/client'
 import Icon from '../../components/Icon'
-import { Avatar, ErrorBox } from '../../components/ui'
+import { Avatar, ErrorBox, ageAt, formatDate } from '../../components/ui'
 import { timeAgo } from '../Notifications'
 import { ReactionRow } from './Reactions'
 
@@ -28,6 +28,31 @@ export function useSheetDrag(onClose) {
       },
     },
   }
+}
+
+/** "Allison (8 meses) y Sofía": las personas etiquetadas, con su edad ese día si se conoce. */
+function peopleText(memory) {
+  const day = memory.happened_on || memory.created_at
+  const names = memory.people.map((p) => {
+    const age = ageAt(p.birth_date, day)
+    return age ? `${p.name} (${age})` : p.name
+  })
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names.at(-1)}` : names[0]
+}
+
+/** Lo que ya no va encima de la foto: fecha · lugar, con quién, quién lo guardó y la descripción completa. */
+function MemoryFacts({ memory: m, me }) {
+  return (
+    <div className="sheet-facts">
+      <p className="sheet-facts-meta">
+        <Icon name="calendar" size={15} /> {formatDate(m.happened_on || m.created_at)}
+        {m.location && <><span aria-hidden="true">·</span><Icon name="pin" size={15} /> {m.location}</>}
+      </p>
+      {m.people.length > 0 && <p className="sheet-facts-line">Con {peopleText(m)}</p>}
+      {m.author_id !== me.id && <p className="sheet-facts-line">Guardado por {m.author_name}</p>}
+      {m.description && m.kind !== 'text' && <p className="sheet-description">{m.description}</p>}
+    </div>
+  )
 }
 
 /** Comentarios principales en el orden elegido; las respuestas debajo de su comentario, de la más antigua a la más nueva. */
@@ -132,8 +157,8 @@ export default function CommentsSheet({ memory, me, onChange, onClose }) {
           <button type="button" className="sheet-handle" onClick={onClose} aria-label="Cerrar comentarios" />
         </div>
         <div className="sheet-body">
+          <MemoryFacts memory={memory} me={me} />
           <ReactionRow memory={memory} onChange={onChange} />
-          {memory.description && memory.kind !== 'text' && <p className="sheet-description">{memory.description}</p>}
           <div className="sheet-head">
             <h2 id="sheet-title" className="sheet-title">Comentarios ({n})</h2>
             {n > 1 && (
