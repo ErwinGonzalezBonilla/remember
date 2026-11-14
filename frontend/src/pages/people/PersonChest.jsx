@@ -1,12 +1,22 @@
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { hasFamily } from '../../components/About'
 import Icon from '../../components/Icon'
-import { relationText, seenAsText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence, ageAt } from '../../components/ui'
+import { relationText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence, ageAt } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
 import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
 import { MilestoneBadge } from '../memories/Milestone'
+
+// Icono de cada acceso rápido. El de la cápsula es provisional: el cliente mandará el suyo (cambiar aquí o en Icon.jsx).
+const CAPSULE_ICON = 'hourglass'
+
+/** "Te llama «El orejón» 😂" o, sin apodo, "Dice que eres su primo/a". Vacío si no hay nada que contar. */
+function seenAsLine(seen) {
+  if (!seen) return ''
+  if (seen.nickname) return `Te llama «${seen.nickname}»${seen.nickname_emoji ? ` ${seen.nickname_emoji}` : ''}`
+  const rel = relationText(seen)
+  return rel && !(seen.relation === 'otro' && !seen.relation_label) ? `Dice que eres su ${rel.toLowerCase()}` : ''
+}
 
 /** El cofre de una persona: su línea de tiempo con todo lo que has guardado con ella. */
 export default function PersonChest() {
@@ -24,6 +34,7 @@ export default function PersonChest() {
   const first = person.name.split(' ')[0]
   const since = memories?.length ? memories[memories.length - 1] : null
   const birthday = person.birth_date && nextOccurrence(person.birth_date)
+  const seenLine = person.is_linked ? seenAsLine(person.seen_as) : ''
 
   // Agrupar la línea de tiempo por año
   const byYear = {}
@@ -42,7 +53,13 @@ export default function PersonChest() {
       />
 
       <section className="chest">
-        <Avatar name={person.name} src={person.photo_url || person.about?.avatar_url} size={84} />
+        {person.is_linked ? (
+          <Link to={`/personas/${id}/perfil`} className="chest-photo-link" aria-label={`Ver el perfil de ${first}`}>
+            <Avatar name={person.name} src={person.photo_url || person.about?.avatar_url} size={84} />
+          </Link>
+        ) : (
+          <Avatar name={person.name} src={person.photo_url || person.about?.avatar_url} size={84} />
+        )}
         <h1>El cofre de {first}</h1>
         <span className="muted">
           {relationText(person)} · {person.memory_count}{' '}
@@ -50,33 +67,12 @@ export default function PersonChest() {
           {since && ` desde ${(since.happened_on || since.created_at).slice(0, 4)}`}
         </span>
         {person.nickname && <span className="chest-nick">Le dices «{person.nickname}» {person.nickname_emoji}</span>}
+        {seenLine && <span className="chest-seen">{seenLine}</span>}
         {person.note && <p className="chest-note">“{person.note}”</p>}
         <span className={`chest-badge ${person.is_linked ? 'open' : ''}`}>
           {person.is_linked ? '🔓 Conectada: compartís estos recuerdos' : '🔒 Se abrirá cuando se conecte'}
         </span>
       </section>
-
-      {seenAsText(person.seen_as) && (
-        <div className="seen-as">
-          <span className="seen-emoji" aria-hidden="true">{person.seen_as.nickname_emoji || '💛'}</span>
-          <span><small>Cómo te tiene guardado</small><strong>{seenAsText(person.seen_as)}</strong></span>
-        </div>
-      )}
-
-      {person.about && (
-        <Link to={`/personas/${id}/perfil`} className="card profile-link">
-          <Avatar name={person.about.full_name} src={person.about.avatar_url} size={48} />
-          <span className="row-text">
-            <strong>Ver el perfil de {first}</strong>
-            <small className="muted">
-              {[person.about.username && `@${person.about.username}`,
-                hasFamily(person.about) ? 'su familia' : null, person.about.birth_date ? 'cumpleaños' : null]
-                .filter(Boolean).join(' · ') || 'Su foto y lo que ha contado de sí'}
-            </small>
-          </span>
-          <Icon name="chevron" size={18} className="muted" />
-        </Link>
-      )}
 
       {location.state?.connected && (
         <div className="alert alert-ok">
@@ -86,12 +82,20 @@ export default function PersonChest() {
         </div>
       )}
 
-      <Link to={`/recuerdos/nuevo?persona=${id}`} className="btn btn-primary">
-        <Icon name="plus" size={18} /> Guardar un recuerdo para {first}
-      </Link>
-      <Link to={`/capsulas/nueva?persona=${id}`} className="btn btn-ghost">
-        <Icon name="gift" size={18} /> Crear una cápsula del tiempo para {first}
-      </Link>
+      <nav className="quick-actions" aria-label={`Guardar algo para ${first}`}>
+        <Link to={`/recuerdos/nuevo?persona=${id}&tipo=photo`} className="quick-action">
+          <span className="quick-action-icon"><Icon name="camera" size={24} /></span>
+          <small>Foto</small>
+        </Link>
+        <Link to={`/recuerdos/nuevo?persona=${id}&tipo=video`} className="quick-action">
+          <span className="quick-action-icon"><Icon name="video" size={24} /></span>
+          <small>Video</small>
+        </Link>
+        <Link to={`/capsulas/nueva?persona=${id}`} className="quick-action">
+          <span className="quick-action-icon"><Icon name={CAPSULE_ICON} size={24} /></span>
+          <small>Cápsula</small>
+        </Link>
+      </nav>
 
       {birthday && (
         <div className="milestone">

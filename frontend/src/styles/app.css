@@ -586,6 +586,14 @@ input:disabled { opacity: .65; }
 .chest-note { font-family: var(--hand); font-size: 1.3rem; color: var(--text); }
 .chest-badge { font-size: .8rem; font-weight: 800; color: #8A5A3C; background: var(--surface); border-radius: 999px; padding: 5px 12px; margin-top: 4px; }
 .chest-badge.open { color: var(--ok); }
+.chest-photo-link { display: inline-flex; padding: 3px; border: 1.5px solid var(--coral); border-radius: 32%; }
+.chest-photo-link:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.chest-seen { font-size: .82rem; font-weight: 600; color: var(--text-2); }
+.quick-actions { display: flex; justify-content: center; gap: 28px; }
+.quick-action { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text); text-decoration: none; }
+.quick-action-icon { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--coral-50); color: var(--coral); border: 1px solid var(--coral); }
+.quick-action small { font-size: .8rem; font-weight: 700; }
 .timeline { display: flex; flex-direction: column; gap: 10px; }
 .year { font-size: 1.05rem; font-weight: 800; color: var(--petrol); }
 .tl { display: flex; flex-direction: column; gap: 12px; border-left: 3px solid var(--sand); margin-left: 8px; padding-left: 16px; }
