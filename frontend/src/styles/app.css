@@ -898,6 +898,13 @@ body { font-feature-settings: "ss01"; letter-spacing: -.005em; }
   color: #fff; border-radius: 0 0 28px 28px; gap: 6px; }
 .page-head .display { color: #fff; }
 .page-head .muted { color: #CFE2E3; }
+.page-head { position: relative; }
+.page-head.has-action > .display, .page-head.has-action > p { padding-right: 48px; }
+.page-head-action { position: absolute; top: 16px; right: 10px; }
+.page-head-action .icon-btn { color: #fff; position: relative; }
+.page-head-action .icon-btn:hover, .page-head-action .icon-btn[aria-expanded="true"] { background: rgba(255, 255, 255, .14); }
+/* Una tarjeta que se monta sobre la banda (como "Tus personas" en Inicio) */
+.page-head-hero { padding-bottom: 56px; }
 /* Al bajar, el título de la sección queda arriba en una barra de cristal */
 .page-head-bar { position: fixed; z-index: 8; top: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
   padding: calc(env(safe-area-inset-top) + 13px) 16px 13px; text-align: center; font-weight: 800; font-size: 1.05rem;
@@ -1312,4 +1319,62 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   .react-bar { animation: none; }
   .react-opt, .react-btn, .react-chip { transition: none; }
   .react-opt.hover, .react-opt:hover { transform: none; background: rgba(255, 255, 255, .4); }
+}
+
+/* =========================================================
+   Calendario: mes con las fechas marcadas y próximos eventos
+   ========================================================= */
+.cal-filter { position: relative; }
+.cal-filter-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--coral);
+  box-shadow: 0 0 0 2px var(--petrol); }
+.cal-filter-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: max-content; max-width: min(300px, calc(100vw - 32px));
+  padding: 6px; border-radius: 16px; display: flex; flex-direction: column; }
+.cal-filter-menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 0; background: none;
+  color: inherit; text-align: left; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: .92rem; }
+.cal-filter-menu button:hover { background: rgba(127, 127, 127, .14); }
+
+.cal-card { margin-top: -42px; position: relative; padding: 12px 10px 10px; border-radius: 24px; }
+.cal-head { display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; }
+.cal-month { border: 0; background: none; padding: 8px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; color: var(--text); }
+.cal-month:hover { background: var(--mist); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; margin-top: 4px; touch-action: pan-y; user-select: none; }
+.cal-wd { text-align: center; font-size: .78rem; font-weight: 700; color: var(--text-2); text-decoration: none; padding: 4px 0 6px; }
+.cal-day { position: relative; display: grid; place-items: center; height: 44px; padding: 0; border: 0; background: none;
+  color: var(--text); font-weight: 600; font-size: .95rem; -webkit-tap-highlight-color: transparent; }
+.cal-day > span { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-variant-numeric: tabular-nums;
+  transition: box-shadow .15s ease; }
+button.cal-day { cursor: pointer; }
+button.cal-day:active > span { transform: scale(.94); }
+button.cal-day:focus-visible { outline: none; }
+button.cal-day:focus-visible > span { outline: 2px solid var(--petrol); outline-offset: 2px; }
+/* Cumpleaños: coral claro. Aniversario u otra fecha especial: azul claro. Con un puntito debajo. */
+.cal-day.has-birthday > span { background: color-mix(in srgb, var(--coral) 50%, #fff); color: #0F2E33; }
+.cal-day.has-special > span { background: var(--sky); color: #0F2E33; }
+.cal-day.has-birthday::after, .cal-day.has-special::after { content: ''; position: absolute; bottom: 0; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--coral); }
+.cal-day.has-special::after { background: #3E9AA6; }
+.cal-day.today > span { background: var(--petrol); color: #fff; }
+.cal-day.selected > span { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
+
+.cal-list { display: flex; flex-direction: column; gap: 10px; }
+.cal-list .section-head { margin-top: 0; }
+.cal-list-title { font-size: 1.05rem; font-weight: 800; color: var(--petrol); }
+.cal-see { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); }
+.cal-events { padding: 2px 12px; display: flex; flex-direction: column; }
+.cal-event { display: grid; grid-template-columns: 36px auto 1fr 16px; align-items: center; gap: 12px; padding: 10px 0; color: inherit; }
+.cal-event + .cal-event { border-top: 1px solid var(--border); }
+.cal-event-icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
+.cal-event-icon.is-birthday { background: var(--coral-50); color: var(--coral); }
+.cal-event-icon.is-special { background: color-mix(in srgb, var(--sky) 38%, var(--surface)); color: #2C8C98; }
+.cal-event-date { min-width: 46px; font-weight: 800; font-size: .92rem; white-space: nowrap; }
+.cal-event-title { min-width: 0; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-event-go { color: var(--text-2); }
+.cal-none { padding: 2px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cal-day.today > span { background: #EAF2F4; color: var(--petrol); }
+  :root:not([data-theme="light"]) .cal-day.selected > span { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--sky); }
+  :root:not([data-theme="light"]) button.cal-day:focus-visible > span { outline-color: var(--sky); }
+  :root:not([data-theme="light"]) .cal-list-title { color: var(--text); }
+  :root:not([data-theme="light"]) .cal-event-icon.is-special { color: var(--sky); }
+  :root:not([data-theme="light"]) .cal-day.has-special::after { background: var(--sky); }
 }

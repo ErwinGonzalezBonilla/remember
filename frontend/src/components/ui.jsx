@@ -298,7 +298,7 @@ export function TopBar({ title, back = true, right }) {
  * Título grande de sección sobre la banda petróleo. Cuando la banda sale de la pantalla aparece arriba una barra
  * de cristal con el título (como los títulos grandes de iOS).
  */
-export function PageHead({ title, children }) {
+export function PageHead({ title, children, action, className = '' }) {
   const ref = useRef(null)
   const [stuck, setStuck] = useState(false)
   useEffect(() => {
@@ -313,9 +313,10 @@ export function PageHead({ title, children }) {
   }, [])
   return (
     <>
-      <header className="page-head" ref={ref}>
+      <header className={`page-head ${action ? 'has-action' : ''} ${className}`} ref={ref}>
         <h1 className="display">{title}</h1>
         {children}
+        {action && <div className="page-head-action">{action}</div>}
       </header>
       <div className={`page-head-bar glass ${stuck ? 'shown' : ''}`} aria-hidden="true">{title}</div>
     </>
