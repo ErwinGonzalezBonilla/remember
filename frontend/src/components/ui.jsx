@@ -361,7 +361,7 @@ export function BottomNav() {
           </div>
         </div>
       )}
-      <nav className="bottom-nav" aria-label="Navegación principal">
+      <nav className="bottom-nav glass" aria-label="Navegación principal">
         <NavItem {...first} />
         <NavItem {...second} dot={pending} />
         <button type="button" className={`nav-create ${open ? 'open' : ''}`} onClick={() => setOpen((o) => !o)}
