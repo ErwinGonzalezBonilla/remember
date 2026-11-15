@@ -385,7 +385,7 @@ export function BottomNav() {
     <>
       {open && (
         <div className="create-backdrop" onClick={() => setOpen(false)}>
-          <div className="create-sheet" role="dialog" aria-modal="true" aria-labelledby="create-title" onClick={(e) => e.stopPropagation()}>
+          <div className="create-sheet glass glass-thick" role="dialog" aria-modal="true" aria-labelledby="create-title" onClick={(e) => e.stopPropagation()}>
             <span className="sheet-handle" aria-hidden="true" />
             <h2 id="create-title">Guarda un recuerdo</h2>
             <div className="create-grid">

@@ -43,7 +43,7 @@ export default function UpdateBanner() {
 
   if (!available) return null
   return (
-    <div className="update-banner" role="status">
+    <div className="update-banner glass glass-thick" role="status">
       <span><strong>Hay una versión nueva de Rehomi</strong><small>Toca para ver los últimos cambios</small></span>
       <button type="button" className="btn btn-sm" onClick={updateNow}>Actualizar</button>
     </div>

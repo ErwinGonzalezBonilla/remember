@@ -151,7 +151,7 @@ export default function CommentsSheet({ memory, me, onChange, onClose }) {
   return (
     <>
       <div className="sheet-backdrop" onClick={onClose} aria-hidden="true" />
-      <section className="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"
+      <section className="sheet glass glass-thick" role="dialog" aria-modal="true" aria-labelledby="sheet-title"
         style={dy ? { transform: `translateY(${dy}px)`, transition: 'none' } : undefined}>
         <div className="sheet-grab" {...handlers}>
           <button type="button" className="sheet-handle" onClick={onClose} aria-label="Cerrar comentarios" />
@@ -168,7 +168,7 @@ export default function CommentsSheet({ memory, me, onChange, onClose }) {
                   Ordenar <Icon name="down" size={16} />
                 </button>
                 {sortOpen && (
-                  <ul className="sheet-sort-menu" role="listbox" aria-label="Ordenar comentarios">
+                  <ul className="sheet-sort-menu glass glass-thick" role="listbox" aria-label="Ordenar comentarios">
                     {SORTS.map((s) => (
                       <li key={s.id} role="option" aria-selected={sort === s.id}>
                         <button type="button" onClick={() => { setSort(s.id); setSortOpen(false) }}>

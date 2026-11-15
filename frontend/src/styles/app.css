@@ -74,6 +74,8 @@
     --glass-ink: #FFFFFF;
     --glass-ink-2: rgba(255, 255, 255, .7);
   }
+  :root:not([data-theme="light"]) .sheet { --glass-bg-thick: rgba(28, 28, 30, .88); }
+  :root:not([data-theme="light"]) .sheet .btn-text:not(.danger) { color: var(--sky); }
 }
 
 * { box-sizing: border-box; }
@@ -271,8 +273,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
   position: fixed; inset: 0; z-index: 9; background: rgba(9, 30, 36, .45);
   display: flex; align-items: flex-end; justify-content: center; animation: fade-in .15s ease-out;
 }
-.create-sheet {
-  width: 100%; max-width: 480px; background: var(--surface); border-radius: 24px 24px 0 0;
+.create-sheet {   /* cristal: .glass.glass-thick */
+  width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; border-bottom-width: 0;
   padding: 10px 16px calc(var(--nav-h) + var(--nav-bottom) + 20px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 14px; animation: sheet-up .22s ease-out;
 }
@@ -979,11 +981,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   position: fixed; left: 50%; transform: translateX(-50%); z-index: 30;
   bottom: calc(var(--nav-h) + var(--nav-bottom) + 12px + env(safe-area-inset-bottom)); width: calc(100% - 24px); max-width: 456px;
   display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px;
-  background: var(--pattern) center / cover no-repeat, var(--petrol); color: #fff; box-shadow: 0 12px 30px rgba(6, 79, 91, .35);
-  animation: sheet-up .25s ease-out;
+  animation: sheet-up .25s ease-out;   /* cristal: .glass.glass-thick */
 }
 .update-banner span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.update-banner small { color: #CFE2E3; font-size: .8rem; }
+.update-banner small { color: var(--glass-ink-2); font-size: .8rem; }
 .update-banner .btn { background: var(--coral); color: #fff; }
 
 /* ---------- Vincular por QR ---------- */
@@ -1219,9 +1220,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
    Hoja de comentarios: sube desde abajo hasta el 70 %
    ========================================================= */
 .sheet-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .18); animation: fade-in .2s ease-out; }
-.sheet { position: fixed; z-index: 61; left: 0; right: 0; bottom: 0; height: 70dvh; max-width: 640px; margin: 0 auto;
-  display: flex; flex-direction: column; background: var(--bg); color: var(--text); border-radius: 28px 28px 0 0;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, .25); animation: sheet-up .3s cubic-bezier(.2, .8, .2, 1);
+/* Cristal (.glass.glass-thick) algo más opaco que el resto: lleva comentarios y se lee encima de la foto */
+.sheet { --glass-bg-thick: rgba(255, 255, 255, .88);
+  position: fixed; z-index: 61; left: 0; right: 0; bottom: 0; height: 70dvh; max-width: 640px; margin: 0 auto;
+  display: flex; flex-direction: column; border-radius: 28px 28px 0 0; border-bottom-width: 0; animation: sheet-up .3s cubic-bezier(.2, .8, .2, 1);
   transition: transform .2s ease; }
 .sheet-grab { display: flex; justify-content: center; padding: 6px 0 2px; touch-action: none; }
 .sheet-handle { width: 80px; height: 24px; border: 0; padding: 0; background: none; display: grid; place-items: center; }
@@ -1242,17 +1244,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 .sheet-sort { position: relative; }
 .sheet-sort > .btn-text { display: inline-flex; align-items: center; gap: 4px; font-size: .95rem; }
 .sheet-sort-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 2; list-style: none; margin: 0; padding: 6px;
-  min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+  min-width: 180px; border-radius: 16px; }   /* cristal: .glass.glass-thick */
 .sheet-sort-menu button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 0;
   background: none; padding: 10px 12px; border-radius: 10px; font-weight: 700; text-align: left; }
-.sheet-sort-menu button:hover { background: var(--mist); }
+.sheet-sort-menu button:hover { background: rgba(127, 127, 127, .14); }
 .sheet-comment-meta { display: flex; align-items: center; gap: 14px; margin-top: 2px; }
 .sheet-comment-meta .btn-text { padding: 4px 0; font-size: .85rem; }
 .sheet-comment-meta .btn-text.danger { padding: 4px; margin-left: auto; }
 .sheet-replies { list-style: none; margin: 12px 0 0 54px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .sheet-comment.reply p { font-size: .95rem; }
 .sheet-form { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px calc(env(safe-area-inset-bottom) + 10px);
-  border-top: 1px solid var(--border); background: var(--bg); }
+  border-top: 1px solid var(--border); }
 .sheet-form-row { display: flex; gap: 10px; align-items: center; }
 .sheet-replying { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px 0 16px;
   font-size: .85rem; color: var(--text-2); }
