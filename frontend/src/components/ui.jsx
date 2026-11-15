@@ -303,10 +303,13 @@ export function PageHead({ title, children }) {
   const [stuck, setStuck] = useState(false)
   useEffect(() => {
     const el = ref.current
-    if (!el || !('IntersectionObserver' in window)) return
-    const io = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting), { rootMargin: '-52px 0px 0px 0px' })
-    io.observe(el)
-    return () => io.disconnect()
+    if (!el) return
+    // La barra aparece cuando la banda ya casi no se ve (le quedan menos de 52 px, el alto de la barra)
+    const onScroll = () => setStuck(el.getBoundingClientRect().bottom < 52)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll) }
   }, [])
   return (
     <>
