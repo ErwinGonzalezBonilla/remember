@@ -317,12 +317,12 @@ const CREATE = [
 
 function NavItem({ to, icon, label, end, dot }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => (isActive ? 'active' : '')}>
+    <NavLink to={to} end={end} className={({ isActive }) => (isActive ? 'active' : '')}
+      aria-label={dot > 0 ? `${label}, ${dot} ${dot === 1 ? 'aviso' : 'avisos'}` : label} title={label}>
       <span className="nav-icon">
-        <Icon name={icon} size={22} />
-        {dot > 0 && <span className="nav-dot" aria-label={`${dot} avisos`} />}
+        <Icon name={icon} size={24} />
+        {dot > 0 && <span className="nav-dot" aria-hidden="true" />}
       </span>
-      <span>{label}</span>
     </NavLink>
   )
 }
@@ -364,7 +364,7 @@ export function BottomNav() {
         <NavItem {...second} dot={pending} />
         <button type="button" className={`nav-create ${open ? 'open' : ''}`} onClick={() => setOpen((o) => !o)}
           aria-label={open ? 'Cerrar' : 'Guardar un recuerdo'} aria-expanded={open}>
-          <span><Icon name="plus" size={26} /></span>
+          <span><Icon name="plus" size={24} /></span>
         </button>
         {rest.map((n) => <NavItem key={n.to} {...n} />)}
       </nav>
