@@ -434,8 +434,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 .memory-meta strong { font-size: .9rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .memory-meta small { font-size: .72rem; opacity: .92; }
 .memory-meta .milestone-badge { font-size: .66rem; padding: 1px 8px; text-shadow: none; }
-.kind-badge { position: absolute; top: 9px; left: 9px; z-index: 1; color: #fff; display: grid; place-items: center;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .55)); }
+.kind-badge { position: absolute; top: 8px; left: 8px; z-index: 1; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; }   /* cristal oscuro: .glass-dark */
 .memory-card .cover-placeholder { padding: 18px 14px 60px; justify-content: flex-start; }
 .memory-card .cover-placeholder.text { background: var(--sand-50); color: var(--coral); }
 .memory-card .cover-placeholder.text p { -webkit-line-clamp: 5; text-align: left; }
@@ -1091,9 +1091,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 
 /* ---------- Hitos ("Primera vez…") ---------- */
 .milestone-badge { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; max-width: 100%;
-  padding: 2px 10px; border-radius: 999px; background: var(--coral-50); color: var(--text);
+  padding: 2px 10px; border-radius: 999px;
   font-size: .75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.memory-meta .milestone-badge { background: rgba(255,255,255,.9); color: var(--petrol); margin-bottom: 4px; }
+.milestone-badge:not(.glass-dark) { background: var(--coral-50); color: var(--text); }
+.memory-meta .milestone-badge { margin-bottom: 4px; }
 .milestone-badge.big { font-size: .85rem; padding: 4px 12px; margin-top: 4px; }
 .chest-filter { margin-top: 4px; }
 
@@ -1101,7 +1102,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
    Visor del recuerdo: la foto a pantalla completa
    ========================================================= */
 .viewer { position: fixed; inset: 0; z-index: 50; background: #000; color: #fff; overflow: hidden;
-  --viewer-glass: rgba(8, 28, 33, .5); --viewer-pad: 16px; }
+  --viewer-pad: 16px; }
 /* La foto llega hasta los bordes, también por detrás de la barra de estado (viewport-fit=cover):
    las zonas seguras solo dan margen a los botones y los textos */
 .viewer-stage { position: absolute; inset: 0; touch-action: pan-x pan-y; }
@@ -1129,19 +1130,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
   background: linear-gradient(rgba(0, 0, 0, .55), transparent); pointer-events: none; }
 .viewer-top > *, .viewer-actions > * { pointer-events: auto; }
 .viewer-actions { display: flex; gap: 10px; }
-.viewer-btn { width: 46px; height: 46px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center;
-  background: var(--viewer-glass); color: #fff; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .15); touch-action: manipulation; }
+.viewer-btn { width: 46px; height: 46px; border-radius: 50%; padding: 0; display: grid; place-items: center;
+  touch-action: manipulation; }   /* cristal oscuro: .glass-dark */
+/* Descargar, compartir y ⋯ agrupados en una sola píldora de cristal */
+.viewer-actions.glass-dark { gap: 0; padding: 0 4px; border-radius: 999px; align-items: center; }
+.viewer-actions .viewer-btn { width: 44px; height: 46px; border: 0; background: none; color: inherit; }
 .viewer-btn:active { transform: scale(.94); }
 .viewer-btn:disabled { opacity: .6; }
 .viewer-sub { position: absolute; z-index: 5; top: calc(env(safe-area-inset-top) + 72px);
   right: calc(env(safe-area-inset-right) + var(--viewer-pad)); display: flex; align-items: center; gap: 8px; }
-.viewer-fit { width: 38px; height: 38px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center;
-  background: var(--viewer-glass); color: #fff; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+.viewer-fit { width: 38px; height: 38px; border-radius: 50%; padding: 0; display: grid; place-items: center;
   touch-action: manipulation; }
 .viewer-fit:active { transform: scale(.92); }
 .viewer-counter { display: flex; align-items: center; gap: 2px;
-  border-radius: 999px; padding: 3px; background: var(--viewer-glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-radius: 999px; padding: 3px;
   font-weight: 700; font-size: .88rem; font-variant-numeric: tabular-nums; }
 .viewer-counter button { width: 32px; height: 32px; border: 0; padding: 0; border-radius: 50%; background: none; color: #fff;
   display: grid; place-items: center; }
@@ -1150,12 +1152,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 
 .viewer-menu-backdrop { position: fixed; inset: 0; z-index: 6; }
 .viewer-menu { position: absolute; z-index: 7; top: calc(env(safe-area-inset-top) + 66px);
-  right: calc(env(safe-area-inset-right) + var(--viewer-pad)); min-width: 210px; padding: 6px; border-radius: 16px;
-  background: var(--surface); color: var(--text); box-shadow: 0 12px 40px rgba(0, 0, 0, .3); display: flex; flex-direction: column; }
+  right: calc(env(safe-area-inset-right) + var(--viewer-pad)); min-width: 210px; padding: 6px; border-radius: 18px;
+  display: flex; flex-direction: column; }
 .viewer-menu button { display: flex; align-items: center; gap: 10px; border: 0; background: none; text-align: left;
   padding: 12px; border-radius: 10px; font-weight: 700; font-size: .95rem; }
-.viewer-menu button:hover { background: var(--mist); }
-.viewer-menu button.danger { color: var(--danger); }
+.viewer-menu button:hover { background: rgba(255, 255, 255, .12); }
+.viewer-menu button.danger { color: #FF8A80; }
 
 .viewer-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; pointer-events: none;
   padding: 64px calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 6px) calc(env(safe-area-inset-left) + 20px);
@@ -1167,7 +1169,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 .viewer-title { font-size: clamp(1.35rem, 5.5vw, 1.8rem); font-weight: 800; line-height: 1.12; letter-spacing: -.01em; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .viewer-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 600; font-size: .92rem; }
-.viewer-badge.milestone-badge { align-self: center; background: rgba(255, 255, 255, .9); color: var(--petrol); text-shadow: none;
+.viewer-badge.milestone-badge { align-self: center; text-shadow: none;
   font-size: .7rem; padding: 2px 8px; margin-left: 2px; }
 .viewer-hint { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 10px auto 0; padding: 4px 12px 2px;
   border: 0; background: none; color: #fff; font-weight: 600; font-size: .9rem; text-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
@@ -1203,8 +1205,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 }
 
 .viewer-toast { position: fixed; z-index: 90; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px); transform: translateX(-50%);
-  background: rgba(20, 30, 33, .92); color: #fff; padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: .9rem;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, .25); white-space: nowrap; }
+  padding: 10px 18px; border-radius: 999px; font-weight: 700; font-size: .9rem; white-space: nowrap; }
 
 /* Editar recuerdo (encima del visor) */
 .viewer-edit { position: fixed; inset: 0; z-index: 80; overflow-y: auto; background: var(--bg); color: var(--text);
@@ -1268,21 +1269,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol) !importa
 
 /* Reacciones: botón del visor, con la barra al mantenerlo pulsado */
 .react-wrap { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 4px; }
-.react-btn { width: 54px; height: 54px; border-radius: 50%; padding: 0; display: grid; place-items: center; color: #fff;
-  background: var(--viewer-glass, rgba(8, 28, 33, .5)); border: 1.5px solid rgba(255, 255, 255, .55);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); touch-action: none; user-select: none;
+.react-btn { width: 54px; height: 54px; border-radius: 50%; padding: 0; display: grid; place-items: center;
+  touch-action: none; user-select: none;
   -webkit-user-select: none; -webkit-touch-callout: none; transition: transform .12s; }
 .react-btn:active { transform: scale(.92); }
-.react-btn.on { border-color: rgba(255, 255, 255, .85); }
+.react-btn.on { border-color: rgba(255, 255, 255, .7); }
 .react-emoji { font-size: 1.75rem; line-height: 1; }
 .react-count { font-size: .85rem; font-weight: 800; text-shadow: 0 1px 3px rgba(0, 0, 0, .45); font-variant-numeric: tabular-nums; }
 .viewer.kind-text .react-btn { color: var(--petrol); border-color: var(--sand); background: rgba(255, 255, 255, .7); }
 .viewer.kind-text .react-count { text-shadow: none; }
 .react-backdrop { position: fixed; inset: 0; z-index: 8; }
 .react-bar { position: absolute; z-index: 9; right: -4px; bottom: calc(100% + 10px); display: flex; gap: 2px; padding: 6px 8px;
-  border-radius: 999px; background: rgba(255, 255, 255, .22); border: 1px solid rgba(255, 255, 255, .35);
-  backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .25); animation: react-in .18s ease-out; transform-origin: bottom right; }
+  border-radius: 999px; animation: react-in .18s ease-out; transform-origin: bottom right; }
 .react-opt { width: 44px; height: 44px; border: 0; padding: 0; background: none; font-size: 1.85rem; line-height: 1;
   display: grid; place-items: center; border-radius: 50%; transition: transform .12s ease; touch-action: none; }
 .react-opt.hover, .react-opt:hover { transform: scale(1.45) translateY(-6px); }

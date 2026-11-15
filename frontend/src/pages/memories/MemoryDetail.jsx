@@ -335,8 +335,8 @@ function Viewer({ memory: m, setMemory, me }) {
       </div>
 
       <div className="viewer-top">
-        <button type="button" className="viewer-btn" onClick={back} aria-label="Volver"><Icon name="back" /></button>
-        <div className="viewer-actions">
+        <button type="button" className="viewer-btn glass-dark" onClick={back} aria-label="Volver"><Icon name="back" /></button>
+        <div className="viewer-actions glass-dark">
           {current?.url && (
             <button type="button" className="viewer-btn" onClick={doDownload} disabled={busy}
               aria-label={current.kind === 'video' ? 'Descargar video' : current.kind === 'audio' ? 'Descargar nota de voz' : 'Descargar foto'}>
@@ -354,13 +354,13 @@ function Viewer({ memory: m, setMemory, me }) {
       {slides.length > 0 && (
         <div className="viewer-sub">
           {multi && (
-            <div className="viewer-counter">
+            <div className="viewer-counter glass-dark">
               <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Anterior"><Icon name="back" size={16} /></button>
               <span aria-live="polite">{index + 1} / {slides.length}</span>
               <button type="button" onClick={() => go(index + 1)} disabled={index === slides.length - 1} aria-label="Siguiente"><Icon name="chevron" size={16} /></button>
             </div>
           )}
-          <button type="button" className="viewer-fit" onClick={() => setFitAt(index, currentFit === 'cover' ? 'contain' : 'cover')}
+          <button type="button" className="viewer-fit glass-dark" onClick={() => setFitAt(index, currentFit === 'cover' ? 'contain' : 'cover')}
             aria-label={currentFit === 'cover' ? 'Ver la foto entera' : 'Ver a pantalla completa'}
             title={currentFit === 'cover' ? 'Ver entera' : 'Pantalla completa'}>
             <Icon name={currentFit === 'cover' ? 'shrink' : 'expand'} size={18} />
@@ -371,7 +371,7 @@ function Viewer({ memory: m, setMemory, me }) {
       {menu && (
         <>
           <div className="viewer-menu-backdrop" onClick={() => setMenu(false)} aria-hidden="true" />
-          <div className="viewer-menu" role="menu">
+          <div className="viewer-menu glass-dark glass-thick" role="menu">
             {m.can_edit && (
               <button type="button" role="menuitem" onClick={() => { setMenu(false); setEditing(true) }}>
                 <Icon name="edit" size={18} /> Editar recuerdo
@@ -391,7 +391,7 @@ function Viewer({ memory: m, setMemory, me }) {
             <h1 className="viewer-title">{m.title}</h1>
             <p className="viewer-meta">
               <Icon name="calendar" size={16} /> {formatDate(m.happened_on || m.created_at)}
-              <MilestoneBadge milestone={m.milestone} className="viewer-badge" />
+              <MilestoneBadge milestone={m.milestone} className="viewer-badge glass-dark" />
             </p>
           </div>
           <ReactionButton memory={m} onChange={merge} />
@@ -403,7 +403,7 @@ function Viewer({ memory: m, setMemory, me }) {
         </button>
       </div>
 
-      {toast && <div className="viewer-toast" role="status">{toast}</div>}
+      {toast && <div className="viewer-toast glass-dark glass-thick" role="status">{toast}</div>}
 
       {sheet && <CommentsSheet memory={m} me={me} onChange={merge} onClose={() => setSheet(false)} />}
       {editing && <MemoryEdit memory={m} onSaved={merge} onClose={() => setEditing(false)} />}

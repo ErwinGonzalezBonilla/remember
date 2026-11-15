@@ -114,7 +114,7 @@ export function ReactionButton({ memory, onChange }) {
       {open && (
         <>
           <div className="react-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="react-bar" role="menu" aria-label="Elige una reacción">
+          <div className="react-bar glass-dark" role="menu" aria-label="Elige una reacción">
             {REACTIONS.map(({ e, label }) => (
               <button key={e} type="button" role="menuitemradio" aria-checked={mine === e} data-emoji={e}
                 className={`react-opt ${hover === e ? 'hover' : ''} ${mine === e ? 'on' : ''}`}
@@ -125,7 +125,7 @@ export function ReactionButton({ memory, onChange }) {
           </div>
         </>
       )}
-      <button type="button" className={`react-btn ${mine ? 'on' : ''}`}
+      <button type="button" className={`react-btn glass-dark ${mine ? 'on' : ''}`}
         aria-label={mine ? `Tu reacción: ${mine}. Toca para quitarla; mantén pulsado para cambiarla` : 'Darle ❤️. Mantén pulsado para elegir otra reacción'}
         aria-haspopup="menu" aria-expanded={open}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}
