@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { mediaUrl } from '../api/client'
 import { useApi } from '../hooks'
@@ -265,10 +265,24 @@ export function EmptyState({ icon = 'heart', title, text, action }) {
   )
 }
 
+/** true cuando la página se ha desplazado más de `px` hacia abajo. */
+export function useScrolled(px = 8) {
+  const [scrolled, setScrolled] = useState(() => typeof window !== 'undefined' && window.scrollY > px)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > px)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [px])
+  return scrolled
+}
+
+/** Barra de arriba: banda petróleo arriba del todo; al bajar se queda fija y pasa a cristal. */
 export function TopBar({ title, back = true, right }) {
   const navigate = useNavigate()
+  const scrolled = useScrolled()
   return (
-    <header className="topbar">
+    <header className={`topbar ${scrolled ? 'glass' : ''}`}>
       {back ? (
         <button className="icon-btn" onClick={() => navigate(-1)} aria-label="Volver">
           <Icon name="back" />
@@ -277,6 +291,31 @@ export function TopBar({ title, back = true, right }) {
       <h1>{title}</h1>
       {right || <span />}
     </header>
+  )
+}
+
+/**
+ * Título grande de sección sobre la banda petróleo. Cuando la banda sale de la pantalla aparece arriba una barra
+ * de cristal con el título (como los títulos grandes de iOS).
+ */
+export function PageHead({ title, children }) {
+  const ref = useRef(null)
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !('IntersectionObserver' in window)) return
+    const io = new IntersectionObserver(([e]) => setStuck(!e.isIntersecting), { rootMargin: '-52px 0px 0px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return (
+    <>
+      <header className="page-head" ref={ref}>
+        <h1 className="display">{title}</h1>
+        {children}
+      </header>
+      <div className={`page-head-bar glass ${stuck ? 'shown' : ''}`} aria-hidden="true">{title}</div>
+    </>
   )
 }
 

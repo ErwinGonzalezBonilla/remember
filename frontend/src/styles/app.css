@@ -891,11 +891,23 @@ body { font-feature-settings: "ss01"; letter-spacing: -.005em; }
   color: #fff; border-radius: 0 0 28px 28px; gap: 6px; }
 .page-head .display { color: #fff; }
 .page-head .muted { color: #CFE2E3; }
-.topbar { margin: -16px -16px 0; padding: 10px 10px 14px; background: var(--pattern) center / cover no-repeat, var(--petrol);
-  color: #fff; border-radius: 0 0 24px 24px; min-height: 64px; }
-.topbar h1 { color: #fff; font-weight: 700; }
-.topbar .icon-btn { color: #fff; }
+/* Al bajar, el título de la sección queda arriba en una barra de cristal */
+.page-head-bar { position: fixed; z-index: 8; top: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 13px) 16px 13px; text-align: center; font-weight: 800; font-size: 1.05rem;
+  border-width: 0 0 1px; border-radius: 0 0 22px 22px; opacity: 0; transform: translateY(-100%); pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease; }
+.page-head-bar.shown { opacity: 1; transform: none; }
+
+/* Barra con título: banda petróleo arriba del todo; al bajar queda fija y pasa a cristal (.glass) */
+.topbar { position: sticky; top: 0; z-index: 8; margin: -16px -16px 0; padding: 10px 10px 14px;
+  border-radius: 0 0 24px 24px; min-height: 64px; transition: background-color .25s ease, color .25s ease, box-shadow .25s ease; }
+.topbar:not(.glass) { background: var(--pattern) center / cover no-repeat, var(--petrol); color: #fff; }
+.topbar.glass { border-width: 0 0 1px; }
+.topbar h1 { color: inherit; font-weight: 700; }
+.topbar .icon-btn { color: inherit; }
 .topbar .icon-btn:hover { background: rgba(255,255,255,.12); }
+.topbar.glass .icon-btn:hover { background: rgba(0,0,0,.06); }
+@media (prefers-reduced-motion: reduce) { .page-head-bar, .topbar { transition: none; } }
 
 /* Fotos y figuras: rectángulos redondeados */
 .avatar { border-radius: 28%; }

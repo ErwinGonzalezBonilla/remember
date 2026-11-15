@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from '../../components/Icon'
-import { relationText, AppShell, Avatar, EmptyState, ErrorBox, RELATIONS, Spinner } from '../../components/ui'
+import { relationText, AppShell, Avatar, EmptyState, ErrorBox, PageHead, RELATIONS, Spinner } from '../../components/ui'
 import { useApi } from '../../hooks'
 import { mediaUrl } from '../../api/client'
 
@@ -10,10 +10,9 @@ export default function PeopleList() {
 
   return (
     <AppShell>
-      <header className="page-head">
-        <h1 className="display">Tus personas</h1>
+      <PageHead title="Tus personas">
         <p className="muted">Cada persona tiene su cofre: todo lo que guardas con ella. No necesitan tener cuenta.</p>
-      </header>
+      </PageHead>
       <div className="row-actions">
         <Link to="/personas/nueva" className="btn btn-primary"><Icon name="plus" size={18} /> Añadir persona</Link>
         <Link to="/conectar" className="btn btn-ghost"><Icon name="link" size={18} /> Conectar</Link>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
-import { AppShell, Avatar, EmptyState, ErrorBox, Spinner, formatDate, nextOccurrence } from '../components/ui'
+import { AppShell, Avatar, EmptyState, ErrorBox, PageHead, Spinner, formatDate, nextOccurrence } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
 
@@ -20,10 +20,9 @@ export default function CalendarPage() {
 
   return (
     <AppShell>
-      <header className="page-head">
-        <h1 className="display">Calendario</h1>
+      <PageHead title="Calendario">
         <p className="muted">Las fechas importantes también son parte de la historia.</p>
-      </header>
+      </PageHead>
       <ErrorBox error={error} />
       {loading && <Spinner />}
       {people && !events.length && (

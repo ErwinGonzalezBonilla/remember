@@ -3,7 +3,7 @@ import PushToggle from '../components/PushToggle'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import Icon from '../components/Icon'
-import { AppShell, Avatar, ErrorBox, Field, ListRow, PasswordInput } from '../components/ui'
+import { AppShell, Avatar, ErrorBox, Field, ListRow, PageHead, PasswordInput } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import PasswordChecklist from './auth/PasswordChecklist'
 import { passwordOk } from './auth/passwordRules'
@@ -43,7 +43,7 @@ export default function Settings() {
 
   return (
     <AppShell>
-      <header className="page-head"><h1 className="display">Ajustes</h1></header>
+      <PageHead title="Ajustes" />
 
       <Link to="/perfil" className="card profile-card">
         <Avatar name={user.full_name} src={user.avatar_url} size={56} />
