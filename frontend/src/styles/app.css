@@ -49,6 +49,7 @@
   --glass-dark-solid: #1C1C1E;
   --glass-dark-border: rgba(255, 255, 255, .18);
   --glass-dark-shadow: 0 8px 28px rgba(0, 0, 0, .4);
+  --topbar-h: 66px;   /* alto de la barra de arriba (TopBar): lo que queda fijo encima al bajar */
   --nav-side: 24px;   /* la barra flota: separación de los lados */
   --nav-bottom: 10px; /* y de la zona segura de abajo */
 }
@@ -162,7 +163,6 @@ p { margin: 0; }
   background: transparent; color: var(--text);
 }
 .icon-btn:hover { background: var(--mist); }
-.icon-btn.glass { background: rgba(255,255,255,.22); color: #fff; backdrop-filter: blur(8px); }
 .icon-btn.primary { background: var(--petrol); color: #fff; flex: none; }
 .icon-btn:disabled { opacity: .4; }
 
@@ -482,6 +482,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
   font: inherit; font-weight: 700; font-size: .88rem; line-height: 1.2; text-align: left; }
 .gallery-tabs button svg { flex: none; }
 .gallery-tabs button.on { background: var(--petrol); border-color: var(--petrol); color: #fff; box-shadow: 0 6px 16px rgba(6, 79, 91, .22); }
+/* Filtro por tipo de "Tus recuerdos": se queda fijo bajo la barra de arriba y pasa a cristal al pegarse */
+.chips.scroll.gallery-kinds { position: sticky; top: var(--topbar-h); z-index: 7; padding-block: 8px; border-radius: 0 0 20px 20px;
+  transition: background-color .2s ease, box-shadow .2s ease; }
+.chips.scroll.gallery-kinds.glass { border-width: 0 0 1px; }
+@media (prefers-reduced-motion: reduce) { .chips.scroll.gallery-kinds { transition: none; } }
 .conn-strip { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 6px 16px 4px; scrollbar-width: none; }
 .conn-strip::-webkit-scrollbar { display: none; }
 .conn-item { flex: none; width: 68px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0;

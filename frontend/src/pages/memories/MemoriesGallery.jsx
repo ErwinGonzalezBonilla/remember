@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Icon from '../../components/Icon'
 import { AppShell, Avatar, EmptyState, ErrorBox, Spinner, TopBar } from '../../components/ui'
@@ -9,6 +10,22 @@ const KINDS = [
   { value: 'audio', label: 'Notas de voz' }, { value: 'text', label: 'Notas' },
 ]
 
+/** true cuando el elemento (sticky bajo la barra de arriba) ya está pegado arriba. */
+function useStuck(ref) {
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const top = parseFloat(getComputedStyle(el).top) || 0
+    const onScroll = () => setStuck(window.scrollY > 0 && el.getBoundingClientRect().top <= top + 0.5)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll) }
+  }, [ref])
+  return stuck
+}
+
 /** Todos tus recuerdos: "Fotos, Videos y Notas" o "Tus conexiones" (por persona), con filtro por tipo.
  *  Lo elegido vive en la URL (?vista=conexiones&persona=3&tipo=photo&modo=lista) para que al volver
  *  atrás desde un recuerdo siga igual. */
@@ -19,6 +36,8 @@ export default function MemoriesGallery() {
   const kind = KINDS.some((k) => k.value === params.get('tipo')) ? params.get('tipo') : ''
   const view = params.get('modo') === 'lista' ? 'list' : 'grid'
   const { data: people } = useApi(connections ? '/api/people' : null)
+  const kindsRef = useRef(null)
+  const kindsStuck = useStuck(kindsRef)
 
   function update(changes) {
     const next = new URLSearchParams(params)
@@ -76,7 +95,7 @@ export default function MemoriesGallery() {
         </div>
       )}
 
-      <div className="chips scroll" role="tablist" aria-label="Filtrar por tipo">
+      <div ref={kindsRef} className={`chips scroll gallery-kinds ${kindsStuck ? 'glass' : ''}`} role="tablist" aria-label="Filtrar por tipo">
         {KINDS.map((k) => (
           <button key={k.value} role="tab" aria-selected={kind === k.value}
             className={`chip ${kind === k.value ? 'active' : ''}`} onClick={() => update({ tipo: k.value })}>{k.label}</button>
