@@ -48,7 +48,6 @@ const PATHS = {
   list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
   hourglass: 'M6 3h12M6 21h12M7 3v2.5c0 2.2 2.2 4.4 5 6.5-2.8 2.1-5 4.3-5 6.5V21M17 3v2.5c0 2.2-2.2 4.4-5 6.5 2.8 2.1 5 4.3 5 6.5V21',
-  plusCircle: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 8v8M8 12h8',
   cake: 'M4 21h16v-8H4zM4 16c2 1.5 4 1.5 6 0s4-1.5 6 0 3 1.5 4 0M12 13V9M12 6.5a1.5 1.5 0 0 1-1.5-1.5c0-1 1.5-3 1.5-3s1.5 2 1.5 3A1.5 1.5 0 0 1 12 6.5Z',
 }
 
@@ -60,7 +59,6 @@ const SOLID = {
   calendar: { d: 'M5.5 4.6h13A2.5 2.5 0 0 1 21 7.1v11.4a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5V7.1a2.5 2.5 0 0 1 2.5-2.5ZM4.9 9.4h14.2v1.7H4.9ZM6.8 13.4h2.7v2.7H6.8ZM10.65 13.4h2.7v2.7h-2.7ZM14.5 13.4h2.7v2.7h-2.7ZM7.1 2h2v2.6h-2ZM14.9 2h2v2.6h-2Z' },
   // Engranaje con el agujero central más grande para que no se cierre al trazar el borde
   gear: { d: PATHS.gear.replace('M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z', 'M12 16.3a4.3 4.3 0 1 0 0-8.6 4.3 4.3 0 0 0 0 8.6Z'), stroke: true },
-  plusCircle: { d: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM11 7h2v4h4v2h-4v4h-2v-4H7v-2h4Z' },
 }
 
 /**

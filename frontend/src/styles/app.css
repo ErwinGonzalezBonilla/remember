@@ -222,16 +222,14 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .bottom-nav { background: rgba(28, 28, 30, .94); } }
 }
 
-/* Botón "+" central (⊕ de línea, como en YouTube) y panel para crear */
+/* Botón "+" central: círculo coral dentro de la píldora (no gira) y panel para crear */
 .nav-create { background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.nav-create .nav-icon { display: grid; transition: transform .2s ease; }
-.nav-create .nav-icon > svg { grid-area: 1 / 1; transition: opacity .15s ease; }
-.nav-create-solid { opacity: 0; }
-.nav-create:active .nav-create-solid, .nav-create.open .nav-create-solid { opacity: 1; }
-.nav-create:active .nav-create-line, .nav-create.open .nav-create-line { opacity: 0; }
-.nav-create:active .nav-icon { transform: scale(.9); }
-.nav-create.open .nav-icon { transform: rotate(45deg); }
-.nav-create:focus-visible .nav-icon { border-radius: 50%; box-shadow: 0 0 0 2px var(--nav-ink); }
+.nav-create-circle { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--coral); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--coral) 40%, transparent);
+  transition: transform .15s ease, background .15s ease; }
+.nav-create:hover .nav-create-circle, .nav-create.open .nav-create-circle { background: color-mix(in srgb, var(--coral) 88%, #000); }
+.nav-create:active .nav-create-circle { transform: scale(.92); }
+.nav-create:focus-visible .nav-create-circle { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--coral); }
 .create-backdrop {
   position: fixed; inset: 0; z-index: 9; background: rgba(9, 30, 36, .45);
   display: flex; align-items: flex-end; justify-content: center; animation: fade-in .15s ease-out;
@@ -256,7 +254,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 @keyframes sheet-up { from { transform: translateY(100%); } }
 @media (prefers-reduced-motion: reduce) {
   .create-backdrop, .create-sheet { animation: none; }
-  .nav-create .nav-icon, .nav-create .nav-icon > svg, .bottom-nav a::before { transition: none; }
+  .nav-create-circle, .bottom-nav a::before { transition: none; }
 }
 
 /* ---------- Home ---------- */

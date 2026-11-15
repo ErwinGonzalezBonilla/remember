@@ -366,11 +366,7 @@ export function BottomNav() {
         <NavItem {...second} dot={pending} />
         <button type="button" className={`nav-create ${open ? 'open' : ''}`} onClick={() => setOpen((o) => !o)}
           aria-label={open ? 'Cerrar' : 'Guardar un recuerdo'} aria-expanded={open}>
-          {/* ⊕ de línea; se rellena al tocarlo y mientras el panel está abierto */}
-          <span className="nav-icon">
-            <Icon name="plusCircle" size={26} stroke={2.2} className="nav-create-line" />
-            <Icon name="plusCircle" size={26} solid className="nav-create-solid" />
-          </span>
+          <span className="nav-create-circle"><Icon name="plus" size={24} stroke={2.8} /></span>
         </button>
         {rest.map((n) => <NavItem key={n.to} {...n} />)}
       </nav>
