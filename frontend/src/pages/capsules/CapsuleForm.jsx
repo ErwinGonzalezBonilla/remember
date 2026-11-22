@@ -4,11 +4,10 @@ import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile, videoPoster } from '../../media'
+import { AUDIO_ACCEPT, LIMITS_MB, compressImage, kindOf, progressText, tooBig, uploadFile, videoPoster, withMime } from '../../media'
 import { countsText, openDateText } from './capsuleUtils'
 
 const MAX_ITEMS = 10
-const kindOf = (file) => (file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'photo')
 const localTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Madrid' } catch { return 'Europe/Madrid' } }
 
 function defaultDate() {
@@ -72,7 +71,7 @@ export default function CapsuleForm() {
     if (fileList.length > files.length) setError(`Una cápsula puede tener como máximo ${MAX_ITEMS} archivos.`)
     const added = []
     for (const raw of files) {
-      const f = await compressImage(raw)
+      const f = await compressImage(withMime(raw))
       const big = tooBig(f)
       if (big) { setError(big); continue }
       added.push({ file: f, kind: kindOf(f), url: URL.createObjectURL(f) })
@@ -211,11 +210,19 @@ export default function CapsuleForm() {
             </div>
           )}
           {total < MAX_ITEMS && (
-            <label className="btn btn-ghost">
-              <Icon name="plus" size={18} /> Añadir archivos
-              <input type="file" accept="image/*,video/*,audio/*" multiple hidden
-                onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
-            </label>
+            <div className="grid-2">
+              <label className="btn btn-ghost">
+                <Icon name="camera" size={18} /> Fotos y videos
+                <input type="file" accept="image/*,video/*" multiple hidden
+                  onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
+              </label>
+              {/* Selector aparte: en iPhone abre directamente Archivos (iCloud Drive / En mi iPhone) */}
+              <label className="btn btn-ghost">
+                <Icon name="mic" size={18} /> Audio
+                <input type="file" accept={AUDIO_ACCEPT} multiple hidden
+                  onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
+              </label>
+            </div>
           )}
           {total > 0 && <small className="hint">{countsText(Object.fromEntries(['photo', 'video', 'audio'].map((k) => [k, [...items, ...pending].filter((x) => x.kind === k).length]).filter(([, n]) => n)))}</small>}
         </section>

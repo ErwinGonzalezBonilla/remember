@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import Icon from '../../components/Icon'
-import { compressImage, kindOf, tooBig, uploadFile, videoPoster } from '../../media'
+import { compressImage, kindOf, tooBig, uploadFile, videoPoster, withMime } from '../../media'
 
 /** Fotos y videos por recuerdo (igual que el servidor). */
 export const ALBUM_MAX = 20
@@ -21,7 +21,8 @@ export async function prepareFiles(fileList, room) {
       : `Un recuerdo puede tener como mucho ${ALBUM_MAX} fotos y videos.`)
   }
   const items = []
-  for (const raw of files.slice(0, Math.max(0, room))) {
+  for (const original of files.slice(0, Math.max(0, room))) {
+    const raw = withMime(original)
     const kind = kindOf(raw)
     const file = kind === 'photo' ? await compressImage(raw) : raw
     const big = tooBig(file, kind)

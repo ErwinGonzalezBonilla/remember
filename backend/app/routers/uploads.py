@@ -21,7 +21,7 @@ from .. import r2
 from ..config import settings
 from ..deps import get_current_user
 from ..models import User
-from ..storage import ALLOWED, EXT, store_bytes, too_big_message, upload_limit_mb
+from ..storage import ALLOWED, EXT, normalize_type, store_bytes, too_big_message, upload_limit_mb
 
 router = APIRouter(prefix="/api", tags=["subidas"])
 
@@ -43,7 +43,7 @@ class UploadOut(BaseModel):
 
 @router.post("/uploads", response_model=UploadOut)
 def request_upload(data: UploadIn, user: User = Depends(get_current_user)):
-    ct = data.content_type.split(";")[0].strip().lower()
+    ct = normalize_type(data.content_type)
     if ct not in ALLOWED[data.kind]:
         raise HTTPException(422, f"Formato no permitido para {data.kind}: {ct or 'desconocido'}.")
     limit = upload_limit_mb(data.kind) * 1024 * 1024

@@ -5,7 +5,7 @@ import Icon from '../../components/Icon'
 import PeoplePicker from '../../components/PeoplePicker'
 import { AppShell, ErrorBox, Field, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
-import { LIMITS_MB, compressImage, progressText, tooBig, uploadFile } from '../../media'
+import { AUDIO_ACCEPT, LIMITS_MB, compressImage, progressText, tooBig, uploadFile, withMime } from '../../media'
 import { ALBUM_ACCEPT, ALBUM_MAX, AlbumStrip, moveItem, prepareFiles, uploadAlbum, useRevokeOnUnmount } from './Album'
 import { KIND_LABEL } from './MemoryCard'
 import { MilestonePicker } from './Milestone'
@@ -44,7 +44,7 @@ export default function NewMemory() {
   async function pick(raw) {
     setError('')
     if (!raw) return setFile(null)
-    const f = await compressImage(raw)
+    const f = await compressImage(withMime(raw))
     const big = tooBig(f, kind)
     if (big) return setError(big)
     setFile(f)
@@ -144,7 +144,7 @@ export default function NewMemory() {
             <label className="btn btn-ghost">
               <Icon name={file ? 'refresh' : 'plus'} size={18} />
               {file ? 'Cambiar archivo' : 'O sube un audio'}
-              <input type="file" accept="audio/*" hidden onChange={(e) => pick(e.target.files[0])} />
+              <input type="file" accept={AUDIO_ACCEPT} hidden onChange={(e) => { pick(e.target.files[0]); e.target.value = '' }} />
             </label>
             <small className="hint">Máximo {LIMITS_MB.audio} MB.</small>
           </div>

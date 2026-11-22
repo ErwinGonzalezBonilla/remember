@@ -1,5 +1,13 @@
 # Rehomi · Registro de cambios
 
+## 22 de noviembre de 2026
+
+### Audios desde el iPhone
+- En el iPhone ya se pueden elegir audios desde **Archivos** (iCloud Drive y "En mi iPhone"): M4A, MP3, WAV, AAC y las notas de voz de WhatsApp (.opus).
+- En las cápsulas hay dos botones: **Fotos y videos** y **Audio**. El de audio abre directamente Archivos.
+- Si el iPhone entrega el archivo sin tipo o con un nombre de tipo distinto (audio/x-m4a, audio/mp3, audio/vnd.wave, audio/opus…), la app lo deduce de la extensión y el servidor lo acepta.
+- Se guarda el archivo original, sin convertirlo, y se escucha con el reproductor de la app.
+
 ## 5 de noviembre de 2026
 
 ### Nuevo estilo visual

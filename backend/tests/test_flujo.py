@@ -1170,3 +1170,30 @@ def test_respuestas_a_comentarios(monkeypatch):
     t2 = client.post(f"/api/memories/{m['id']}/comments", headers=felix, json={"body": "otra"}).json()["comments"][0]
     client.post(f"/api/memories/{m['id']}/comments", headers=erwin, json={"body": "resp", "parent_id": t2["id"]})
     assert client.delete(f"/api/memories/{m['id']}", headers=felix).status_code == 204
+
+
+def test_audios_del_iphone():
+    """M4A, MP3, WAV y notas de voz de WhatsApp (.opus) con los nombres de tipo que usa Safari en iPhone."""
+    ana = register("Ana Audios", "anaaudios@example.com")
+    p = add_person(ana, "Bea", "amistad")
+    cid = client.post("/api/capsules", headers=ana, json={"title": "Voces", "person_id": p["id"],
+                                                         "timezone": "Europe/Madrid", "open_at": future()}).json()["id"]
+    casos = [("audio/x-m4a", "audio/mp4", ".m4a"), ("audio/m4a", "audio/mp4", ".m4a"), ("audio/mp3", "audio/mpeg", ".mp3"),
+             ("audio/mpeg", "audio/mpeg", ".mp3"), ("audio/wav", "audio/wav", ".wav"), ("audio/x-wav", "audio/wav", ".wav"),
+             ("audio/vnd.wave", "audio/wav", ".wav"), ("audio/opus", "audio/ogg", ".ogg"),
+             ("audio/x-m4a; codecs=mp4a.40.2", "audio/mp4", ".m4a")]
+    for pedido, guardado, ext in casos:
+        data = f"audio {pedido}".encode()
+        r = client.post("/api/uploads", headers=ana, json={"kind": "audio", "content_type": pedido, "size": len(data)})
+        assert r.status_code == 200, (pedido, r.text)
+        up = r.json()
+        assert up["headers"] == {"Content-Type": guardado} and up["key"].endswith(ext), (pedido, up)
+        put = client.put(up["upload_url"], content=data, headers=up["headers"])
+        assert put.status_code == 200, put.text
+        r = client.post(f"/api/capsules/{cid}/items", headers=ana, data={"kind": "audio", "media_key": up["key"]})
+        assert r.status_code == 201, (pedido, r.text)
+        assert client.get(up["key"]).content == data  # se guarda el archivo original, sin convertir
+        client.delete(f"/api/capsules/{cid}/items/{r.json()['items'][-1]['id']}", headers=ana)
+    # Un tipo que no es audio sigue rechazándose
+    r = client.post("/api/uploads", headers=ana, json={"kind": "audio", "content_type": "application/pdf", "size": 10})
+    assert r.status_code == 422

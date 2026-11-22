@@ -20,6 +20,19 @@ ALLOWED = {
     "audio": {"audio/mpeg", "audio/mp3", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav",
               "audio/x-wav", "audio/webm", "audio/ogg"},
 }
+# Nombres alternativos que mandan algunos navegadores (sobre todo Safari en iPhone) → el tipo que guardamos.
+# Las notas de voz de WhatsApp (.opus) son Ogg/Opus: se guardan como audio/ogg.
+ALIAS = {
+    "audio/m4a": "audio/mp4", "audio/x-m4a": "audio/mp4", "audio/x-mp3": "audio/mpeg", "audio/mpeg3": "audio/mpeg",
+    "audio/x-mpeg": "audio/mpeg", "audio/mp3": "audio/mpeg", "audio/wave": "audio/wav", "audio/vnd.wave": "audio/wav",
+    "audio/x-wav": "audio/wav", "audio/x-aac": "audio/aac", "audio/aacp": "audio/aac", "audio/opus": "audio/ogg",
+}
+
+
+def normalize_type(content_type: str | None) -> str:
+    """"audio/x-m4a; codecs=…" → "audio/mp4". Así el mismo formato no se rechaza por cómo lo llama el navegador."""
+    ct = (content_type or "").split(";")[0].strip().lower()
+    return ALIAS.get(ct, ct)
 EXT = {
     "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/heic": ".heic", "image/heif": ".heif",
     "image/gif": ".gif", "video/mp4": ".mp4", "video/quicktime": ".mov", "video/webm": ".webm",
@@ -73,7 +86,8 @@ async def store_bytes(data: bytes, content_type: str, kind: str, path: str) -> s
 
 async def save_media(file: UploadFile, kind: str, folder: str) -> str:
     """Subida antigua por FormData (pasa por el servidor). Se mantiene para no romper nada."""
-    if file.content_type not in ALLOWED.get(kind, set()):
+    ct = normalize_type(file.content_type)
+    if ct not in ALLOWED.get(kind, set()):
         raise HTTPException(422, f"Formato no permitido para {kind}: {file.content_type}.")
 
     data = await file.read()
@@ -83,8 +97,8 @@ async def save_media(file: UploadFile, kind: str, folder: str) -> str:
     if not data:
         raise HTTPException(422, "El archivo está vacío.")
 
-    name = secrets.token_hex(12) + EXT.get(file.content_type, "")
-    return await store_bytes(data, file.content_type, kind, f"{folder}/{name}")
+    name = secrets.token_hex(12) + EXT.get(ct, "")
+    return await store_bytes(data, ct, kind, f"{folder}/{name}")
 
 
 def _check(kind: str, size: int, content_type: str):

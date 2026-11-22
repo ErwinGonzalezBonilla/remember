@@ -5,10 +5,49 @@ export const LIMITS_MB = { photo: 25, audio: 50, video: 300 }
 const LABEL = { photo: 'las fotos', audio: 'las notas de voz', video: 'los videos' }
 const VERB = { photo: 'Subiendo foto…', audio: 'Subiendo nota de voz…', video: 'Subiendo video…' }
 
-/** photo | video | audio según el tipo del archivo. */
+/**
+ * Formatos de audio por extensión. iPhone (app Archivos / iCloud Drive) a veces entrega el archivo
+ * sin tipo o con uno raro: entonces lo deducimos de la extensión. Las notas de voz de WhatsApp son .opus.
+ */
+const EXT_TYPE = {
+  mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav',
+  opus: 'audio/ogg', ogg: 'audio/ogg', oga: 'audio/ogg', weba: 'audio/webm',
+  mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm',
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', gif: 'image/gif',
+}
+/** Nombres alternativos que usan algunos navegadores → el tipo que guarda el servidor. */
+const TYPE_ALIAS = {
+  'audio/x-m4a': 'audio/mp4', 'audio/m4a': 'audio/mp4', 'audio/mp3': 'audio/mpeg', 'audio/x-mp3': 'audio/mpeg',
+  'audio/mpeg3': 'audio/mpeg', 'audio/x-mpeg': 'audio/mpeg', 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav',
+  'audio/vnd.wave': 'audio/wav', 'audio/x-aac': 'audio/aac', 'audio/aacp': 'audio/aac', 'audio/opus': 'audio/ogg',
+}
+
+/**
+ * `accept` del selector de audios. Con extensiones explícitas el iPhone deja elegir en Archivos
+ * (iCloud Drive y "En mi iPhone") los .m4a, .mp3, .wav y las notas de voz .opus de WhatsApp,
+ * que con solo "audio/*" aparecen en gris.
+ */
+export const AUDIO_ACCEPT = 'audio/*,.mp3,.m4a,.aac,.wav,.opus,.ogg,.oga,.weba'
+
+/**
+ * Devuelve el mismo archivo con un tipo MIME fiable (deducido de la extensión si hace falta).
+ * No toca el contenido: se sube y se guarda el archivo original.
+ */
+export function withMime(file) {
+  if (!file) return file
+  const ext = (file.name || '').split('.').pop().toLowerCase()
+  let type = (file.type || '').split(';')[0].trim().toLowerCase()
+  type = TYPE_ALIAS[type] || type
+  if (!type || type === 'application/octet-stream' || (ext === 'opus' && !type.startsWith('audio/'))) type = EXT_TYPE[ext] || type
+  if (type === file.type) return file
+  return new File([file], file.name, { type, lastModified: file.lastModified })
+}
+
+/** photo | video | audio según el tipo del archivo (o su extensión). */
 export function kindOf(file) {
-  if (file?.type?.startsWith('video/')) return 'video'
-  if (file?.type?.startsWith('audio/')) return 'audio'
+  const type = withMime(file)?.type || ''
+  if (type.startsWith('video/')) return 'video'
+  if (type.startsWith('audio/')) return 'audio'
   return 'photo'
 }
 
@@ -54,6 +93,7 @@ export function progressText(kind, pct) {
  * 1) Pide permiso a /api/uploads  2) PUT del archivo a la URL firmada, con progreso.
  */
 export async function uploadFile(file, kind = kindOf(file), onProgress) {
+  file = withMime(file)
   const up = await api('/api/uploads', { method: 'POST', body: { kind, content_type: file.type, size: file.size } })
   const url = up.upload_url.startsWith('/') ? `${BASE}${up.upload_url}` : up.upload_url
   return new Promise((resolve, reject) => {
