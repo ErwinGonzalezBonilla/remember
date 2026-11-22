@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
 import { useApi } from '../../hooks'
 import { AUDIO_ACCEPT, LIMITS_MB, compressImage, kindOf, progressText, tooBig, uploadFile, videoPoster, withMime } from '../../media'
-import { countsText, openDateText } from './capsuleUtils'
+import { countsText, openDateText, openPhrase } from './capsuleUtils'
 
 const MAX_ITEMS = 10
 const localTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Madrid' } catch { return 'Europe/Madrid' } }
@@ -32,6 +32,21 @@ async function uploadPoster(file) {
   }
 }
 
+/** Ilustración de un regalo con los colores de la marca. */
+function GiftArt() {
+  return (
+    <svg className="gift-art" viewBox="0 0 96 96" aria-hidden="true">
+      <circle cx="48" cy="52" r="40" className="gift-art-bg" />
+      <path d="M16 22l3 3M80 20l-3 4M86 46h-5M10 50h5" stroke="var(--coral)" strokeWidth="2.5" strokeLinecap="round" />
+      <rect x="24" y="46" width="48" height="34" rx="6" fill="var(--petrol)" />
+      <rect x="20" y="35" width="56" height="13" rx="5" fill="#0B6676" />
+      <rect x="44" y="35" width="8" height="45" fill="var(--coral)" />
+      <path d="M48 35c-4-9-15-12-16-5-1 5 8 6 16 5Zm0 0c4-9 15-12 16-5 1 5-8 6-16 5Z" fill="var(--coral)" />
+      <path d="M30 58h8M30 64h5" stroke="var(--sky)" strokeWidth="2" strokeLinecap="round" opacity=".7" />
+    </svg>
+  )
+}
+
 export default function CapsuleForm() {
   const { id } = useParams()
   const [params] = useSearchParams()
@@ -46,6 +61,7 @@ export default function CapsuleForm() {
   const [pending, setPending] = useState([])    // { file, kind, url } por subir
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
+  const [showWhen, setShowWhen] = useState(false)   // el día y la hora, al tocar la frase
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   useEffect(() => {
@@ -60,6 +76,15 @@ export default function CapsuleForm() {
   }, [existing, navigate])
 
   // Libera las vistas previas al salir de la pantalla.
+  // La carta empieza con unos 5 renglones y crece al escribir (también al abrir un borrador largo).
+  const letterRef = useRef(null)
+  useLayoutEffect(() => {
+    const el = letterRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [form.message, existing])
+
   const pendingRef = useRef(pending)
   pendingRef.current = pending
   useEffect(() => () => pendingRef.current.forEach((p) => URL.revokeObjectURL(p.url)), [])
@@ -146,51 +171,75 @@ export default function CapsuleForm() {
   if (id && !existing) return <AppShell nav={false}><Spinner /></AppShell>
   const total = items.length + pending.length
 
+  const firstName = person ? person.name.split(' ')[0] : ''
+  const validDate = !Number.isNaN(openAt.getTime()) && openAt > new Date()
+  const whenOpen = showWhen || !validDate
+  const full = total >= MAX_ITEMS
+  const counts = countsText(Object.fromEntries(['photo', 'video', 'audio']
+    .map((k) => [k, [...items, ...pending].filter((x) => x.kind === k).length]).filter(([, n]) => n)))
+
   return (
     <AppShell nav={false}>
       <TopBar title={id ? 'Editar cápsula' : 'Nueva cápsula'} />
-      <form onSubmit={(e) => { e.preventDefault(); save(false) }} className="stack">
-        <section className="card stack">
+      <form onSubmit={(e) => { e.preventDefault(); save(false) }} className="capsule-compose">
+        <header className="compose-hero">
+          <GiftArt />
           <div>
-            <h2 className="field-title">¿Para quién es?</h2>
-            <small className="hint">Solo esa persona podrá abrirla, y solo cuando llegue el día.</small>
+            <h2>Un mensaje para <span className="compose-hand">el futuro</span></h2>
+            <p>Escríbelo hoy y elige el día en que se abrirá.</p>
           </div>
+        </header>
+
+        <section className="compose-section">
+          <h3 className="compose-label">¿Para quién es?</h3>
           {!people && <small className="muted">Cargando tus personas…</small>}
-          {people && !people.length && <small className="muted">Primero añade a alguien en <b>Personas</b>.</small>}
-          <div className="people-picker" role="radiogroup" aria-label="Destinatario">
-            {people?.map((p) => {
-              const on = form.person_id === p.id
-              return (
-                <button type="button" key={p.id} role="radio" aria-checked={on} className={`tagchip ${on ? 'on' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, person_id: p.id }))}>
-                  <Avatar name={p.name} src={p.photo_url} size={34} />
-                  <span>{p.name} <small>· {relationText(p)}</small></span>
-                  <span className="tag-check">{on && <Icon name="check" size={18} />}</span>
-                </button>
-              )
-            })}
-          </div>
+          {people && !people.length && (
+            <small className="muted">Primero añade a alguien en <Link to="/personas/nueva"><b>Personas</b></Link>.</small>
+          )}
+          {people?.length > 0 && (
+            <div className="recipient-row" role="radiogroup" aria-label="¿Para quién es?">
+              {people.map((p) => {
+                const on = form.person_id === p.id
+                return (
+                  <button type="button" key={p.id} role="radio" aria-checked={on} className={`recipient ${on ? 'on' : ''}`}
+                    onClick={() => setForm((f) => ({ ...f, person_id: p.id }))} aria-label={`${p.name} · ${relationText(p)}`}>
+                    <span className="recipient-face">
+                      <Avatar name={p.name} src={p.photo_url} size={58} />
+                      {on && <span className="recipient-check"><Icon name="check" size={14} /></span>}
+                    </span>
+                    <span className="recipient-name">{p.name.split(' ')[0]}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
           {person && !person.is_linked && (
-            <small className="hint">🔒 {person.name} aún no está conectada contigo. La verá cuando cree su cuenta y conectéis (si ya llegó la fecha, la encontrará abierta).</small>
+            <small className="hint">{person.name} aún no está conectada contigo. La verá cuando cree su cuenta y conectéis (si ya llegó la fecha, la encontrará abierta).</small>
           )}
         </section>
 
-        <ErrorBox error={error} />
-
-        <section className="card stack letter-card">
-          <Field label="Título" htmlFor="ct">
-            <input id="ct" value={form.title} onChange={set('title')} maxLength={120} placeholder="Para cuando cumplas 18" required />
-          </Field>
-          <Field label="Tu carta" htmlFor="cm" hint={`${form.message.length}/5000`}>
-            <textarea id="cm" rows={8} maxLength={5000} className="letter-input" value={form.message} onChange={set('message')}
-              placeholder={`${person ? person.name.split(' ')[0] : 'Hola'}: cuando leas esto…`} />
-          </Field>
+        <section className="paper" aria-label="Tu carta">
+          <input className="paper-title" value={form.title} onChange={set('title')} maxLength={120}
+            placeholder="Para cuando cumplas 18" aria-label="Título" required />
+          <textarea ref={letterRef} className="paper-letter" rows={5} maxLength={5000} value={form.message} onChange={set('message')}
+            aria-label="Tu carta" placeholder={`${firstName ? `${firstName}, cuando` : 'Cuando'} leas esto…`} />
+          <small className="paper-count">{form.message.length}/5000</small>
         </section>
 
-        <section className="card stack">
-          <div>
-            <h2 className="field-title">Fotos, videos y audios <small className="muted">({total}/{MAX_ITEMS})</small></h2>
-            <small className="hint">Opcional. Fotos hasta {LIMITS_MB.photo} MB, audios hasta {LIMITS_MB.audio} MB y videos hasta {LIMITS_MB.video} MB; las fotos se reducen solas.</small>
+        <section className="compose-section">
+          <h3 className="compose-label">Añade recuerdos <small className="muted">({total}/{MAX_ITEMS})</small></h3>
+          <div className="media-buttons">
+            {/* El de audio lleva sus extensiones (AUDIO_ACCEPT): en iPhone abre directamente Archivos */}
+            {[['camera', 'Fotos', 'image/*'], ['video', 'Videos', 'video/*'], ['mic', 'Audio', AUDIO_ACCEPT]].map(([icon, label, accept]) => (
+              <label key={label} className={`media-button ${full ? 'disabled' : ''}`} aria-disabled={full}>
+                <span className="media-button-icon"><Icon name={icon} size={24} /></span>
+                <span>{label}</span>
+                {!full && (
+                  // Oculto a la vista pero enfocable: así también se abre con el teclado
+                  <input type="file" accept={accept} multiple className="sr-only" onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
+                )}
+              </label>
+            ))}
           </div>
           {total > 0 && (
             <div className="capsule-files">
@@ -209,37 +258,36 @@ export default function CapsuleForm() {
               ))}
             </div>
           )}
-          {total < MAX_ITEMS && (
-            <div className="grid-2">
-              <label className="btn btn-ghost">
-                <Icon name="camera" size={18} /> Fotos y videos
-                <input type="file" accept="image/*,video/*" multiple hidden
-                  onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
-              </label>
-              {/* Selector aparte: en iPhone abre directamente Archivos (iCloud Drive / En mi iPhone) */}
-              <label className="btn btn-ghost">
-                <Icon name="mic" size={18} /> Audio
-                <input type="file" accept={AUDIO_ACCEPT} multiple hidden
-                  onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
-              </label>
-            </div>
-          )}
-          {total > 0 && <small className="hint">{countsText(Object.fromEntries(['photo', 'video', 'audio'].map((k) => [k, [...items, ...pending].filter((x) => x.kind === k).length]).filter(([, n]) => n)))}</small>}
+          <small className="hint">
+            {counts && <>{counts}. </>}
+            Opcional. Fotos hasta {LIMITS_MB.photo} MB, audios hasta {LIMITS_MB.audio} MB y videos hasta {LIMITS_MB.video} MB; las fotos se reducen solas.
+          </small>
         </section>
 
-        <section className="card stack">
-          <div>
-            <h2 className="field-title">¿Cuándo se abre?</h2>
-            <small className="hint">Hasta ese momento verá solo la cuenta atrás y quién se la dejó.</small>
-          </div>
-          <div className="grid-2">
-            <Field label="Día" htmlFor="cd"><input id="cd" type="date" value={form.date} min={new Date().toLocaleDateString('sv')} onChange={set('date')} required /></Field>
-            <Field label="Hora" htmlFor="ch"><input id="ch" type="time" value={form.time} onChange={set('time')} required /></Field>
-          </div>
-          {!Number.isNaN(openAt.getTime()) && openAt > new Date() && (
-            <small className="hint">Se abrirá el <b>{openDateText(openAt.toISOString())}</b> (hora de {localTz().replace('_', ' ')}).</small>
+        <section className="compose-section">
+          <button type="button" className="when-phrase" aria-expanded={whenOpen} aria-controls="cuando"
+            onClick={() => setShowWhen((v) => !v)}>
+            <Icon name="calendar" size={20} />
+            <span>{validDate ? <>Se abrirá el <b>{openPhrase(openAt)}</b></> : <b>Elige cuándo se abrirá</b>}</span>
+            <Icon name={whenOpen ? 'up' : 'edit'} size={16} className="when-edit" />
+          </button>
+          {whenOpen && (
+            <div className="stack-sm" id="cuando">
+              <div className="grid-2">
+                <Field label="Día" htmlFor="cd"><input id="cd" type="date" value={form.date} min={new Date().toLocaleDateString('sv')} onChange={set('date')} required /></Field>
+                <Field label="Hora" htmlFor="ch"><input id="ch" type="time" value={form.time} onChange={set('time')} required /></Field>
+              </div>
+              <small className="hint">Hora de {localTz().replace('_', ' ')}.</small>
+            </div>
           )}
         </section>
+
+        <p className="compose-privacy">
+          <Icon name="lock" size={16} />
+          <span>Solo {firstName || 'esa persona'} podrá abrirla, y solo cuando llegue el día. Hasta entonces verá la cuenta atrás y quién se la dejó.</span>
+        </p>
+
+        <ErrorBox error={error} />
 
         <div className="row-actions">
           <button className="btn btn-ghost" disabled={!!busy}>{busy || 'Guardar borrador'}</button>

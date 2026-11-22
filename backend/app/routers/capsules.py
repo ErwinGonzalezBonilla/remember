@@ -73,7 +73,7 @@ def to_out(c: TimeCapsule, user: User) -> CapsuleOut:
     counts = Counter(r.emoji for r in c.reactions)
     return CapsuleOut(
         id=c.id, title=c.title, status=st, locked=locked, open_at=aware(c.open_at), timezone=c.timezone,
-        sealed_at=c.sealed_at, created_at=c.created_at, is_author=is_author,
+        sealed_at=c.sealed_at, created_at=c.created_at, is_author=is_author, author_id=c.author_id,
         author_name=c.author.full_name, author_avatar=c.author.avatar_url,
         person=PersonTag(id=c.person.id, name=c.person.name, relation=c.person.relation, relation_label=c.person.relation_label,
                          photo_url=c.person.photo_url, birth_date=c.person.birth_date) if is_author and c.person else None,

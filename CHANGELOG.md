@@ -2,6 +2,13 @@
 
 ## 22 de noviembre de 2026
 
+### Cápsulas: lista por persona y nueva cápsula en una pantalla
+- **Recibidas** y **Enviadas** se agrupan por persona: cara, nombre y "N cápsulas · la próxima se abre en X días". Al tocar el grupo se despliega.
+- Los grupos con una cápsula que ya se puede abrir van primero y desplegados; el resto, plegados y por la próxima fecha de apertura.
+- Botón de filtro junto a las pestañas: por estado (todas, selladas, abiertas, borradores) y buscar persona por nombre.
+- **Nueva cápsula** en una sola pantalla: "Un mensaje para el futuro", las caras en fila para elegir a quién, la carta en papel con renglones que crece al escribir, tres botones grandes (**Fotos**, **Videos** y **Audio**) y la fecha escrita como frase ("Se abrirá el 17 de noviembre de 2027 a las 9:00"), que al tocarla deja cambiar el día y la hora.
+- La API de cápsulas devuelve `author_id`, para no mezclar a dos personas que se llamen igual.
+
 ### Audios desde el iPhone
 - En el iPhone ya se pueden elegir audios desde **Archivos** (iCloud Drive y "En mi iPhone"): M4A, MP3, WAV, AAC y las notas de voz de WhatsApp (.opus).
 - En las cápsulas hay dos botones: **Fotos y videos** y **Audio**. El de audio abre directamente Archivos.

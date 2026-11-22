@@ -375,6 +375,7 @@ class CapsuleOut(BaseModel):
     sealed_at: datetime | None
     created_at: datetime
     is_author: bool
+    author_id: int                         # para agrupar las recibidas por quien las creó
     author_name: str
     author_avatar: MediaURL
     person: PersonTag | None               # destinataria (solo la ve quien la creó)

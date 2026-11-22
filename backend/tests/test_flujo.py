@@ -1197,3 +1197,26 @@ def test_audios_del_iphone():
     # Un tipo que no es audio sigue rechazándose
     r = client.post("/api/uploads", headers=ana, json={"kind": "audio", "content_type": "application/pdf", "size": 10})
     assert r.status_code == 422
+
+
+def test_recibidas_traen_id_de_quien_las_creo(monkeypatch):
+    """Las recibidas se agrupan por author_id: dos personas con el mismo nombre no se mezclan."""
+    from app.routers import capsules as cap_router
+    monkeypatch.setattr(cap_router, "send_email", lambda *a, **k: True)
+    monkeypatch.setattr(cap_router, "send_push", lambda *a, **k: None)
+    rosa = register("Rosa Vidal", "rosavidal@example.com")
+    autoras = [register("Paula Gil", "paulagil1@example.com"), register("Paula Gil", "paulagil2@example.com")]
+    ids = []
+    for i, h in enumerate(autoras):
+        p = add_person(h, "Rosa", "amistad")
+        connect_users(rosa, h, p, "amistad", "amistad")
+        cid = client.post("/api/capsules", headers=h, json={"title": f"Para Rosa {i}", "person_id": p["id"], "message": "Hola",
+                                                            "timezone": "Europe/Madrid", "open_at": future()}).json()["id"]
+        assert client.post(f"/api/capsules/{cid}/seal", headers=h).status_code == 200
+        ids.append(client.get("/api/me", headers=h).json()["id"])
+        # Quien la creó también recibe su propio id
+        assert client.get("/api/capsules", headers=h).json()["sent"][0]["author_id"] == ids[-1]
+
+    received = client.get("/api/capsules", headers=rosa).json()["received"]
+    assert sorted(c["author_id"] for c in received) == sorted(ids) and ids[0] != ids[1]
+    assert {c["author_name"] for c in received} == {"Paula Gil"}

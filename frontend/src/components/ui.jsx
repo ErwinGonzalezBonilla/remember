@@ -326,7 +326,8 @@ export function PageHead({ title, children, action, className = '' }) {
 export function PrivateBadge({ text = 'Solo tú y las personas que invitas' }) {
   return (
     <div className="private-badge">
-      <Icon name="shield" size={16} /> <strong>Espacio privado</strong> · {text}
+      {/* Título y texto en un mismo bloque: si no cabe en una línea, el "·" no queda suelto al principio */}
+      <Icon name="shield" size={16} /> <span><strong>Espacio privado</strong> · {text}</span>
     </div>
   )
 }
