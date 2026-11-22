@@ -17,6 +17,12 @@ const KINDS = [
   { kind: 'audio', icon: 'mic' }, { kind: 'text', icon: 'note' },
 ]
 
+/** Fecha del recuerdo: la que llega en ?fecha=AAAA-MM-DD (desde el calendario) si es hoy o pasada; si no, hoy. */
+function dayFrom(fecha) {
+  const today = new Date().toLocaleDateString('sv')
+  return /^\d{4}-\d{2}-\d{2}$/.test(fecha || '') && fecha <= today ? fecha : today
+}
+
 export default function NewMemory() {
   const [params] = useSearchParams()
   const preselected = params.get('persona') ? [Number(params.get('persona'))] : []
@@ -28,7 +34,7 @@ export default function NewMemory() {
   const [album, setAlbum] = useState([])        // fotos y videos: [{ id, file, kind, preview, key }]
   useRevokeOnUnmount(album)
   const [preview, setPreview] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '', location: '', happened_on: new Date().toLocaleDateString('sv'), milestone: '' })
+  const [form, setForm] = useState({ title: '', description: '', location: '', happened_on: dayFrom(params.get('fecha')), milestone: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')

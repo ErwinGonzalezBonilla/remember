@@ -2,6 +2,13 @@
 
 ## 22 de noviembre de 2026
 
+### Calendario: panel de cada día
+- Se puede tocar cualquier día del calendario: se abre un panel con la fecha escrita ("Jueves 5 de noviembre de 2026") y lo anotado ese día, o "Nada anotado este día".
+- **Crear una cápsula que se abra este día** (hoy o días futuros): abre Nueva cápsula con esa fecha ya puesta.
+- **Guardar un recuerdo de este día** (hoy o días pasados): abre Nuevo recuerdo con esa fecha.
+- **Anotar una fecha especial**: eliges la persona, si es su cumpleaños o una fecha con nombre (p. ej. "Aniversario") y el año. Se repite cada año en el calendario. Si ya tenía una fecha de ese tipo, avisa antes de reemplazarla.
+- El panel se cierra tocando fuera, con la ✕, con Escape o deslizando hacia abajo, y se puede usar con teclado y lector de pantalla.
+
 ### Cápsulas: lista por persona y nueva cápsula en una pantalla
 - **Recibidas** y **Enviadas** se agrupan por persona: cara, nombre y "N cápsulas · la próxima se abre en X días". Al tocar el grupo se despliega.
 - Los grupos con una cápsula que ya se puede abrir van primero y desplegados; el resto, plegados y por la próxima fecha de apertura.

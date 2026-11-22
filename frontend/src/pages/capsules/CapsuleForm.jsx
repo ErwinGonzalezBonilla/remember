@@ -10,7 +10,10 @@ import { countsText, openDateText, openPhrase } from './capsuleUtils'
 const MAX_ITEMS = 10
 const localTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Madrid' } catch { return 'Europe/Madrid' } }
 
-function defaultDate() {
+/** Día por defecto: el que llega en ?fecha=AAAA-MM-DD (desde el calendario) si es hoy o futuro; si no, dentro de un año. */
+function defaultDate(fecha) {
+  const today = new Date().toLocaleDateString('sv')
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha || '') && fecha >= today) return fecha
   const d = new Date()
   d.setFullYear(d.getFullYear() + 1)
   return d.toLocaleDateString('sv')
@@ -55,7 +58,7 @@ export default function CapsuleForm() {
   const { data: existing, error: loadError } = useApi(id ? `/api/capsules/${id}` : null)
   const [form, setForm] = useState({
     title: '', message: '', person_id: params.get('persona') ? Number(params.get('persona')) : null,
-    date: defaultDate(), time: '09:00',
+    date: defaultDate(params.get('fecha')), time: '09:00',
   })
   const [items, setItems] = useState([])        // ya subidos
   const [pending, setPending] = useState([])    // { file, kind, url } por subir

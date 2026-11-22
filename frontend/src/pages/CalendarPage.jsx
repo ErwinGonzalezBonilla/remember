@@ -4,6 +4,7 @@ import Icon from '../components/Icon'
 import { AppShell, Avatar, EmptyState, ErrorBox, PageHead, Spinner, formatDate, nextOccurrence, parseDay } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
+import DaySheet from './DaySheet'
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 const WEEKDAYS = [['D', 'Domingo'], ['L', 'Lunes'], ['M', 'Martes'], ['X', 'Miércoles'], ['J', 'Jueves'], ['V', 'Viernes'], ['S', 'Sábado']]
@@ -111,10 +112,11 @@ function FilterMenu({ value, onChange }) {
 /** Calendario: el mes con tus fechas marcadas y la lista de las próximas. */
 export default function CalendarPage() {
   const { user } = useAuth()
-  const { data: people, loading, error } = useApi('/api/people')
+  const { data: people, setData: setPeople, loading, error } = useApi('/api/people')
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
   const [selected, setSelected] = useState(null)   // Date del día tocado
+  const [sheetDay, setSheetDay] = useState(null)   // día cuyo panel está abierto
   const [filter, setFilter] = useState('all')
   const [showAll, setShowAll] = useState(false)
   const touch = useRef(null)
@@ -147,10 +149,16 @@ export default function CalendarPage() {
     setMonth(new Date(today.getFullYear(), today.getMonth(), 1))
     setSelected(null)
   }
+  // Tocar un día lo resalta, filtra la lista de abajo y abre su panel
   function pick(date) {
-    setSelected((s) => (s && sameDay(s, date) ? null : date))
+    setSelected(date)
     setShowAll(false)
+    setSheetDay(date)
   }
+  // Lo anotado ese día, sin el filtro: el panel enseña todo lo que hay
+  const sheetEvents = sheetDay
+    ? all.map((e) => inYear(e, sheetDay.getFullYear())).filter((e) => e && sameDay(e.date, sheetDay))
+    : []
   function changeFilter(f) {
     setFilter(f)
     setSelected(null)
@@ -222,12 +230,12 @@ export default function CalendarPage() {
                 const isToday = sameDay(date, today)
                 const isSel = selected && sameDay(date, selected)
                 const cls = `cal-day ${kind ? `has-${kind}` : ''} ${isToday ? 'today' : ''} ${isSel ? 'selected' : ''}`
-                if (!evs.length) {
-                  return <span key={dayKey(date)} className={cls} aria-current={isToday ? 'date' : undefined}><span>{d}</span></span>
-                }
+                // Todos los días se pueden tocar: abren su panel (también los que no tienen nada)
+                const name = `${d} de ${MONTHS[m].toLowerCase()}`
                 return (
                   <button key={dayKey(date)} type="button" className={cls} onClick={() => pick(date)} aria-pressed={!!isSel}
-                    aria-current={isToday ? 'date' : undefined} aria-label={`${d} de ${MONTHS[m].toLowerCase()}: ${evs.map(title).join(', ')}`}>
+                    aria-haspopup="dialog" aria-current={isToday ? 'date' : undefined}
+                    aria-label={evs.length ? `${name}: ${evs.map(title).join(', ')}` : name}>
                     <span>{d}</span>
                   </button>
                 )
@@ -250,12 +258,20 @@ export default function CalendarPage() {
             </div>
             {!showAll && (list.length
               ? <div className="card cal-events">{list.map((e) => <EventLine key={`${e.key}-${e.date.getFullYear()}`} e={e} />)}</div>
-              : <p className="muted small cal-none">{filter === 'all' ? 'No hay fechas este mes.' : 'No hay fechas con este filtro.'}</p>)}
+              : <p className="muted small cal-none">
+                {filter !== 'all' ? 'No hay fechas con este filtro.' : selected ? 'Nada anotado este día.' : 'No hay fechas este mes.'}
+              </p>)}
             {showAll && !selected && (upcoming.length
               ? <div className="stack-sm">{upcoming.map((e) => <EventRow key={e.key} e={e} />)}</div>
               : <p className="muted small cal-none">No hay fechas con este filtro.</p>)}
           </section>
         </>
+      )}
+
+      {sheetDay && (
+        <DaySheet date={sheetDay} events={sheetEvents} people={people || []} today={today} title={title}
+          onClose={() => setSheetDay(null)}
+          onPersonSaved={(p) => setPeople((list) => list.map((x) => (x.id === p.id ? p : x)))} />
       )}
 
       <div className="soon-card">
