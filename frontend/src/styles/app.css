@@ -1538,3 +1538,25 @@ button.cal-day:focus-visible > span { outline: 2px solid var(--petrol); outline-
   :root:not([data-theme="light"]) .day-form-title { color: var(--sky); }
   :root:not([data-theme="light"]) .day-action-icon.is-date { color: var(--sand); }
 }
+
+/* Calendario: cápsulas y recuerdos. Un punto por cada tipo que hay ese día (sustituye al punto único de antes) */
+.cal-day.with-dots::after { display: none; }
+.cal-dots { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; gap: 3px; pointer-events: none; }
+.cal-dots b { width: 5px; height: 5px; border-radius: 50%; }
+.cal-dots .dot-birthday { background: var(--coral); }
+.cal-dots .dot-special { background: #3E9AA6; }
+.cal-dots .dot-capsule { background: var(--petrol); }
+.cal-dots .dot-memory { background: #B08A55; }
+.cal-event-icon.is-capsule { background: var(--petrol-50); color: var(--petrol); }
+.cal-event-icon.is-capsule.open { background: var(--coral-50); color: var(--coral); }
+.cal-event-icon.is-capsule.draft { background: var(--sand-50); color: #9A7B4F; }
+.cal-event-icon.is-memory { background: var(--sand-50); color: #9A7B4F; }
+.day-event-text { display: flex; flex-direction: column; }
+.day-event-text strong, .day-event-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.day-event-text small { font-weight: 600; font-size: .8rem; color: var(--text-2); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cal-dots .dot-special { background: var(--sky); }
+  :root:not([data-theme="light"]) .cal-dots .dot-capsule { background: #EAF2F4; }
+  :root:not([data-theme="light"]) .cal-dots .dot-memory { background: var(--sand); }
+  :root:not([data-theme="light"]) .cal-event-icon.is-capsule { color: var(--sky); }
+}

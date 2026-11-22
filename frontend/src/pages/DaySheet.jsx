@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import Icon from '../components/Icon'
 import { Avatar, ErrorBox, formatDate } from '../components/ui'
+import { EventIcon, title } from './calendarEvents'
 import { useSheetDrag } from './memories/CommentsSheet'
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -128,7 +129,7 @@ function AddDateForm({ date, people, onSaved, onCancel }) {
  * Panel de un día del calendario: lo que hay anotado y qué se puede hacer ese día.
  * `events`: los del día (cumpleaños y fechas especiales), ya con `date` y `years` de ese año.
  */
-export default function DaySheet({ date, events, people, today, title, onClose, onPersonSaved }) {
+export default function DaySheet({ date, events, people, today, onClose, onPersonSaved }) {
   const [adding, setAdding] = useState(false)
   const [saved, setSaved] = useState('')
   const sheet = useRef(null)
@@ -189,20 +190,19 @@ export default function DaySheet({ date, events, people, today, title, onClose, 
 
           {events.length ? (
             <ul className="day-events" aria-label="Anotado este día">
-              {events.map((e) => {
-                const birthday = e.type === 'birthday'
-                return (
-                  <li key={e.key}>
-                    <Link to={e.to} className="day-event">
-                      <span className={`cal-event-icon ${birthday ? 'is-birthday' : 'is-special'}`}>
-                        <Icon name={birthday ? 'gift' : 'heart'} size={18} stroke={2.2} filled={!birthday} />
-                      </span>
-                      <span className="day-event-text">{title(e)}</span>
-                      <Icon name="chevron" size={16} className="cal-event-go" />
-                    </Link>
-                  </li>
-                )
-              })}
+              {events.map((e) => (
+                <li key={e.key}>
+                  {/* Cápsulas: título, quién y su estado (de las recibidas cerradas no se sabe nada más) */}
+                  <Link to={e.to} className="day-event">
+                    <EventIcon e={e} />
+                    <span className="day-event-text">
+                      <strong>{title(e)}</strong>
+                      {e.detail && <small>{e.detail}</small>}
+                    </span>
+                    <Icon name="chevron" size={16} className="cal-event-go" />
+                  </Link>
+                </li>
+              ))}
             </ul>
           ) : <p className="muted day-none">Nada anotado este día</p>}
           {saved && <p className="alert alert-ok" role="status">{saved}</p>}

@@ -2,6 +2,13 @@
 
 ## 22 de noviembre de 2026
 
+### Calendario: cápsulas y recuerdos
+- El calendario se ve siempre, aunque aún no tengas ninguna fecha: puedes tocar un día y anotar la primera. "Sin fechas todavía" aparece debajo.
+- Las cápsulas (enviadas y recibidas) salen el día en que se abren, con su estado; los recuerdos, el día en que ocurrieron. Al tocarlos en el panel del día se abren.
+- Cada día lleva un punto por tipo: cumpleaños, fecha especial, cápsula y recuerdo.
+- El filtro tiene "Solo cápsulas" y "Solo recuerdos". En "Próximos eventos" también salen las cápsulas que están por abrirse.
+- De una cápsula recibida que aún no se ha abierto solo se ve el título, quién la envió y cuándo se abre.
+
 ### Calendario: panel de cada día
 - Se puede tocar cualquier día del calendario: se abre un panel con la fecha escrita ("Jueves 5 de noviembre de 2026") y lo anotado ese día, o "Nada anotado este día".
 - **Crear una cápsula que se abra este día** (hoy o días futuros): abre Nueva cápsula con esa fecha ya puesta.
