@@ -30,7 +30,7 @@ function extension(blob, url, kind) {
 }
 
 /** Descarga el archivo como File con un nombre como "rehomi-primer-viaje-a-la-playa-1.jpg". */
-async function fetchFile(item, memory, index) {
+export async function fetchFile(item, memory, index) {
   const url = mediaUrl(item.url)
   const res = await fetch(url, { mode: 'cors', credentials: 'omit' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)

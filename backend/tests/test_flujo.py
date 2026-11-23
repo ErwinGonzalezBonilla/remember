@@ -608,6 +608,34 @@ def test_capsula_del_tiempo(monkeypatch):
     assert client.get("/api/capsules", headers=leo).json()["received"] == []
 
 
+def test_reacciones_nuevas_en_capsulas(monkeypatch):
+    """La vista de la cápsula usa las seis reacciones de la app (😍, 👏…); las antiguas se siguen aceptando."""
+    from app.routers import capsules as cap_router
+    monkeypatch.setattr(cap_router, "send_email", lambda *a, **k: True)
+    ana = register("Ana Gil", "ana.reacciones@x.com")
+    hija_p = add_person(ana, "Sol", "hijo/a")
+    sol = register("Sol Gil", "sol.reacciones@x.com")
+    connect_users(sol, ana, hija_p)
+    cap = client.post("/api/capsules", headers=ana, json={
+        "title": "Para Sol", "message": "Hola", "person_id": hija_p["id"], "open_at": future(), "timezone": "Europe/Madrid"}).json()
+    assert client.post(f"/api/capsules/{cap['id']}/seal", headers=ana).status_code == 200
+    open_now(cap["id"])
+    url = f"/api/capsules/{cap['id']}/reaction"
+
+    r = client.put(url, headers=sol, json={"emoji": "😍"})
+    assert r.status_code == 200 and r.json()["my_reaction"] == "😍" and r.json()["reactions"] == {"😍": 1}
+    r = client.put(url, headers=ana, json={"emoji": "👏"})
+    assert r.status_code == 200 and r.json()["reactions"] == {"😍": 1, "👏": 1}
+    # Cambiar de reacción sustituye la anterior
+    r = client.put(url, headers=sol, json={"emoji": "👏"})
+    assert r.json()["reactions"] == {"👏": 2}
+    # Las seis de la app y las dos antiguas valen; cualquier otra no
+    for e in ["❤️", "😍", "😂", "🥰", "😮", "👏", "😀", "😢"]:
+        assert client.put(url, headers=sol, json={"emoji": e}).status_code == 200, e
+    assert client.put(url, headers=sol, json={"emoji": "🔥"}).status_code == 422
+    assert client.get(f"/api/capsules/{cap['id']}", headers=ana).json()["reactions"] == {"😢": 1, "👏": 1}
+
+
 def test_cron_con_secreto(monkeypatch):
     from app.config import settings
     monkeypatch.setattr(settings, "cron_secret", "s3creto")
