@@ -193,6 +193,8 @@ class TimeCapsule(Base):
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Madrid")  # para mostrar la fecha en los correos
     sealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     open_notified: Mapped[bool] = mapped_column(default=False)
+    # Primera vez que la destinataria la vio abierta (la animación de abrir sale solo esa vez, en cualquier móvil)
+    seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     author: Mapped[User] = relationship()

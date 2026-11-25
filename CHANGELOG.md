@@ -2,6 +2,12 @@
 
 ## 25 de noviembre de 2026
 
+### Abrir y sellar cápsulas, con magia
+- **Abrir**: la primera vez que ves abierta una cápsula que te dejaron, el sello de lacre tiembla, se agrieta y se parte, la solapa se abre, sube la carta y caen pétalos con "Esta cápsula te esperaba desde el {fecha}". El móvil vibra al romperse el sello. Solo pasa una vez, también si la abres después en otro móvil.
+- **Sellar**: la carta se dobla y entra en el sobre, cae el sello con un pequeño rebote y vibración, y aparece "Sellada hasta el {fecha} a las {hora}" con un candado que se cierra.
+- Las dos se pueden saltar y, si el móvil tiene activado "Reducir movimiento", son un fundido sin movimiento. El lector de pantalla anuncia los textos.
+- "Lista para abrir" en Cápsulas significa ahora "abierta y aún sin ver" (antes, abierta en los últimos 14 días).
+
 ### El cofre, un espacio privado entre los dos
 - Cabecera nueva: foto grande con corazón, "El cofre de {nombre}", "{relación} · Desde {año}" y "Espacio privado compartido".
 - **Desde**: el año en que os conocisteis, que se anota al editar la persona. Si no se anota, el año en que os conectasteis (o en que la añadiste).

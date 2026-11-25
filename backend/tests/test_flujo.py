@@ -1624,3 +1624,44 @@ def test_cada_novedad_envia_su_aviso(monkeypatch):
     # Una canción para alguien sin cuenta no avisa a nadie
     abuela = add_person(vera, "Abuela", "familia")
     nothing(lambda: client.post(f"/api/people/{abuela['id']}/songs", headers=vera, json={"title": "Bolero", "url": "https://youtu.be/dQw4w9WgXcQ"}))
+
+
+# ---------- Cápsula vista por la destinataria (animación de abrir una sola vez) ----------
+def test_capsula_vista_por_la_destinataria(monkeypatch):
+    from app.routers import capsules as cap_router
+    monkeypatch.setattr(cap_router, "send_email", lambda *a, **k: True)
+    ines = register("Ines Vista", "ines.vista@x.com")
+    hugo = register("Hugo Vista", "hugo.vista@x.com")
+    otra = register("Otra Vista", "otra.vista@x.com")
+    hugo_p = add_person(ines, "Hugo", "hijo/a")
+    connect_users(hugo, ines, hugo_p)
+    cap = client.post("/api/capsules", headers=ines, json={"title": "Para Hugo", "message": "Hola", "person_id": hugo_p["id"],
+                                                           "open_at": future(), "timezone": "Europe/Madrid"}).json()
+    client.post(f"/api/capsules/{cap['id']}/seal", headers=ines)
+    url = f"/api/capsules/{cap['id']}/seen"
+
+    # Cerrada: no se puede marcar como vista (ni se revela nada)
+    assert client.post(url, headers=hugo).status_code == 409
+    assert client.get(f"/api/capsules/{cap['id']}", headers=hugo).json()["seen_by_recipient"] is False
+    open_now(cap["id"])
+    r = client.get(f"/api/capsules/{cap['id']}", headers=hugo).json()
+    assert r["status"] == "open" and r["seen_by_recipient"] is False
+    assert client.get("/api/capsules", headers=hugo).json()["received"][0]["seen_by_recipient"] is False
+
+    # Quien la creó no la marca; un tercero ni la ve
+    assert client.post(url, headers=ines).json()["seen_by_recipient"] is False
+    assert client.post(url, headers=otra).status_code == 404
+
+    # La destinataria la ve: queda guardado (en cualquier móvil) y repetirlo no cambia la fecha
+    r = client.post(url, headers=hugo)
+    assert r.status_code == 200 and r.json()["seen_by_recipient"] is True
+    from app.database import SessionLocal
+    from app.models import TimeCapsule
+    with SessionLocal() as db:
+        first = db.get(TimeCapsule, cap["id"]).seen_at
+    assert first is not None
+    client.post(url, headers=hugo)
+    with SessionLocal() as db:
+        assert db.get(TimeCapsule, cap["id"]).seen_at == first
+    assert client.get("/api/capsules", headers=hugo).json()["received"][0]["seen_by_recipient"] is True
+    assert client.get("/api/capsules", headers=ines).json()["sent"][0]["seen_by_recipient"] is True

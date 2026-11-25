@@ -2050,3 +2050,104 @@ button.media-button:focus-visible { outline: 3px solid var(--sky); outline-offse
 .switch.on .switch-knob { transform: translateX(20px); }
 .switch:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .switch, .switch-knob { transition: none; } }
+
+/* =========================================================
+   Cápsula: animaciones de abrir y de sellar (sobre, lacre y pétalos)
+   ========================================================= */
+.magic { position: fixed; inset: 0; z-index: 120; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  padding: calc(env(safe-area-inset-top) + 56px) 16px calc(env(safe-area-inset-bottom) + 24px); color: #fff;
+  background: var(--pattern) center / cover no-repeat, radial-gradient(circle at 50% 40%, #0B6170 0%, var(--petrol-700) 65%, #032E35 100%);
+  animation: magic-in .35s ease-out; transition: opacity .45s ease; }
+@keyframes magic-in { from { opacity: 0; } }
+.magic-skip { position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: 12px; z-index: 5; display: inline-flex; align-items: center; gap: 2px;
+  min-height: 44px; padding: 0 14px 0 18px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .12);
+  color: #fff; font: inherit; font-weight: 700; cursor: pointer; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.magic-skip:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+.magic-center { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 26px; padding-top: 110px;
+  animation: magic-pop .6s cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes magic-pop { from { transform: scale(.82) translateY(16px); opacity: 0; } }
+.magic-text { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; max-width: 320px; min-height: 120px; }
+.magic-title { font-size: 1.6rem; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.magic-from { font-family: var(--hand); font-size: 1.9rem; line-height: 1.1; color: #F7E7D8; }
+.magic-wait, .magic-sealed { font-family: var(--hand); font-size: 1.75rem; line-height: 1.2; color: #F6C2B6;
+  opacity: 0; transform: translateY(8px); transition: opacity .6s ease, transform .6s ease; }
+.magic-open.phase-4 .magic-wait, .magic-open.phase-5 .magic-wait, .magic-seal.phase-4 .magic-sealed { opacity: 1; transform: none; }
+.magic.phase-5 { opacity: 0; }
+
+/* ---------- El sobre ---------- */
+.env { --paper: #F6EBD5; --paper-dark: #E7D6B5; --flap: #EFE0C3; position: relative; width: 280px; height: 180px; perspective: 900px; }
+.env > * { position: absolute; }
+.env-back { inset: 0; width: 100%; height: 100%; fill: var(--paper-dark); filter: drop-shadow(0 14px 26px rgba(0, 0, 0, .35)); z-index: 1; }
+.env-letter { left: 18px; right: 18px; top: 10px; height: 160px; z-index: 2; border-radius: 6px; transform-origin: bottom center;
+  background: linear-gradient(180deg, #FFFDF8, #F8EFDD); box-shadow: 0 2px 8px rgba(80, 50, 20, .18);
+  transition: transform .75s cubic-bezier(.2, .8, .2, 1); }
+.env-letter-lines { position: absolute; left: 22px; right: 22px; top: 26px; height: 70px;
+  background: repeating-linear-gradient(180deg, transparent 0 15px, rgba(155, 120, 80, .35) 15px 16px); }
+.env-letter-heart { position: absolute; left: 50%; bottom: 14px; translate: -50% 0; color: var(--coral); }
+.env-front { inset: 0; width: 100%; height: 100%; z-index: 3; fill: var(--paper); }
+.env-fold { fill: none; stroke: rgba(150, 115, 70, .28); stroke-width: 1.2; }
+.env-flap { left: 0; top: 0; width: 280px; height: 120px; z-index: 4; transform-origin: top center; transform-style: preserve-3d;
+  transition: transform .55s cubic-bezier(.4, .1, .3, 1), z-index 0s linear .26s; }
+.env-flap svg { width: 100%; height: 100%; fill: var(--flap); filter: drop-shadow(0 3px 3px rgba(90, 60, 25, .22)); }
+.env-seal { left: 140px; top: 104px; width: 60px; height: 60px; margin: -30px 0 0 -30px; z-index: 5;
+  filter: drop-shadow(0 4px 6px rgba(110, 35, 20, .45)); }   /* la sombra va aquí: el recorte de las mitades la cortaría */
+.seal-half { position: absolute; inset: 0; transition: transform .55s cubic-bezier(.3, .6, .4, 1), opacity .55s ease; }
+.seal-half.left { clip-path: polygon(0 0, 52% 0, 45% 30%, 57% 50%, 44% 74%, 50% 100%, 0 100%); }
+.seal-half.right { clip-path: polygon(52% 0, 100% 0, 100% 100%, 50% 100%, 44% 74%, 57% 50%, 45% 30%); }
+.seal-disc { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; color: #FCE3DC;
+  background: radial-gradient(circle at 35% 30%, #F2A595, var(--coral) 52%, #A9493A 100%);
+  box-shadow: inset 0 -3px 6px rgba(90, 25, 15, .35), inset 0 0 0 5px rgba(255, 255, 255, .08); }
+.seal-crack { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #7E2E22; stroke-width: 2; stroke-linecap: round;
+  stroke-dasharray: 70; stroke-dashoffset: 70; transition: stroke-dashoffset .35s ease, opacity .2s; }
+
+/* ---------- Abrir ---------- */
+.magic-open.phase-2 .env-seal { animation: seal-shake .45s ease-in-out; }
+.magic-open.phase-2 .seal-crack { stroke-dashoffset: 0; }
+@keyframes seal-shake { 20%, 60% { transform: translateX(-2px) rotate(-4deg); } 40%, 80% { transform: translateX(2px) rotate(4deg); } }
+.magic-open:is(.phase-3, .phase-4, .phase-5) .seal-crack { opacity: 0; }
+.magic-open:is(.phase-3, .phase-4, .phase-5) .seal-half.left { transform: translate(-46px, 90px) rotate(-38deg); opacity: 0; }
+.magic-open:is(.phase-3, .phase-4, .phase-5) .seal-half.right { transform: translate(46px, 90px) rotate(38deg); opacity: 0; }
+.magic-open:is(.phase-3, .phase-4, .phase-5) .env-flap { transform: rotateX(180deg); z-index: 1; }
+.magic-open:is(.phase-4, .phase-5) .env-letter { transform: translateY(-118px); }
+
+/* ---------- Sellar: empieza con la carta fuera y el sobre abierto ---------- */
+.magic-seal .env-letter { transform: translateY(-118px); }
+.magic-seal .env-flap { transform: rotateX(180deg); z-index: 1; transition: transform .5s cubic-bezier(.4, .1, .3, 1), z-index 0s; }
+.magic-seal .env-seal { opacity: 0; transform: translateY(-150px) scale(1.5); }
+.magic-seal .seal-crack { display: none; }
+.magic-seal.phase-1 .env-letter { animation: letter-fold .6s ease-in-out forwards; }
+@keyframes letter-fold { 50% { transform: translateY(-118px) scaleY(.55); } 100% { transform: translateY(-96px) scaleY(.55); } }
+.magic-seal:is(.phase-2, .phase-3, .phase-4) .env-letter { transform: translateY(2px) scaleY(.55); }
+.magic-seal:is(.phase-3, .phase-4) .env-flap { transform: rotateX(0deg); z-index: 4; }
+.magic-seal:is(.phase-3, .phase-4) .env-seal { animation: seal-drop .6s cubic-bezier(.3, .7, .4, 1) .3s forwards; }
+@keyframes seal-drop {
+  0% { opacity: 0; transform: translateY(-150px) scale(1.5); }
+  55% { opacity: 1; transform: translateY(0) scale(.92); }
+  75% { transform: translateY(-10px) scale(1.04); }
+  100% { opacity: 1; transform: none; }
+}
+.magic-sealed { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; }
+.magic-lock { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .14); }
+.magic-lock svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+.lock-shackle { transform: translateY(-4px); transition: transform .35s cubic-bezier(.3, .7, .4, 1.4) .45s; }
+.magic-seal.phase-4 .lock-shackle { transform: none; }
+
+/* ---------- Pétalos ---------- */
+.petals { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.petals span { position: absolute; top: -24px; border-radius: 60% 0 60% 0; opacity: 0; animation: petal-fall linear forwards; }
+.petals span.round { border-radius: 50%; }
+@keyframes petal-fall {
+  0% { opacity: 0; transform: translate(0, 0) rotate(var(--rot)); }
+  10% { opacity: .95; }
+  100% { opacity: .85; transform: translate(var(--drift), 105vh) rotate(calc(var(--rot) + 320deg)); }
+}
+
+/* ---------- Sin movimiento: solo un fundido ---------- */
+.magic.is-reduced { animation: magic-in .4s ease-out; }
+.magic.is-reduced .env { display: none; }
+.magic.is-reduced .magic-center { animation: none; padding-top: 0; }
+.magic.is-reduced .magic-wait, .magic.is-reduced .magic-sealed, .magic.is-reduced .lock-shackle { transform: none; transition: opacity .5s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .magic, .magic * { animation-duration: .01ms !important; }
+  .magic { animation: magic-in .4s ease-out !important; }
+}

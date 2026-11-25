@@ -83,7 +83,7 @@ def to_out(c: TimeCapsule, user: User) -> CapsuleOut:
                                  for i in c.items],
         item_counts=dict(Counter(i.kind for i in c.items)),
         reactions=dict(counts), my_reaction=next((r.emoji for r in c.reactions if r.user_id == user.id), None),
-        comment_count=len(c.comments),
+        comment_count=len(c.comments), seen_by_recipient=c.seen_at is not None,
     )
 
 
@@ -153,6 +153,19 @@ def get_one(capsule_id: int, user: User = Depends(get_current_user), db: Session
     if detail.locked:
         detail.comments = []
     return detail
+
+
+@router.post("/capsules/{capsule_id}/seen", response_model=CapsuleDetailOut)
+def mark_seen(capsule_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """La destinataria la ve abierta por primera vez: se guarda para no repetir la animación en otro móvil.
+    Solo cuenta la destinataria y solo con la cápsula abierta; para quien la creó no cambia nada."""
+    c = get_capsule(capsule_id, user, db)
+    if c.author_id != user.id:
+        require_open(c)
+        if c.seen_at is None:
+            c.seen_at = utcnow()
+            db.commit()
+    return to_detail(c, user)
 
 
 # ---------- Crear y editar el borrador ----------

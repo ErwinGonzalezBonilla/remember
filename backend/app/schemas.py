@@ -405,6 +405,7 @@ class CapsuleOut(BaseModel):
     reactions: dict[str, int]
     my_reaction: str | None
     comment_count: int
+    seen_by_recipient: bool = False      # la destinataria ya la vio abierta ("lista para abrir" = abierta y sin ver)
 
 
 class CapsuleDetailOut(CapsuleOut):

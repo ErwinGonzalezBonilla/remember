@@ -24,15 +24,19 @@ export function openPhrase(date) {
   return `${date.getDate()} de ${MONTHS[date.getMonth()]} de ${date.getFullYear()} a las ${date.getHours()}:${mm}`
 }
 
-// Una cápsula abierta en estos últimos días se trata como "lista para abrir": aún es novedad.
-// (El backend no guarda si la destinataria ya la vio; open_notified solo indica que se le avisó.)
-const READY_DAYS = 14
-
-/** Ya llegó su día y es reciente (o llegó mientras mirabas la lista). */
+/**
+ * "Lista para abrir": ya llegó su día y la destinataria aún no la ha visto abierta (seen_by_recipient lo guarda
+ * el servidor, así que vale en cualquier móvil). Incluye las que llegan a su hora mientras miras la lista.
+ */
 export function isReady(c, now = Date.now()) {
   if (c.status === 'draft') return false
-  const t = new Date(c.open_at).getTime()
-  return t <= now && now - t < READY_DAYS * 86400000
+  return new Date(c.open_at).getTime() <= now && !c.seen_by_recipient
+}
+
+/** "17 de noviembre de 2026" */
+export function dayText(iso) {
+  const d = new Date(iso)
+  return `${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`
 }
 
 export function remaining(iso, now = Date.now()) {

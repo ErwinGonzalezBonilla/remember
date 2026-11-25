@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import BottomSheet from '../../components/BottomSheet'
 import IOSMenu from '../../components/IOSMenu'
+import { SealingAnimation } from './CapsuleMagic'
 import Icon from '../../components/Icon'
 import VoiceRecorder, { canRecord } from '../memories/VoiceRecorder'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
@@ -66,6 +67,7 @@ export default function CapsuleForm() {
   const [items, setItems] = useState([])        // ya subidos
   const [pending, setPending] = useState([])    // { file, kind, url } por subir
   const audioInput = useRef(null)
+  const [sealAnim, setSealAnim] = useState(null)   // { id, until } mientras se ve la animación de sellar
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
@@ -157,7 +159,10 @@ export default function CapsuleForm() {
       }
       if (sealing) {
         setBusy('Sellando…')
-        await api(`/api/capsules/${capsuleId}/seal`, { method: 'POST' })
+        const sealed = await api(`/api/capsules/${capsuleId}/seal`, { method: 'POST' })
+        // La animación de sellar; al terminar (o al saltarla), la confirmación de siempre
+        setSealAnim({ id: capsuleId, until: openDateText(sealed.open_at) })
+        return
       }
       navigate(`/capsula/${capsuleId}`, { replace: true, state: { sealed: sealing } })
     } catch (err) {
@@ -188,6 +193,10 @@ export default function CapsuleForm() {
 
   return (
     <AppShell nav={false}>
+      {sealAnim && (
+        <SealingAnimation until={sealAnim.until}
+          onDone={() => navigate(`/capsula/${sealAnim.id}`, { replace: true, state: { sealed: true } })} />
+      )}
       <TopBar title={id ? 'Editar cápsula' : 'Nueva cápsula'} />
       <form onSubmit={(e) => { e.preventDefault(); save(false) }} className="capsule-compose">
         <header className="compose-hero">

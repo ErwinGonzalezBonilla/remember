@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import Icon from '../../components/Icon'
 import { AppShell, ErrorBox, Spinner, TopBar, formatDate } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
+import { OpeningAnimation } from './CapsuleMagic'
 import CapsuleOpenView from './CapsuleOpenView'
-import { countsText, openDateText, useCountdown } from './capsuleUtils'
+import { countsText, dayText, openDateText, useCountdown } from './capsuleUtils'
 
 function Countdown({ iso, onDone }) {
   const r = useCountdown(iso, onDone)
@@ -27,6 +28,16 @@ export default function CapsuleDetail() {
   const { user } = useAuth()
   const { data: c, setData, loading, error, reload } = useApi(`/api/capsules/${id}`)
   const [err, setErr] = useState('')
+  // Primera vez que la destinataria la ve abierta: animación de abrir y se guarda en el servidor (no se repite en otro móvil)
+  const [opening, setOpening] = useState(false)
+  const marked = useRef(false)
+  const firstOpen = !!c && c.status === 'open' && !c.is_author && !c.seen_by_recipient
+  useEffect(() => {
+    if (!firstOpen || marked.current) return
+    marked.current = true
+    setOpening(true)
+    api(`/api/capsules/${id}/seen`, { method: 'POST' }).then(setData).catch(() => { /* se marcará la próxima vez */ })
+  }, [firstOpen, id, setData])
 
   if (loading && !c) return <AppShell nav={false}><Spinner /></AppShell>
   if (error) return <AppShell nav={false}><TopBar title="Cápsula" /><ErrorBox error={error} /></AppShell>
@@ -78,6 +89,10 @@ export default function CapsuleDetail() {
 
   return (
     <AppShell nav={false}>
+      {opening && (
+        <OpeningAnimation title={c.title} from={c.author_name} since={dayText(c.sealed_at || c.created_at)}
+          onDone={() => setOpening(false)} />
+      )}
       <CapsuleOpenView capsule={c} setData={setData} me={user} onBack={back} menuItems={menuItems}>
         <ErrorBox error={err} />
         {location.state?.sealed && c.status === 'sealed' && (
