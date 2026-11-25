@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, mediaUrl } from '../../api/client'
 import BottomSheet from '../../components/BottomSheet'
+import IOSMenu from '../../components/IOSMenu'
 import Icon from '../../components/Icon'
 import VoiceRecorder, { canRecord } from '../memories/VoiceRecorder'
 import { relationText, AppShell, Avatar, ErrorBox, Field, Spinner, TopBar } from '../../components/ui'
@@ -64,7 +65,7 @@ export default function CapsuleForm() {
   })
   const [items, setItems] = useState([])        // ya subidos
   const [pending, setPending] = useState([])    // { file, kind, url } por subir
-  const [audioSheet, setAudioSheet] = useState(false)
+  const audioInput = useRef(null)
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
@@ -246,33 +247,25 @@ export default function CapsuleForm() {
                 )}
               </label>
             ))}
-            {/* Audio: grabar una nota de voz aquí mismo o elegir un archivo */}
-            <button type="button" className={`media-button ${full ? 'disabled' : ''}`} disabled={full}
-              onClick={() => setAudioSheet(true)} aria-haspopup="dialog">
-              <span className="media-button-icon"><Icon name="mic" size={24} /></span>
-              <span>Audio</span>
-            </button>
-          </div>
-          {audioSheet && (
-            <BottomSheet title="Añadir un audio" onClose={() => { setAudioSheet(false); setRecording(false) }}>
-              {recording ? (
-                <VoiceRecorder addLabel="Añadir a la cápsula"
-                  onRecorded={(f) => { pick([f]); setRecording(false); setAudioSheet(false) }} />
-              ) : (
-                <div className="day-actions">
-                  <button type="button" className="day-action" onClick={() => setRecording(true)} disabled={!canRecord()}>
-                    <span className="day-action-icon is-memory"><Icon name="mic" size={20} /></span>
-                    <span>{canRecord() ? 'Grabar ahora' : 'Grabar ahora (no disponible en este navegador)'}</span>
-                  </button>
-                  {/* Con sus extensiones (AUDIO_ACCEPT), en iPhone abre directamente Archivos */}
-                  <label className="day-action">
-                    <span className="day-action-icon is-date"><Icon name="note" size={20} /></span>
-                    <span>Elegir archivo <small className="muted">(m4a, mp3, wav, notas de WhatsApp…)</small></span>
-                    <input type="file" accept={AUDIO_ACCEPT} multiple className="sr-only"
-                      onChange={(e) => { pick(e.target.files); e.target.value = ''; setAudioSheet(false) }} />
-                  </label>
-                </div>
+            {/* Audio: menú como el nativo del iPhone → grabar una nota de voz aquí mismo o elegir archivos */}
+            <IOSMenu label="Añadir un audio" align="right" items={[
+              { label: 'Grabar nota de voz', icon: 'mic', disabled: !canRecord(), onSelect: () => setRecording(true) },
+              // Con sus extensiones (AUDIO_ACCEPT), en iPhone abre directamente Archivos
+              { label: 'Seleccionar archivos', icon: 'folder', onSelect: () => audioInput.current?.click() },
+            ]}>
+              {(props) => (
+                <button type="button" {...props} className={`media-button ${full ? 'disabled' : ''}`} disabled={full}>
+                  <span className="media-button-icon"><Icon name="mic" size={24} /></span>
+                  <span>Audio</span>
+                </button>
               )}
+            </IOSMenu>
+            <input ref={audioInput} type="file" accept={AUDIO_ACCEPT} multiple className="sr-only" aria-hidden="true" tabIndex={-1}
+              onChange={(e) => { pick(e.target.files); e.target.value = '' }} />
+          </div>
+          {recording && (
+            <BottomSheet title="Grabar nota de voz" onClose={() => setRecording(false)}>
+              <VoiceRecorder addLabel="Añadir a la cápsula" onRecorded={(f) => { pick([f]); setRecording(false) }} />
             </BottomSheet>
           )}
           {total > 0 && (

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { api, mediaUrl } from '../../api/client'
 import Icon from '../../components/Icon'
+import IOSMenu from '../../components/IOSMenu'
 import { AppShell, Avatar, EmptyState, ErrorBox, Spinner, TopBar } from '../../components/ui'
-import { compressImage, progressText, tooBig, uploadFile, withMime } from '../../media'
+import { AUDIO_ACCEPT, compressImage, progressText, tooBig, uploadFile, withMime } from '../../media'
 import VoiceRecorder, { canRecord } from '../memories/VoiceRecorder'
 import { useChestPerson } from './ChestPages'
 import { firstName } from './chestUtils'
@@ -61,6 +62,7 @@ export default function ChatPage() {
   const [selected, setSelected] = useState(null)
   const list = useRef(null)
   const atBottom = useRef(true)
+  const audioInput = useRef(null)
   const lastId = useRef(null)
 
   const load = useCallback(async () => {
@@ -186,13 +188,25 @@ export default function ChatPage() {
                 placeholder={`Mensaje para ${name}…`} aria-label={`Mensaje para ${name}`} />
               {text.trim() ? (
                 <button type="submit" className="chat-send" disabled={!!busy} aria-label="Enviar mensaje"><Icon name="send" size={20} /></button>
-              ) : (
-                <button type="button" className={`chat-send ${voice ? 'on' : ''}`} disabled={!!busy || !canRecord()}
-                  onClick={() => setVoice((v) => !v)} aria-expanded={voice}
-                  aria-label={voice ? 'Cerrar la grabadora' : 'Grabar una nota de voz'}>
-                  <Icon name={voice ? 'x' : 'mic'} size={20} />
+              ) : voice ? (
+                <button type="button" className="chat-send on" onClick={() => setVoice(false)} aria-label="Cerrar la grabadora">
+                  <Icon name="x" size={20} />
                 </button>
+              ) : (
+                // Notas de voz: el mismo menú (estilo iOS) que en Nueva cápsula
+                <IOSMenu label="Enviar una nota de voz" align="right" items={[
+                  { label: 'Grabar nota de voz', icon: 'mic', disabled: !canRecord(), onSelect: () => setVoice(true) },
+                  { label: 'Seleccionar archivos', icon: 'folder', onSelect: () => audioInput.current?.click() },
+                ]}>
+                  {(props) => (
+                    <button type="button" {...props} className="chat-send" disabled={!!busy} aria-label="Nota de voz">
+                      <Icon name="mic" size={20} />
+                    </button>
+                  )}
+                </IOSMenu>
               )}
+              <input ref={audioInput} type="file" accept={AUDIO_ACCEPT} className="sr-only" aria-hidden="true" tabIndex={-1}
+                onChange={(e) => { sendFile(e.target.files[0], 'audio'); e.target.value = '' }} />
             </form>
           </div>
         </>
