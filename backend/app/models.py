@@ -267,3 +267,17 @@ class AppSetting(Base):
 
     key: Mapped[str] = mapped_column(String(50), primary_key=True)
     value: Mapped[str] = mapped_column(Text)
+
+
+class ChatMessage(Base):
+    """Mensaje del chat privado entre dos usuarios conectados (el de su cofre). Texto, foto o nota de voz."""
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(10), default="text")   # text | photo | audio
+    body: Mapped[str | None] = mapped_column(String(2000))
+    media_url: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))   # "visto"

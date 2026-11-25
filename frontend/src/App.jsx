@@ -14,6 +14,7 @@ import MemoriesGallery from './pages/memories/MemoriesGallery'
 import MemoryDetail from './pages/memories/MemoryDetail'
 import NewMemory from './pages/memories/NewMemory'
 import CapsuleDetail from './pages/capsules/CapsuleDetail'
+import ChatPage from './pages/chest/ChatPage'
 import { ChestCalendar, ChestCapsules, ChestGallery, ChestMemories, ChestSoon } from './pages/chest/ChestPages'
 import CapsuleForm from './pages/capsules/CapsuleForm'
 import CapsulesPage from './pages/capsules/CapsulesPage'
@@ -78,7 +79,7 @@ export default function App() {
       <Route path="/personas/:id/capsulas" element={<Private><ChestCapsules /></Private>} />
       <Route path="/personas/:id/calendario" element={<Private><ChestCalendar /></Private>} />
       <Route path="/personas/:id/canciones" element={<Private><ChestSoon what="Canciones" icon="music" /></Private>} />
-      <Route path="/personas/:id/chat" element={<Private><ChestSoon what="Chat" icon="chat" /></Private>} />
+      <Route path="/personas/:id/chat" element={<Private><ChatPage /></Private>} />
       <Route path="/personas/:id/mapa" element={<Private><ChestSoon what="Mapa" icon="map" /></Private>} />
 
       <Route path="/c/:username" element={<Private><QrLink /></Private>} />

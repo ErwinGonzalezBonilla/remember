@@ -432,3 +432,27 @@ class NotificationOut(BaseModel):
 class NotificationsOut(BaseModel):
     unread: int
     items: list[NotificationOut]
+
+
+# ---------- Chat privado ----------
+class ChatIn(BaseModel):
+    kind: Literal["text", "photo", "audio"] = "text"
+    body: str | None = Field(default=None, max_length=2000)
+    media_key: str | None = None       # foto o nota de voz ya subida con /api/uploads
+
+
+class ChatMessageOut(BaseModel):
+    id: int
+    kind: str
+    body: str | None
+    media_url: MediaURL = None
+    mine: bool
+    created_at: datetime
+    read_at: datetime | None
+
+
+class ChatOut(BaseModel):
+    can_chat: bool                     # False si la persona aún no tiene cuenta o no estáis conectados
+    name: str
+    avatar_url: MediaURL = None
+    messages: list[ChatMessageOut]

@@ -1333,3 +1333,70 @@ def test_galeria_del_cofre():
     # Un tercero no puede pedir el cofre de otro
     assert client.get(f"/api/memories/media?person_id={teo_p['id']}", headers=intruso).status_code == 404
     assert client.get(f"/api/memories?person_id={teo_p['id']}", headers=intruso).status_code == 404
+
+
+# ---------- Chat privado del cofre ----------
+def test_chat_privado(monkeypatch):
+    import json as _json
+    import app.push as push
+    sent = []
+    monkeypatch.setattr(push, "webpush", lambda info, data, **kw: sent.append(_json.loads(data)))
+    mia = register("Mia Chat", "mia.chat@x.com")
+    noa = register("Noa Chat", "noa.chat@x.com")
+    espia = register("Espia Chat", "espia.chat@x.com")
+    noa_p = add_person(mia, "Noa", "amistad")
+    sin_cuenta = add_person(mia, "Abuelo", "familia")
+    url = f"/api/people/{noa_p['id']}/chat"
+
+    # Antes de conectar: no se puede chatear
+    r = client.get(url, headers=mia).json()
+    assert r["can_chat"] is False and r["messages"] == []
+    assert client.post(url, headers=mia, json={"body": "hola"}).status_code == 409
+    assert client.post(f"/api/people/{sin_cuenta['id']}/chat", headers=mia, json={"body": "hola"}).status_code == 409
+
+    connect_users(noa, mia, noa_p)
+    mia_en_noa = client.get("/api/people", headers=noa).json()[0]
+    client.post("/api/push/subscribe", headers=noa, json={"endpoint": "https://push.example/noa", "keys": {"p256dh": "B", "auth": "x"}})
+
+    r = client.post(url, headers=mia, json={"body": "  ¿Comemos el domingo?  "})
+    assert r.status_code == 201 and r.json()["body"] == "¿Comemos el domingo?" and r.json()["mine"] is True
+    first = r.json()["id"]
+    assert sent[-1] == {"title": "Mia", "body": "¿Comemos el domingo?", "url": f"/personas/{mia_en_noa['id']}/chat",
+                        "tag": f"chat-{client.get('/api/me', headers=mia).json()['id']}"}
+    assert client.post(url, headers=mia, json={"body": "   "}).status_code == 422
+    assert client.post(url, headers=mia, json={"kind": "photo"}).status_code == 422
+
+    # Sin leer, hasta que Noa abre el chat
+    assert client.get("/api/chat/unread", headers=noa).json() == {str(mia_en_noa["id"]): 1}
+    r = client.get(f"/api/people/{mia_en_noa['id']}/chat", headers=noa).json()
+    assert r["can_chat"] and [m["body"] for m in r["messages"]] == ["¿Comemos el domingo?"] and r["messages"][0]["mine"] is False
+    assert client.get("/api/chat/unread", headers=noa).json() == {}
+    assert client.get(url, headers=mia).json()["messages"][0]["read_at"] is not None   # "visto"
+
+    # Foto y nota de voz ya subidas
+    key = _upload(noa, "photo", "image/jpeg", b"\xff\xd8\xff foto")
+    r = client.post(f"/api/people/{mia_en_noa['id']}/chat", headers=noa, json={"kind": "photo", "media_key": key})
+    assert r.status_code == 201 and r.json()["media_url"]
+    key = _upload(noa, "audio", "audio/mp4", b"\x00\x00\x00 ftypM4A voz")
+    r = client.post(f"/api/people/{mia_en_noa['id']}/chat", headers=noa, json={"kind": "audio", "media_key": key})
+    assert r.status_code == 201
+    voz = r.json()["id"]
+    # La clave de otro no sirve
+    key_mia = _upload(mia, "photo", "image/jpeg", b"\xff\xd8\xff de mia")
+    assert client.post(f"/api/people/{mia_en_noa['id']}/chat", headers=noa, json={"kind": "photo", "media_key": key_mia}).status_code in (403, 404, 422)
+    assert [m["kind"] for m in client.get(url, headers=mia).json()["messages"]] == ["text", "photo", "audio"]
+
+    # Privacidad: un tercero no ve ni escribe ni borra; nadie borra lo ajeno
+    assert client.get(url, headers=espia).status_code == 404
+    assert client.post(url, headers=espia, json={"body": "hola"}).status_code == 404
+    assert client.delete(f"/api/chat/{first}", headers=espia).status_code == 404
+    assert client.delete(f"/api/chat/{first}", headers=noa).status_code == 404
+    assert client.get("/api/chat/unread", headers=espia).json() == {}
+    # Borrar lo propio
+    assert client.delete(f"/api/chat/{voz}", headers=noa).status_code == 204
+    assert len(client.get(url, headers=mia).json()["messages"]) == 2
+
+    # Desconectar: se acaba el chat
+    client.post(f"/api/people/{noa_p['id']}/unlink", headers=mia)
+    assert client.get(url, headers=mia).json()["can_chat"] is False
+    assert client.post(f"/api/people/{mia_en_noa['id']}/chat", headers=noa, json={"body": "¿hola?"}).status_code == 409

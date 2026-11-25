@@ -3,6 +3,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from .capsules import remove_user_capsules
+from .chat import remove_user_chat
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import Comment, ConnectionRequest, Memory, Notification, Person, PushSubscription, Reaction, User
@@ -79,6 +80,7 @@ def delete_account(user: User = Depends(get_current_user), db: Session = Depends
     """Elimina la cuenta y todo lo suyo: recuerdos, personas, comentarios y reacciones.
     Si estaba vinculada al cofre de otra persona, ese cofre vuelve a quedar 'sin conectar'."""
     remove_user_capsules(user, db)
+    remove_user_chat(user, db)
     db.execute(delete(PushSubscription).where(PushSubscription.user_id == user.id))
     mine = select(Memory.id).where(Memory.author_id == user.id)
     db.execute(delete(Notification).where((Notification.user_id == user.id) | (Notification.actor_id == user.id)

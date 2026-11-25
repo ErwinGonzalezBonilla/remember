@@ -147,6 +147,8 @@ export default function PersonChest() {
   const [tips, setTips] = useState(false)
   const { data: person, loading, error } = useApi(`/api/people/${id}`)
   const { data: memories, error: memError } = useApi(`/api/memories?person_id=${id}`)
+  const { data: unread } = useApi(`/api/chat/unread?person_id=${id}`)
+  const unreadChat = unread?.[id] || 0
 
   if (loading) return <AppShell><Spinner /></AppShell>
   if (error) return <AppShell><TopBar title="Persona" /><ErrorBox error={error} /></AppShell>
@@ -176,9 +178,11 @@ export default function PersonChest() {
 
         <nav className="chest-actions" aria-label={`El cofre de ${name}`}>
           {actions(id).map((a) => (
-            <Link key={a.to} to={a.to} className="chest-action">
+            <Link key={a.to} to={a.to} className="chest-action"
+              aria-label={a.key === 'chat' && unreadChat ? `Chat, ${unreadChat} ${unreadChat === 1 ? 'mensaje sin leer' : 'mensajes sin leer'}` : undefined}>
               <span className="chest-action-icon"><Icon name={a.icon} size={24} /></span>
               <small>{a.label}</small>
+              {a.key === 'chat' && unreadChat > 0 && <span className="chest-dot" aria-hidden="true">{unreadChat > 9 ? '9+' : unreadChat}</span>}
             </Link>
           ))}
         </nav>
