@@ -1818,12 +1818,12 @@ button.media-button:focus-visible { outline: 3px solid var(--sky); outline-offse
 .chest-nicks span + span { font-size: .85rem; font-weight: 600; color: var(--text-2); font-family: var(--font); }
 
 /* Accesos: fila con scroll horizontal si no caben */
-.chest-actions { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding: 4px 16px 6px; margin-inline: 0 !important;
+.chest-actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 4px 16px 6px; margin-inline: 0 !important;
   scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
 .chest-actions::-webkit-scrollbar { display: none; }
-.chest-action { position: relative; flex: none; width: 64px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+.chest-action { position: relative; flex: none; width: 66px; display: flex; flex-direction: column; align-items: center; gap: 6px;
   color: var(--text); text-decoration: none; scroll-snap-align: start; }
-.chest-action-icon { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: var(--surface);
+.chest-action-icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--surface);
   border: 1px solid var(--border); color: var(--petrol); box-shadow: var(--shadow); }
 .chest-action small { font-size: .76rem; font-weight: 700; white-space: nowrap; }
 .chest-action:focus-visible { outline: none; }

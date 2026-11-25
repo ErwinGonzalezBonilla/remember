@@ -1,5 +1,39 @@
 # Rehomi · Registro de cambios
 
+## 25 de noviembre de 2026
+
+### El cofre, un espacio privado entre los dos
+- Cabecera nueva: foto grande con corazón, "El cofre de {nombre}", "{relación} · Desde {año}" y "Espacio privado compartido".
+- **Desde**: el año en que os conocisteis, que se anota al editar la persona. Si no se anota, el año en que os conectasteis (o en que la añadiste).
+- Accesos en una fila que se desliza: **Foto**, **Video**, **Canciones**, **Cápsula**, **Chat**, **Calendario** y **Mapa**.
+  - Foto y Video: todas las fotos o videos de los recuerdos que compartís, también los de los álbumes.
+  - Cápsula: solo las cápsulas entre los dos (enviadas y recibidas), con la lista de siempre.
+  - Calendario: solo sus fechas, las cápsulas entre los dos y vuestros recuerdos, con el mismo panel del día.
+- **Nuestros recuerdos**: el último en grande (con ▶ si es un video) y miniaturas, con "Ver todo".
+- **Momentos destacados**: los hitos y los recuerdos que marques con ⭐ ("Destacar en el cofre" en el menú del recuerdo; solo quien lo guardó).
+- **Recomendaciones**, calculadas sin IA: su próximo cumpleaños o fecha especial (→ crear una cápsula para ese día), "un día como hoy" y "hace X días que no guardáis un recuerdo" (→ nuevo recuerdo).
+- Dentro del cofre solo se ve lo compartido entre los dos, con la regla de siempre; Cápsulas, Calendario y el resto de la app siguen mostrando todo.
+
+### Notas de voz grabadas en la app
+- El botón **Audio** de Nueva cápsula ofrece **Grabar ahora** o **Elegir archivo**.
+- La grabadora deja grabar, pausar y seguir, escuchar, repetir y añadir. En el iPhone graba en M4A; en el resto de navegadores, en WebM u Ogg. También se usa en Nuevo recuerdo y en el chat.
+
+### Chat privado
+- Conversación solo entre los dos, si estáis conectados: texto, fotos y notas de voz, con la hora, "Visto" y la opción de borrar tus mensajes.
+- Los mensajes nuevos llegan mientras el chat está abierto (cada pocos segundos), con aviso en el móvil y un punto rojo con los no leídos en el botón Chat.
+- Si la persona aún no tiene cuenta: "Podréis chatear cuando {nombre} se conecte".
+
+### Canciones
+- Vuestras canciones con título, artista, enlace de Spotify, YouTube o Apple Music y una nota ("la de nuestra boda"). Se escuchan con el reproductor oficial de cada servicio, que se carga al tocar "Escuchar".
+- Cada uno puede añadir canciones y borrar las suyas.
+
+### Mapa
+- Mapa de OpenStreetMap con los recuerdos que compartís y tienen lugar; cada punto lleva su foto y al tocarlo se abre el recuerdo. Debajo, la misma lista de lugares.
+- Al guardar un recuerdo con lugar, la app busca sus coordenadas en OpenStreetMap (Nominatim). Si no lo encuentra, el recuerdo se guarda igual, sin punto en el mapa.
+
+### Rendimiento
+- El mapa, el chat, las canciones y Conectar (con el lector de QR) se descargan solo al abrirlos: la app arranca con menos peso.
+
 ## 22 de noviembre de 2026
 
 ### Calendario: cápsulas y recuerdos
