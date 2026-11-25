@@ -281,3 +281,18 @@ class ChatMessage(Base):
     media_url: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, index=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))   # "visto"
+
+
+class Song(Base):
+    """Canción del cofre ("la de nuestra boda"): la añade `author` para una persona de su lista.
+    En el cofre de los dos se ven las de ambos si están conectados."""
+    __tablename__ = "songs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    person_id: Mapped[int] = mapped_column(ForeignKey("people.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(120))
+    artist: Mapped[str | None] = mapped_column(String(120))
+    url: Mapped[str] = mapped_column(String(500))
+    note: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)

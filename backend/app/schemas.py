@@ -456,3 +456,24 @@ class ChatOut(BaseModel):
     name: str
     avatar_url: MediaURL = None
     messages: list[ChatMessageOut]
+
+
+# ---------- Canciones del cofre ----------
+class SongIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    artist: str | None = Field(default=None, max_length=120)
+    url: str = Field(min_length=8, max_length=500)
+    note: str | None = Field(default=None, max_length=200)
+
+
+class SongOut(BaseModel):
+    id: int
+    title: str
+    artist: str | None
+    url: str
+    note: str | None
+    service: Literal["spotify", "youtube", "apple"]
+    embed_url: str                     # reproductor oficial del servicio (iframe)
+    mine: bool
+    author_name: str
+    created_at: datetime

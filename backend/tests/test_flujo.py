@@ -1400,3 +1400,55 @@ def test_chat_privado(monkeypatch):
     client.post(f"/api/people/{noa_p['id']}/unlink", headers=mia)
     assert client.get(url, headers=mia).json()["can_chat"] is False
     assert client.post(f"/api/people/{mia_en_noa['id']}/chat", headers=noa, json={"body": "¿hola?"}).status_code == 409
+
+
+# ---------- Canciones del cofre ----------
+def test_canciones_del_cofre():
+    from app.routers.songs import embed
+    assert embed("https://open.spotify.com/intl-es/track/4uLU6hMCjMI75M1A2tKUQC?si=x") == (
+        "spotify", "https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC")
+    assert embed("https://youtu.be/dQw4w9WgXcQ") == ("youtube", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ")
+    assert embed("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10")[1].endswith("/dQw4w9WgXcQ")
+    assert embed("https://music.youtube.com/watch?v=dQw4w9WgXcQ")[0] == "youtube"
+    assert embed("https://music.apple.com/es/album/perfect/1193701079?i=1193701392") == (
+        "apple", "https://embed.music.apple.com/es/album/perfect/1193701079?i=1193701392")
+
+    ada = register("Ada Song", "ada.song@x.com")
+    bru = register("Bru Song", "bru.song@x.com")
+    fisgon = register("Fisgon Song", "fisgon.song@x.com")
+    bru_p = add_person(ada, "Bru", "pareja")
+    otra_p = add_person(ada, "Otra", "amistad")
+    url = f"/api/people/{bru_p['id']}/songs"
+    song = {"title": "Perfect", "artist": "Ed Sheeran", "url": "https://youtu.be/dQw4w9WgXcQ", "note": "La de nuestra boda"}
+
+    # Enlaces que no son de un servicio admitido (ni un iframe a cualquier sitio)
+    for bad in ["https://evil.example/track/1", "javascript:alert(1)", "https://open.spotify.com/user/abc",
+                "https://youtu.be/<script>", "https://notyoutube.com/watch?v=dQw4w9WgXcQ"]:
+        assert client.post(url, headers=ada, json={**song, "url": bad}).status_code == 422, bad
+
+    r = client.post(url, headers=ada, json=song)
+    assert r.status_code == 201 and r.json()["service"] == "youtube" and r.json()["mine"] and r.json()["note"] == "La de nuestra boda"
+    mia = r.json()["id"]
+    client.post(f"/api/people/{otra_p['id']}/songs", headers=ada, json={**song, "title": "Para otra"})
+    assert [s["title"] for s in client.get(url, headers=ada).json()] == ["Perfect"]
+
+    # Bru, conectado: ve la de Ada en su cofre y añade la suya; Ada ve las dos
+    connect_users(bru, ada, bru_p)
+    ada_en_bru = client.get("/api/people", headers=bru).json()[0]
+    bru_url = f"/api/people/{ada_en_bru['id']}/songs"
+    assert [s["title"] for s in client.get(bru_url, headers=bru).json()] == ["Perfect"]
+    client.post(bru_url, headers=bru, json={"title": "Nuestra", "url": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"})
+    r = client.get(url, headers=ada).json()
+    assert {s["title"]: s["mine"] for s in r} == {"Nuestra": False, "Perfect": True}
+    assert next(s for s in r if s["title"] == "Nuestra")["author_name"] == "Bru Song"
+
+    # Privacidad: un tercero no lista, no añade y no borra; nadie borra lo ajeno
+    assert client.get(url, headers=fisgon).status_code == 404
+    assert client.post(url, headers=fisgon, json=song).status_code == 404
+    assert client.delete(f"/api/songs/{mia}", headers=fisgon).status_code == 404
+    assert client.delete(f"/api/songs/{mia}", headers=bru).status_code == 404
+    assert client.delete(f"/api/songs/{mia}", headers=ada).status_code == 204
+    assert [s["title"] for s in client.get(url, headers=ada).json()] == ["Nuestra"]
+    # Al desconectar, cada uno deja de ver las del otro
+    client.post(f"/api/people/{bru_p['id']}/unlink", headers=ada)
+    assert client.get(url, headers=ada).json() == []

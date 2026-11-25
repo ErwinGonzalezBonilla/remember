@@ -1955,3 +1955,29 @@ button.media-button:focus-visible { outline: 3px solid var(--sky); outline-offse
   :root:not([data-theme="light"]) .msg.mine .msg-bubble { background: #0C6B79; }
   :root:not([data-theme="light"]) .chat-icon-btn { color: var(--sky); }
 }
+
+/* ---------- Canciones del cofre ---------- */
+.songs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.song { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--shadow); }
+.song-head { display: flex; align-items: center; gap: 12px; }
+.song-icon { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; flex: none; color: #fff; }
+.song-icon.is-spotify { background: #1A9E4B; }
+.song-icon.is-youtube { background: #D93025; }
+.song-icon.is-apple { background: #E9475C; }
+.song-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.song-text strong { overflow-wrap: anywhere; }
+.song-text small { color: var(--text-2); font-size: .82rem; }
+.song-del { color: var(--text-2); }
+.song-note { font-family: var(--hand); font-size: 1.45rem; line-height: 1.2; color: var(--coral); }
+.song-play { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 999px; border: 0;
+  font: inherit; font-weight: 800; cursor: pointer; background: var(--petrol-50); color: var(--petrol); }
+.song-play:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.song-frame { width: 100%; border: 0; border-radius: 14px; background: var(--mist); height: 152px; }
+.song-frame.is-youtube { height: auto; aspect-ratio: 16 / 9; }
+.song-frame.is-apple { height: 175px; }
+.song-frame.tall { height: 380px; }
+.song-form { display: flex; flex-direction: column; gap: 12px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .song-play { color: var(--sky); }
+}

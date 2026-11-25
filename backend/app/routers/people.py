@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.orm import Session
 
 from .capsules import detach_person
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
-from ..models import ConnectionRequest, Memory, MemoryTag, Person, User
+from ..models import ConnectionRequest, Memory, MemoryTag, Person, Song, User
 from ..schemas import AboutFamily, AboutMember, AboutOut, Family, PersonIn, PersonOut, SeenAs
 from ..storage import media_from
 
@@ -176,5 +177,6 @@ def delete_person(person_id: int, user: User = Depends(get_current_user), db: Se
     """Borra a la persona de tu lista. Los recuerdos NO se borran: solo pierden esa etiqueta."""
     person = get_own_person(person_id, user, db)
     detach_person(person, db)
+    db.execute(sa_delete(Song).where(Song.person_id == person.id))   # sus canciones (SQLite no aplica la FK)
     db.delete(person)
     db.commit()
