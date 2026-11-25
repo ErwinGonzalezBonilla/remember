@@ -6,8 +6,10 @@ import UpdateBanner from './components/UpdateBanner'
 import { AuthProvider } from './context/AuthContext'
 import './styles/app.css'
 import { registerServiceWorker } from './push'
+import { syncVibratePref } from './vibration'
 
 registerServiceWorker()
+syncVibratePref()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

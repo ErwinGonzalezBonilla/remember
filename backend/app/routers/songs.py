@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
 from ..models import Person, Song, User
+from ..push import send_push
 from ..schemas import SongIn, SongOut
 
 router = APIRouter(prefix="/api", tags=["canciones"])
@@ -95,6 +96,13 @@ def add_song(person_id: int, data: SongIn, user: User = Depends(get_current_user
     db.add(song)
     db.commit()
     db.refresh(song)
+    # Si estáis conectados, la otra persona la verá en su cofre: se le avisa
+    if person.linked_user_id:
+        theirs = db.scalar(select(Person.id).where(Person.owner_id == person.linked_user_id, Person.linked_user_id == user.id))
+        if theirs:
+            send_push(db, [person.linked_user_id], f"{user.full_name.split(' ')[0]} añadió una canción a vuestro cofre 🎵",
+                      " · ".join(x for x in (song.title, song.artist) if x), f"/personas/{theirs}/canciones",
+                      tag=f"song-{user.id}")
     return to_out(song, user, {user.id: user.full_name})
 
 

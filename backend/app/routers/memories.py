@@ -14,6 +14,7 @@ from ..models import Comment, Memory, MemoryMedia, MemoryTag, Notification, Pers
 from ..schemas import (MEDIA_MAX, ChestMediaOut, CommentIn, MapPointOut, CommentOut, MediaAddIn, MediaItemOut, MediaKeyIn, MediaOrderIn,
                        MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, StarIn, clean_milestone)
 from ..geocode import geocode
+from ..push import send_push
 from ..storage import media_from, poster_from
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
@@ -381,6 +382,9 @@ def react(memory_id: int, data: ReactionIn, user: User = Depends(get_current_use
     else:
         memory.reactions.append(Reaction(user_id=user.id, emoji=data.emoji))
     db.commit()
+    if memory.author_id != user.id:
+        send_push(db, [memory.author_id], f"{user.full_name.split(' ')[0]} reaccionó {data.emoji} a tu recuerdo",
+                  f"«{memory.title}»", f"/recuerdo/{memory.id}", tag=f"reaction-{memory.id}")
     return to_out(memory, user)
 
 

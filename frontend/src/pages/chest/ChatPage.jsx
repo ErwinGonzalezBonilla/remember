@@ -5,6 +5,7 @@ import IOSMenu from '../../components/IOSMenu'
 import { AppShell, Avatar, EmptyState, ErrorBox, Spinner, TopBar } from '../../components/ui'
 import { AUDIO_ACCEPT, compressImage, progressText, tooBig, uploadFile, withMime } from '../../media'
 import VoiceRecorder, { canRecord } from '../memories/VoiceRecorder'
+import { buzz } from '../../vibration'
 import { useChestPerson } from './ChestPages'
 import { firstName } from './chestUtils'
 
@@ -65,9 +66,13 @@ export default function ChatPage() {
   const audioInput = useRef(null)
   const lastId = useRef(null)
 
+  const known = useRef(null)   // ids ya vistos: para vibrar solo con los mensajes nuevos de la otra persona
   const load = useCallback(async () => {
     try {
-      setChat(await api(`/api/people/${id}/chat`))
+      const data = await api(`/api/people/${id}/chat`)
+      if (known.current && data.messages.some((m) => !m.mine && !known.current.has(m.id))) buzz()
+      known.current = new Set(data.messages.map((m) => m.id))
+      setChat(data)
       setError('')
     } catch (e) {
       setError(e.message)

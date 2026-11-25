@@ -265,6 +265,12 @@ def delete(capsule_id: int, user: User = Depends(get_current_user), db: Session 
 
 
 # ---------- Reacciones y comentarios (solo cuando está abierta) ----------
+def notify_other_side(c: TimeCapsule, user: User, db: Session, title: str, body: str, tag: str):
+    """Aviso a la otra persona de la cápsula: a quien la creó o a quien la recibió. Solo se llama con la cápsula
+    abierta (require_open), así que el texto nunca adelanta nada de una cápsula cerrada."""
+    other = recipient_id(c) if c.author_id == user.id else c.author_id
+    if other and other != user.id:
+        send_push(db, [other], title, body, f"/capsula/{c.id}", tag=tag)
 @router.put("/capsules/{capsule_id}/reaction", response_model=CapsuleDetailOut)
 def react(capsule_id: int, data: ReactionIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     c = get_capsule(capsule_id, user, db)
@@ -275,6 +281,8 @@ def react(capsule_id: int, data: ReactionIn, user: User = Depends(get_current_us
     else:
         c.reactions.append(CapsuleReaction(user_id=user.id, emoji=data.emoji))
     db.commit()
+    notify_other_side(c, user, db, f"{user.full_name.split(' ')[0]} reaccionó {data.emoji} a la cápsula", f"«{c.title}»",
+                      tag=f"capsule-reaction-{c.id}")
     return to_detail(c, user)
 
 
@@ -295,6 +303,8 @@ def comment(capsule_id: int, data: CommentIn, user: User = Depends(get_current_u
     c.comments.append(CapsuleComment(author_id=user.id, body=data.body.strip()))
     db.commit()
     db.refresh(c)
+    notify_other_side(c, user, db, f"{user.full_name.split(' ')[0]} comentó en la cápsula «{c.title}»",
+                      data.body.strip()[:120], tag=f"capsule-comment-{c.id}")
     return to_detail(c, user)
 
 

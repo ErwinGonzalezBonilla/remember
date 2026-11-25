@@ -1521,3 +1521,106 @@ def test_mapa_del_cofre(monkeypatch):
     # Privacidad: el mapa de otro no se puede pedir
     assert client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=curioso).status_code == 404
     assert client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=pau).status_code == 404
+
+
+# ---------- Avisos en el móvil: cada novedad envía el suyo ----------
+def test_cada_novedad_envia_su_aviso(monkeypatch):
+    import json as _json
+    import app.push as push
+    from app.routers import capsules as cap_router
+    monkeypatch.setattr(cap_router, "send_email", lambda *a, **k: True)
+    monkeypatch.setattr("app.routers.notifications.send_email", lambda *a, **k: True)
+    monkeypatch.setattr("app.routers.connect.send_email", lambda *a, **k: True, raising=False)
+    sent = []   # (móvil, aviso)
+    monkeypatch.setattr(push, "webpush", lambda info, data, **kw: sent.append((info["endpoint"], _json.loads(data))))
+
+    vera = register("Vera Aviso", "vera.aviso@x.com")
+    client.patch("/api/me", headers=vera, json={"full_name": "Vera Aviso", "username": "vera_aviso"})
+    tom = register("Tom Aviso", "tom.aviso@x.com")
+    client.patch("/api/me", headers=tom, json={"full_name": "Tom Aviso", "username": "tom_aviso"})
+    for h, ep in ((vera, "https://push.example/vera"), (tom, "https://push.example/tom")):
+        assert client.post("/api/push/subscribe", headers=h, json={"endpoint": ep, "keys": {"p256dh": "B", "auth": "x"}}).status_code == 204
+
+    def last(endpoint):
+        """El último aviso que recibió ese móvil (y que llegó alguno nuevo)."""
+        mine = [d for e, d in sent if e == endpoint]
+        assert mine, f"{endpoint} no recibió ningún aviso"
+        return mine[-1]
+
+    def expect(endpoint, fn):
+        before = len(sent)
+        fn()
+        new = [d for e, d in sent[before:] if e == endpoint]
+        assert new, f"{endpoint} no recibió aviso"
+        for d in new:
+            assert d["tag"], "cada aviso lleva tag (para renotify)"
+        return new[-1]
+
+    def nothing(fn):
+        before = len(sent)
+        fn()
+        assert sent[before:] == []
+
+    # 1-2) Solicitud de conexión (a Vera) y su aceptación (a Tom)
+    vid = client.get("/api/connect/lookup", headers=tom, params={"q": "@vera_aviso"}).json()["id"]
+    req = {}
+    d = expect("https://push.example/vera", lambda: req.update(
+        client.post("/api/connect/requests", headers=tom, json={"to_user_id": vid, "relation": "pareja"}).json()))
+    assert d["title"] == "Tom Aviso quiere conectar contigo" and d["url"].startswith("/conectar/solicitud/")
+    d = expect("https://push.example/tom", lambda: client.post(
+        f"/api/connect/requests/{req['id']}/accept", headers=vera, json={"relation": "pareja"}))
+    assert d["title"].startswith("¡Vera aceptó tu solicitud")
+    tom_en_vera = client.get("/api/people", headers=vera).json()[0]
+    vera_en_tom = client.get("/api/people", headers=tom).json()[0]
+
+    # 3) Te etiquetan en un recuerdo
+    m = {}
+    d = expect("https://push.example/tom", lambda: m.update(save(vera, "Cena", people=[tom_en_vera])))
+    assert d == {"title": "Vera guardó una nota contigo", "body": "«Cena»", "url": f"/recuerdo/{m['id']}", "tag": f"memory-{m['id']}"}
+    # 4) Comentario (al autor) y 5) respuesta (a quien comentó)
+    c = {}
+    d = expect("https://push.example/vera", lambda: c.update(
+        client.post(f"/api/memories/{m['id']}/comments", headers=tom, json={"body": "¡Qué noche!"}).json()))
+    assert d["title"] == "Tom comentó en «Cena»" and d["body"] == "¡Qué noche!"
+    first_comment = c["comments"][0]["id"]
+    d = expect("https://push.example/tom", lambda: client.post(
+        f"/api/memories/{m['id']}/comments", headers=vera, json={"body": "La repetimos", "parent_id": first_comment}))
+    assert d["title"] == "Vera respondió a tu comentario"
+    # 6) Reacción a un recuerdo → a quien lo guardó; reaccionar a lo propio no avisa
+    d = expect("https://push.example/vera", lambda: client.put(f"/api/memories/{m['id']}/reaction", headers=tom, json={"emoji": "😍"}))
+    assert d == {"title": "Tom reaccionó 😍 a tu recuerdo", "body": "«Cena»", "url": f"/recuerdo/{m['id']}", "tag": f"reaction-{m['id']}"}
+    nothing(lambda: client.put(f"/api/memories/{m['id']}/reaction", headers=vera, json={"emoji": "❤️"}))
+
+    # 7) Mensaje de chat
+    d = expect("https://push.example/tom", lambda: client.post(f"/api/people/{tom_en_vera['id']}/chat", headers=vera, json={"body": "¿Cenamos?"}))
+    assert d["title"] == "Vera" and d["body"] == "¿Cenamos?" and d["tag"].startswith("chat-")
+
+    # 8) Cápsula recibida: el aviso no adelanta nada de lo que hay dentro
+    cap = client.post("/api/capsules", headers=vera, json={"title": "Aniversario", "message": "SECRETO: el viaje a Roma",
+                                                           "person_id": tom_en_vera["id"], "open_at": future(), "timezone": "Europe/Madrid"}).json()
+    d = expect("https://push.example/tom", lambda: client.post(f"/api/capsules/{cap['id']}/seal", headers=vera))
+    assert d["title"] == "Vera te dejó una cápsula del tiempo 🎁" and d["body"].startswith("Se abrirá el")
+    assert "SECRETO" not in _json.dumps(d) and "Roma" not in _json.dumps(d)
+    # Cerrada: no se puede reaccionar ni comentar, así que tampoco hay avisos
+    nothing(lambda: client.put(f"/api/capsules/{cap['id']}/reaction", headers=tom, json={"emoji": "❤️"}))
+    # 9) Cápsula que se abre (aviso diario)
+    open_now(cap["id"])
+    d = expect("https://push.example/tom", lambda: client.get("/api/cron/capsules"))
+    assert d["title"] == "¡Tu cápsula del tiempo ya se puede abrir! 🎉" and d["url"] == f"/capsula/{cap['id']}"
+    # 10) Comentario en la cápsula (a la otra parte) y 11) reacción
+    d = expect("https://push.example/vera", lambda: client.post(f"/api/capsules/{cap['id']}/comments", headers=tom, json={"body": "Me encanta"}))
+    assert d == {"title": "Tom comentó en la cápsula «Aniversario»", "body": "Me encanta", "url": f"/capsula/{cap['id']}",
+                 "tag": f"capsule-comment-{cap['id']}"}
+    d = expect("https://push.example/tom", lambda: client.post(f"/api/capsules/{cap['id']}/comments", headers=vera, json={"body": "¡Feliz aniversario!"}))
+    assert d["title"] == "Vera comentó en la cápsula «Aniversario»"
+    d = expect("https://push.example/vera", lambda: client.put(f"/api/capsules/{cap['id']}/reaction", headers=tom, json={"emoji": "🥰"}))
+    assert d["title"] == "Tom reaccionó 🥰 a la cápsula" and d["tag"] == f"capsule-reaction-{cap['id']}"
+
+    # 12) Canción nueva en el cofre → a la otra persona, que la abre desde su cofre
+    d = expect("https://push.example/vera", lambda: client.post(f"/api/people/{vera_en_tom['id']}/songs", headers=tom,
+                                                               json={"title": "Perfect", "artist": "Ed Sheeran", "url": "https://youtu.be/dQw4w9WgXcQ"}))
+    assert d == {"title": "Tom añadió una canción a vuestro cofre 🎵", "body": "Perfect · Ed Sheeran",
+                 "url": f"/personas/{tom_en_vera['id']}/canciones", "tag": f"song-{client.get('/api/me', headers=tom).json()['id']}"}
+    # Una canción para alguien sin cuenta no avisa a nadie
+    abuela = add_person(vera, "Abuela", "familia")
+    nothing(lambda: client.post(f"/api/people/{abuela['id']}/songs", headers=vera, json={"title": "Bolero", "url": "https://youtu.be/dQw4w9WgXcQ"}))
