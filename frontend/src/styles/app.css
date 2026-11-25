@@ -548,6 +548,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--petrol); outline
 .rec-btn { width: 72px; height: 72px; border-radius: 50%; border: 0; background: #E7E4FB; color: #5A54C4; display: grid; place-items: center; }
 .rec-btn.on { background: var(--coral); color: #fff; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 12px rgba(255, 107, 107, .18); } }
+/* Grabadora: grabar, pausar, escuchar, repetir y añadir */
+.recorder { width: 100%; }
+.rec-btn { cursor: pointer; }
+.rec-live { display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; }
+.rec-live strong { font-size: 1.6rem; font-weight: 800; }
+.rec-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--danger); animation: rec-blink 1s ease-in-out infinite; }
+.rec-dot.paused { background: var(--text-2); animation: none; }
+@keyframes rec-blink { 50% { opacity: .25; } }
+.rec-controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.rec-ctrl { display: inline-flex; align-items: center; gap: 6px; min-height: 46px; padding: 0 18px; border-radius: 999px; font: inherit;
+  font-weight: 800; border: 1.5px solid var(--border); background: var(--surface); color: var(--petrol); cursor: pointer; }
+.rec-ctrl.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+.rec-ctrl:focus-visible, .rec-btn:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.rec-audio { width: 100%; max-width: 360px; }
+.rec-ready { font-size: .9rem; font-weight: 600; color: var(--text-2); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rec-ctrl:not(.primary) { color: var(--sky); } }
 
 .detail-media { width: 100%; border-radius: var(--radius); max-height: 70dvh; object-fit: contain; background: #000; }
 .detail-audio { display: flex; gap: 12px; align-items: center; }
@@ -1466,6 +1483,8 @@ button.cal-day:focus-visible > span { outline: 2px solid var(--petrol); outline-
 .media-button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 104px;
   border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); border: 1.5px solid transparent;
   font-weight: 800; color: var(--petrol); cursor: pointer; transition: transform .1s, border-color .15s; }
+button.media-button { font: inherit; font-weight: 800; width: 100%; }
+button.media-button:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 .media-button:hover { border-color: var(--sand); }
 .media-button:active { transform: scale(.97); }
 .media-button:focus-within { outline: 3px solid var(--sky); outline-offset: 2px; }

@@ -15,6 +15,7 @@ function useMedia(active) {
   const [time, setTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [failed, setFailed] = useState(false)
+  const fixing = useRef(false)
 
   // Al pasar a otro elemento del carrusel, se pausa
   useEffect(() => { if (!active && ref.current && !ref.current.paused) ref.current.pause() }, [active])
@@ -30,9 +31,18 @@ function useMedia(active) {
     onPlay: () => setPlaying(true),
     onPause: () => setPlaying(false),
     onEnded: () => setPlaying(false),
-    onTimeUpdate: (e) => setTime(e.currentTarget.currentTime),
-    onLoadedMetadata: (e) => setDuration(e.currentTarget.duration),
-    onDurationChange: (e) => setDuration(e.currentTarget.duration),
+    onTimeUpdate: (e) => { if (!fixing.current) setTime(e.currentTarget.currentTime) },
+    onLoadedMetadata: (e) => {
+      const el = e.currentTarget
+      setDuration(el.duration)
+      // Las grabaciones webm de Chrome no dicen su duración: saltar al final obliga al navegador a calcularla
+      if (el.duration === Infinity) { fixing.current = true; el.currentTime = 1e101 }
+    },
+    onDurationChange: (e) => {
+      const el = e.currentTarget
+      setDuration(el.duration)
+      if (fixing.current && Number.isFinite(el.duration)) { fixing.current = false; el.currentTime = 0; setTime(0) }
+    },
     onError: () => setFailed(true),
   }
   return { ref, playing, time, duration, failed, toggle, seek, events }
