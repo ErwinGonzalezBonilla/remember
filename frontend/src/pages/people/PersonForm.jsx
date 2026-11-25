@@ -5,7 +5,7 @@ import Icon from '../../components/Icon'
 import { AppShell, ErrorBox, Field, RELATIONS, Spinner, TopBar, NICK_EMOJIS, suggestEmoji } from '../../components/ui'
 import { compressImage, tooBig, uploadFile } from '../../media'
 
-const EMPTY = { name: '', relation: 'familia', relation_label: '', nickname: '', nickname_emoji: '', birth_date: '', special_date: '', special_label: '', note: '' }
+const EMPTY = { name: '', relation: 'familia', relation_label: '', nickname: '', nickname_emoji: '', birth_date: '', special_date: '', special_label: '', note: '', known_since: '' }
 
 /** Crear o editar una persona (sin cuenta necesaria). */
 export default function PersonForm() {
@@ -31,7 +31,7 @@ export default function PersonForm() {
         setForm({
           name: p.name, relation: p.relation, relation_label: p.relation_label || '',
           nickname: p.nickname || '', nickname_emoji: p.nickname_emoji || '', birth_date: p.birth_date || '', special_date: p.special_date || '',
-          special_label: p.special_label || '', note: p.note || '',
+          special_label: p.special_label || '', note: p.note || '', known_since: p.known_since ? String(p.known_since) : '',
         })
         if (p.nickname_emoji) setEmojiTouched(true)
         setPhotoUrl(p.photo_url)
@@ -56,6 +56,7 @@ export default function PersonForm() {
       ...form,
       birth_date: form.birth_date || null, special_date: form.special_date || null,
       special_label: form.special_label || null, note: form.note || null,
+      known_since: form.known_since ? Number(form.known_since) : null,
       relation_label: form.relation === 'otro' ? form.relation_label.trim() || null : null,
       nickname: form.nickname.trim() || null, nickname_emoji: form.nickname.trim() ? form.nickname_emoji || null : null,
     }
@@ -167,6 +168,11 @@ export default function PersonForm() {
               <input id="sl" value={form.special_label} onChange={set('special_label')} maxLength={60} placeholder="Aniversario" />
             </Field>
           </div>
+          <Field label="¿Desde qué año os conocéis? (opcional)" htmlFor="ks"
+            hint="Sale en su cofre como «Desde 2015». Si lo dejas vacío, se usa el año en que os conectasteis.">
+            <input id="ks" type="number" inputMode="numeric" min={1900} max={new Date().getFullYear()} step={1}
+              value={form.known_since} onChange={set('known_since')} placeholder={String(new Date().getFullYear())} />
+          </Field>
           <Field label="Una nota (opcional)" htmlFor="no">
             <textarea id="no" rows={2} maxLength={300} value={form.note} onChange={set('note')}
               placeholder="Mi pequeña gran aventura." />

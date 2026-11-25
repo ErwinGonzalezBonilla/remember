@@ -70,6 +70,7 @@ class Person(Base):
     special_date: Mapped[date | None] = mapped_column(Date)       # aniversario, el día que os conocisteis…
     special_label: Mapped[str | None] = mapped_column(String(60))
     note: Mapped[str | None] = mapped_column(String(300))
+    known_since: Mapped[int | None] = mapped_column(Integer)       # año en que os conocisteis ("Desde 2015")
     linked_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
@@ -90,6 +91,7 @@ class Memory(Base):
     location: Mapped[str | None] = mapped_column(String(160))
     happened_on: Mapped[date | None] = mapped_column(Date)
     milestone: Mapped[str | None] = mapped_column(String(40))  # hito: "Primeros pasos", "Primer diente"…
+    starred: Mapped[bool | None] = mapped_column(default=False)  # destacado por quien lo guardó (cofre)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     author: Mapped[User] = relationship()

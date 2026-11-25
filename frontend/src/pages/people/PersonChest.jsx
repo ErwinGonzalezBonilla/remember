@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import BottomSheet from '../../components/BottomSheet'
 import Icon from '../../components/Icon'
-import { relationText, AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, nextOccurrence, ageAt } from '../../components/ui'
+import { AppShell, Avatar, ErrorBox, Spinner, TopBar, formatDate, relationText } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { useApi } from '../../hooks'
-import { KIND_LABEL, MemoryThumb } from '../memories/MemoryCard'
+import { firstName, highlights, recommendations } from '../chest/chestUtils'
+import { MemoryThumb } from '../memories/MemoryCard'
 import { MilestoneBadge } from '../memories/Milestone'
 
-// Icono de cada acceso rápido. El de la cápsula es provisional: el cliente mandará el suyo (cambiar aquí o en Icon.jsx).
-const CAPSULE_ICON = 'hourglass'
+const THUMBS = 4
 
 /** "Te llama «El orejón» 😂" o, sin apodo, "Dice que eres su primo/a". Vacío si no hay nada que contar. */
 function seenAsLine(seen) {
@@ -18,154 +19,227 @@ function seenAsLine(seen) {
   return rel && !(seen.relation === 'otro' && !seen.relation_label) ? `Dice que eres su ${rel.toLowerCase()}` : ''
 }
 
-/** El cofre de una persona: su línea de tiempo con todo lo que has guardado con ella. */
+/** Los accesos del cofre. `dot`: punto rojo (mensajes sin leer). */
+function actions(id) {
+  return [
+    { to: `/personas/${id}/fotos`, icon: 'camera', label: 'Foto' },
+    { to: `/personas/${id}/videos`, icon: 'video', label: 'Video' },
+    { to: `/personas/${id}/canciones`, icon: 'music', label: 'Canciones' },
+    { to: `/personas/${id}/capsulas`, icon: 'hourglass', label: 'Cápsula' },
+    { to: `/personas/${id}/chat`, icon: 'chat', label: 'Chat', key: 'chat' },
+    { to: `/personas/${id}/calendario`, icon: 'calendar', label: 'Calendario' },
+    { to: `/personas/${id}/mapa`, icon: 'map', label: 'Mapa' },
+  ]
+}
+
+function ChestHead({ person, id }) {
+  const name = firstName(person.name)
+  const photo = person.photo_url || person.about?.avatar_url
+  const face = (
+    <span className="chest-face">
+      <Avatar name={person.name} src={photo} size={112} />
+      <span className="chest-face-heart" aria-hidden="true"><Icon name="heart" size={18} filled /></span>
+    </span>
+  )
+  return (
+    <header className="chest-head">
+      <div className="chest-head-bar">
+        <BackButton />
+        <Link to={`/personas/${id}/editar`} className="chest-round" aria-label={`Editar a ${name}`}><Icon name="edit" size={20} /></Link>
+      </div>
+      {person.is_linked
+        ? <Link to={`/personas/${id}/perfil`} className="chest-face-link" aria-label={`Ver el perfil de ${name}`}>{face}</Link>
+        : face}
+      <h1 className="chest-title">El cofre de {name}</h1>
+      <p className="chest-sub">{relationText(person)}{person.since_year && ` · Desde ${person.since_year}`}</p>
+      <p className="chest-private"><Icon name="lock" size={14} /> Espacio privado compartido</p>
+    </header>
+  )
+}
+
+function BackButton() {
+  const navigate = useNavigate()
+  const back = () => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/personas', { replace: true }))
+  return <button type="button" className="chest-round" onClick={back} aria-label="Volver"><Icon name="back" size={20} /></button>
+}
+
+function OurMemories({ memories, id, name }) {
+  if (!memories.length) {
+    return (
+      <section className="chest-section">
+        <h2 className="chest-h2">Nuestros recuerdos</h2>
+        <div className="first-memory">
+          <span className="hl-icon"><Icon name="gift" size={22} /></span>
+          <div>
+            <strong>Su cofre está vacío</strong>
+            <p className="muted">Guarda una foto, un audio o una carta para {name}.</p>
+            <Link to={`/recuerdos/nuevo?persona=${id}`} className="btn btn-primary chest-first-btn"><Icon name="plus" size={18} /> Guardar el primero</Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+  const [last, ...rest] = memories
+  return (
+    <section className="chest-section" aria-labelledby="chest-ours">
+      <div className="chest-section-head">
+        <h2 id="chest-ours" className="chest-h2">Nuestros recuerdos</h2>
+        <Link to={`/personas/${id}/recuerdos`} className="btn-text chest-see">Ver todo ({memories.length})</Link>
+      </div>
+      <Link to={`/recuerdo/${last.id}`} className="chest-hero-memory">
+        <MemoryThumb memory={last} asDiv />
+        {last.kind === 'video' && <span className="chest-play" aria-hidden="true"><Icon name="play" size={28} filled /></span>}
+        <span className="chest-hero-text">
+          <strong>{last.title}</strong>
+          <small>{formatDate(last.happened_on || last.created_at)}{last.kind === 'video' ? ' · Video' : ''}</small>
+        </span>
+      </Link>
+      {rest.length > 0 && (
+        <ul className="chest-thumbs">
+          {rest.slice(0, THUMBS).map((m) => (
+            <li key={m.id}>
+              <Link to={`/recuerdo/${m.id}`} className="chest-thumb" aria-label={m.title}>
+                <MemoryThumb memory={m} asDiv />
+                {m.kind === 'video' && <span className="chest-play small" aria-hidden="true"><Icon name="play" size={16} filled /></span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+function Highlights({ list, name }) {
+  return (
+    <section className="chest-section" aria-labelledby="chest-highlights">
+      <h2 id="chest-highlights" className="chest-h2">Momentos destacados</h2>
+      {list.length ? (
+        <ul className="chest-highlights">
+          {list.map((m) => (
+            <li key={m.id}>
+              <Link to={`/recuerdo/${m.id}`} className="chest-highlight">
+                <MemoryThumb memory={m} asDiv />
+                <span className="chest-highlight-text">
+                  {m.milestone ? <MilestoneBadge milestone={m.milestone} /> : <span className="chest-star"><Icon name="star" size={13} filled /> Destacado</span>}
+                  <strong>{m.title}</strong>
+                  <small>{formatDate(m.happened_on || m.created_at)}</small>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted chest-empty-line">
+          Aquí saldrán los hitos y los recuerdos que marques con <Icon name="star" size={14} /> al verlos. Marca tu primer momento con {name}.
+        </p>
+      )}
+    </section>
+  )
+}
+
+/** El cofre de una persona: el espacio privado entre tú y ella. */
 export default function PersonChest() {
   const { id } = useParams()
   const { user } = useAuth()
   const location = useLocation()
   const [copied, setCopied] = useState(false)
-  const [onlySpecial, setOnlySpecial] = useState(false)
+  const [tips, setTips] = useState(false)
   const { data: person, loading, error } = useApi(`/api/people/${id}`)
-  const { data: memories } = useApi(`/api/memories?person_id=${id}`)
+  const { data: memories, error: memError } = useApi(`/api/memories?person_id=${id}`)
 
   if (loading) return <AppShell><Spinner /></AppShell>
   if (error) return <AppShell><TopBar title="Persona" /><ErrorBox error={error} /></AppShell>
 
-  const first = person.name.split(' ')[0]
-  const since = memories?.length ? memories[memories.length - 1] : null
-  const birthday = person.birth_date && nextOccurrence(person.birth_date)
+  const name = firstName(person.name)
   const seenLine = person.is_linked ? seenAsLine(person.seen_as) : ''
-
-  // Agrupar la línea de tiempo por año
-  const byYear = {}
-  const shown = onlySpecial ? memories?.filter((m) => m.milestone) : memories
-  shown?.forEach((m) => {
-    const y = (m.happened_on || m.created_at).slice(0, 4)
-    ;(byYear[y] ||= []).push(m)
-  })
-  const years = Object.keys(byYear).sort((a, b) => b - a)
+  const recs = memories ? recommendations(person, memories) : []
 
   return (
     <AppShell>
-      <TopBar
-        title={person.name}
-        right={<Link to={`/personas/${id}/editar`} className="icon-btn" aria-label="Editar persona"><Icon name="edit" /></Link>}
-      />
+      <div className="chest-page">
+        <ChestHead person={person} id={id} />
 
-      <section className="chest">
-        {person.is_linked ? (
-          <Link to={`/personas/${id}/perfil`} className="chest-photo-link" aria-label={`Ver el perfil de ${first}`}>
-            <Avatar name={person.name} src={person.photo_url || person.about?.avatar_url} size={84} />
-          </Link>
-        ) : (
-          <Avatar name={person.name} src={person.photo_url || person.about?.avatar_url} size={84} />
+        {location.state?.connected && (
+          <div className="alert alert-ok">
+            ¡Conectados! {location.state.shared > 0
+              ? `${location.state.connected} ya puede ver ${location.state.shared === 1 ? 'el recuerdo' : `los ${location.state.shared} recuerdos`} de su cofre.`
+              : 'A partir de ahora compartiréis los recuerdos en los que os etiquetéis.'}
+          </div>
         )}
-        <h1>El cofre de {first}</h1>
-        <span className="muted">
-          {relationText(person)} · {person.memory_count}{' '}
-          {person.memory_count === 1 ? 'recuerdo' : 'recuerdos'}
-          {since && ` desde ${(since.happened_on || since.created_at).slice(0, 4)}`}
-        </span>
-        {person.nickname && <span className="chest-nick">Le dices «{person.nickname}» {person.nickname_emoji}</span>}
-        {seenLine && <span className="chest-seen">{seenLine}</span>}
-        {person.note && <p className="chest-note">“{person.note}”</p>}
-        <span className={`chest-badge ${person.is_linked ? 'open' : ''}`}>
-          {person.is_linked ? '🔓 Conectada: compartís estos recuerdos' : '🔒 Se abrirá cuando se conecte'}
-        </span>
-      </section>
+        {(person.nickname || seenLine) && (
+          <p className="chest-nicks">
+            {person.nickname && <span>Le dices «{person.nickname}» {person.nickname_emoji}</span>}
+            {seenLine && <span>{seenLine}</span>}
+          </p>
+        )}
 
-      {location.state?.connected && (
-        <div className="alert alert-ok">
-          ¡Conectados! {location.state.shared > 0
-            ? `${location.state.connected} ya puede ver ${location.state.shared === 1 ? 'el recuerdo' : `los ${location.state.shared} recuerdos`} de su cofre.`
-            : `A partir de ahora compartiréis los recuerdos en los que os etiquetéis.`}
-        </div>
-      )}
+        <nav className="chest-actions" aria-label={`El cofre de ${name}`}>
+          {actions(id).map((a) => (
+            <Link key={a.to} to={a.to} className="chest-action">
+              <span className="chest-action-icon"><Icon name={a.icon} size={24} /></span>
+              <small>{a.label}</small>
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="quick-actions" aria-label={`Guardar algo para ${first}`}>
-        <Link to={`/recuerdos/nuevo?persona=${id}&tipo=photo`} className="quick-action">
-          <span className="quick-action-icon"><Icon name="camera" size={24} /></span>
-          <small>Foto</small>
-        </Link>
-        <Link to={`/recuerdos/nuevo?persona=${id}&tipo=video`} className="quick-action">
-          <span className="quick-action-icon"><Icon name="video" size={24} /></span>
-          <small>Video</small>
-        </Link>
-        <Link to={`/capsulas/nueva?persona=${id}`} className="quick-action">
-          <span className="quick-action-icon"><Icon name={CAPSULE_ICON} size={24} /></span>
-          <small>Cápsula</small>
-        </Link>
-      </nav>
-
-      {birthday && (
-        <div className="milestone">
-          <span className="hl-icon"><Icon name="cake" size={20} /></span>
-          <span>
-            <small>Cumpleaños</small>
-            <strong>{formatDate(birthday.date)}{birthday.years > 0 && ` · cumple ${birthday.years}`}</strong>
-            <small>{birthday.days === 0 ? '¡Es hoy!' : `En ${birthday.days} días`}</small>
-          </span>
-        </div>
-      )}
-
-      {memories && !memories.length && (
-        <div className="first-memory">
-          <span className="hl-icon"><Icon name="gift" size={22} /></span>
-          <div>
-            <strong>Su cofre está vacío</strong>
-            <p className="muted">Guarda una foto, un audio o una carta para {first}. {person.is_linked ? 'Lo verá en cuanto lo guardes.' : 'Lo descubrirá cuando se conecte.'}</p>
-          </div>
-        </div>
-      )}
-
-      {memories?.length > 0 && (
-        <div className="chips chest-filter">
-          <button type="button" className={`chip chip-coral ${onlySpecial ? 'active' : ''}`} aria-pressed={onlySpecial}
-            onClick={() => setOnlySpecial((v) => !v)}>⭐ Solo momentos especiales</button>
-        </div>
-      )}
-      {onlySpecial && !shown.length && (
-        <p className="muted center">Aún no hay momentos especiales con {first}. Márcalos al guardar o editar un recuerdo.</p>
-      )}
-
-      {years.map((y) => (
-        <section key={y} className="timeline">
-          <h2 className="year">{y}</h2>
-          <div className="tl">
-            {byYear[y].map((m) => {
-              const age = ageAt(person.birth_date, m.happened_on || m.created_at)
-              return (
-              <Link key={m.id} to={`/recuerdo/${m.id}`} className="tl-item">
-                <div className="tl-thumb"><MemoryThumb memory={m} asDiv /></div>
-                <span className="row-text">
-                  <MilestoneBadge milestone={m.milestone} />
-                  <strong>{m.title}</strong>
-                  <small>{formatDate(m.happened_on || m.created_at)}{age && <span className="tl-age"> · {age}</span>} · {KIND_LABEL[m.kind]}{m.author_id !== user.id && ` · de ${m.author_name.split(' ')[0]}`}</small>
-                  {m.people.length > 1 && (
-                    <small className="muted">Con {m.people.filter((p) => String(p.id) !== id).map((p) => p.name).join(', ')}</small>
-                  )}
+        <ErrorBox error={memError} />
+        {!memories && !memError && <Spinner />}
+        {memories && (
+          <>
+            <OurMemories memories={memories} id={id} name={name} />
+            <Highlights list={highlights(memories)} name={name} />
+            <section className="chest-section" aria-label="Recomendaciones">
+              <button type="button" className="chest-recs" onClick={() => setTips(true)} aria-haspopup="dialog">
+                <span className="chest-recs-icon"><Icon name="sparkle" size={22} /></span>
+                <span className="chest-recs-text">
+                  <strong>Recomendaciones</strong>
+                  <small>{recs.length ? `${recs.length} ${recs.length === 1 ? 'idea' : 'ideas'} para ${name}` : `Ideas para ${name}`}</small>
                 </span>
-              </Link>
-              )
-            })}
-          </div>
-        </section>
-      ))}
+                {recs.length > 0 && <span className="chest-recs-count" aria-hidden="true">{recs.length}</span>}
+                <Icon name="chevron" size={18} />
+              </button>
+            </section>
+          </>
+        )}
 
-      {!person.is_linked && (
-        <section className="card invite">
-          <strong>¿Cómo se abre el cofre de {first}?</strong>
-          <p className="muted">Cuando {first} cree su cuenta en REHOMI, que te busque en <b>Conectar</b> con tu @usuario. Al aceptar su solicitud, verá todo lo que guardaste aquí.</p>
-          {user.username ? (
-            <button className="btn btn-ghost" onClick={async () => {
-              try { await navigator.clipboard.writeText(`Te guardé recuerdos en REHOMI 💛 Crea tu cuenta en ${window.location.origin} y búscame: @${user.username}`); setCopied(true) } catch { /* sin portapapeles */ }
-            }}>
-              <Icon name={copied ? 'check' : 'link'} size={18} /> {copied ? 'Invitación copiada' : `Copiar invitación (@${user.username})`}
-            </button>
+        {person.note && <p className="chest-note">“{person.note}”</p>}
+
+        {!person.is_linked && (
+          <section className="card invite">
+            <strong>¿Cómo se abre el cofre de {name}?</strong>
+            <p className="muted">Cuando {name} cree su cuenta en REHOMI, que te busque en <b>Conectar</b> con tu @usuario. Al aceptar su solicitud, verá todo lo que guardaste aquí.</p>
+            {user.username ? (
+              <button className="btn btn-ghost" onClick={async () => {
+                try { await navigator.clipboard.writeText(`Te guardé recuerdos en REHOMI 💛 Crea tu cuenta en ${window.location.origin} y búscame: @${user.username}`); setCopied(true) } catch { /* sin portapapeles */ }
+              }}>
+                <Icon name={copied ? 'check' : 'link'} size={18} /> {copied ? 'Invitación copiada' : `Copiar invitación (@${user.username})`}
+              </button>
+            ) : (
+              <Link to="/perfil" className="btn btn-ghost">Elige tu @usuario primero</Link>
+            )}
+          </section>
+        )}
+      </div>
+
+      {tips && (
+        <BottomSheet title={`Ideas para ${name}`} onClose={() => setTips(false)}>
+          {recs.length ? (
+            <ul className="recs-list">
+              {recs.map((r) => (
+                <li key={r.key}>
+                  <Link to={r.to} className="rec">
+                    <span className={`rec-icon is-${r.tone}`}><Icon name={r.icon} size={20} /></span>
+                    <span className="rec-text"><strong>{r.title}</strong><small>{r.text}</small></span>
+                    <span className="rec-cta">{r.cta}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <Link to="/perfil" className="btn btn-ghost">Elige tu @usuario primero</Link>
+            <p className="muted day-none">Ahora mismo no hay nada pendiente. ¡Vais al día!</p>
           )}
-        </section>
+        </BottomSheet>
       )}
     </AppShell>
   )

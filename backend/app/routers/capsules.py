@@ -12,8 +12,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
+from sqlalchemy import false, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -130,12 +130,19 @@ def check_timezone(tz: str):
 
 # ---------- Listado y detalle ----------
 @router.get("/capsules", response_model=CapsulesOut)
-def list_capsules(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    sent = db.scalars(select(TimeCapsule).where(TimeCapsule.author_id == user.id)
-                      .order_by(TimeCapsule.open_at)).all()
-    received = db.scalars(select(TimeCapsule).where(
+def list_capsules(person_id: int | None = Query(None, description="Solo las cápsulas entre tú y esta persona (su cofre)"),
+                  user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    sent_q = select(TimeCapsule).where(TimeCapsule.author_id == user.id)
+    received_q = select(TimeCapsule).where(
         TimeCapsule.sealed_at.is_not(None), TimeCapsule.author_id != user.id,
-        TimeCapsule.person.has(Person.linked_user_id == user.id)).order_by(TimeCapsule.open_at)).all()
+        TimeCapsule.person.has(Person.linked_user_id == user.id))
+    if person_id is not None:
+        # Enviadas a esa persona y recibidas de su cuenta (si está conectada)
+        person = get_own_person(person_id, user, db)
+        sent_q = sent_q.where(TimeCapsule.person_id == person.id)
+        received_q = received_q.where(TimeCapsule.author_id == person.linked_user_id if person.linked_user_id else false())
+    sent = db.scalars(sent_q.order_by(TimeCapsule.open_at)).all()
+    received = db.scalars(received_q.order_by(TimeCapsule.open_at)).all()
     return CapsulesOut(received=[to_out(c, user) for c in received], sent=[to_out(c, user) for c in sent])
 
 

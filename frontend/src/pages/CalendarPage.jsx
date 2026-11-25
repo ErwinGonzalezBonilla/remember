@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '../components/Icon'
-import { AppShell, Avatar, EmptyState, ErrorBox, PageHead, Spinner, formatDate, nextOccurrence } from '../components/ui'
+import { AppShell, Avatar, EmptyState, ErrorBox, PageHead, Spinner, TopBar, formatDate, nextOccurrence } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useApi } from '../hooks'
 import { EventIcon, TYPE_ORDER, buildDated, buildYearly, inYear, title } from './calendarEvents'
@@ -85,13 +85,21 @@ function FilterMenu({ value, onChange }) {
   )
 }
 
-/** Calendario: el mes con tus fechas, cápsulas y recuerdos marcados, y la lista de lo próximo. */
-export default function CalendarPage() {
+/**
+ * Calendario: el mes con tus fechas, cápsulas y recuerdos marcados, y la lista de lo próximo.
+ * `person`: dentro de un cofre, solo lo de esa persona (sus fechas, las cápsulas entre los dos y lo que compartís).
+ */
+export default function CalendarPage({ person = null }) {
   const { user } = useAuth()
-  const { data: people, setData: setPeople, loading, error } = useApi('/api/people')
-  const { data: capsules, error: capsulesError } = useApi('/api/capsules')
+  const q = person ? `person_id=${person.id}` : ''
+  const peopleApi = useApi(person ? null : '/api/people')
+  const [personState, setPersonState] = useState(person)
+  const people = person ? [personState] : peopleApi.data
+  const setPeople = person ? (fn) => setPersonState((p) => fn([p])[0]) : peopleApi.setData
+  const { loading, error } = person ? { loading: false, error: '' } : peopleApi
+  const { data: capsules, error: capsulesError } = useApi(`/api/capsules${q ? `?${q}` : ''}`)
   // 500 es lo máximo que devuelve la API (los más recientes por fecha del recuerdo)
-  const { data: memories, error: memoriesError } = useApi('/api/memories?limit=500')
+  const { data: memories, error: memoriesError } = useApi(`/api/memories?limit=500${q ? `&${q}` : ''}`)
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
   const [selected, setSelected] = useState(null)   // Date del día tocado
@@ -100,7 +108,7 @@ export default function CalendarPage() {
   const [showAll, setShowAll] = useState(false)
   const touch = useRef(null)
 
-  const yearly = buildYearly(user, people)
+  const yearly = buildYearly(person ? {} : user, people)
   const dated = buildDated(capsules, memories, user)
   const keep = (e) => filter === 'all' || e.type === filter
   const events = yearly.filter(keep)
@@ -190,10 +198,15 @@ export default function CalendarPage() {
   const noDates = people && capsules && memories && !yearly.length && !dated.length
   return (
     <AppShell>
-      <PageHead title="Calendario" className={people ? 'page-head-hero' : ''}
-        action={!noDates && people && <FilterMenu value={filter} onChange={changeFilter} />}>
-        <p className="muted">Tus fechas importantes, en un solo lugar.</p>
-      </PageHead>
+      {person ? (
+        <TopBar title={`Calendario con ${person.name.split(' ')[0]}`}
+          right={!noDates && <FilterMenu value={filter} onChange={changeFilter} />} />
+      ) : (
+        <PageHead title="Calendario" className={people ? 'page-head-hero' : ''}
+          action={!noDates && people && <FilterMenu value={filter} onChange={changeFilter} />}>
+          <p className="muted">Tus fechas importantes, en un solo lugar.</p>
+        </PageHead>
+      )}
       <ErrorBox error={error || capsulesError || memoriesError} />
       {loading && <Spinner />}
 
@@ -239,8 +252,8 @@ export default function CalendarPage() {
 
       {noDates && (
         <EmptyState icon="calendar" title="Sin fechas todavía"
-          text="Añade el cumpleaños o un aniversario a tus personas y aparecerán aquí."
-          action={<Link to="/personas" className="btn btn-primary">Ir a tus personas</Link>} />
+          text={person ? 'Toca un día para anotar su cumpleaños o una fecha especial.' : 'Añade el cumpleaños o un aniversario a tus personas y aparecerán aquí.'}
+          action={!person && <Link to="/personas" className="btn btn-primary">Ir a tus personas</Link>} />
       )}
 
       {people && !noDates && (
@@ -269,14 +282,16 @@ export default function CalendarPage() {
       )}
 
       {sheetDay && (
-        <DaySheet date={sheetDay} events={sheetEvents} people={people || []} today={today}
+        <DaySheet date={sheetDay} events={sheetEvents} people={people || []} today={today} personId={person?.id}
           onClose={() => setSheetDay(null)}
           onPersonSaved={(p) => setPeople((list) => list.map((x) => (x.id === p.id ? p : x)))} />
       )}
 
-      <div className="soon-card">
-        <Icon name="sparkle" size={18} /> Pronto: eventos, citas, viajes y recordatorios.
-      </div>
+      {!person && (
+        <div className="soon-card">
+          <Icon name="sparkle" size={18} /> Pronto: eventos, citas, viajes y recordatorios.
+        </div>
+      )}
     </AppShell>
   )
 }

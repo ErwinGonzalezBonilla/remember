@@ -164,6 +164,7 @@ class PersonIn(BaseModel):
     special_date: date | None = None
     special_label: str | None = Field(default=None, max_length=60)
     note: str | None = Field(default=None, max_length=300)
+    known_since: int | None = Field(default=None, ge=1900, le=2100)   # año en que os conocisteis (opcional)
 
 
 class SeenAs(BaseModel):
@@ -190,6 +191,8 @@ class PersonOut(BaseModel):
     special_label: str | None
     note: str | None
     is_linked: bool          # ya tiene cuenta y está conectada (parte 2)
+    known_since: int | None = None     # año en que os conocisteis, si lo anotaste
+    since_year: int | None = None      # "Desde": known_since, o el año de la conexión, o el año en que la añadiste
     memory_count: int
     last_memory_at: datetime | None
     created_at: datetime
@@ -272,12 +275,28 @@ class MemoryOut(BaseModel):
     my_reaction: str | None
     comment_count: int
     can_edit: bool
+    starred: bool = False              # destacado en el cofre (lo marca quien lo guardó)
     media_count: int = 0               # fotos y videos del álbum (1 en los recuerdos antiguos de foto o video)
 
 
 class MemoryDetailOut(MemoryOut):
     comments: list[CommentOut]
     media: list[MediaItemOut] = []
+
+
+class ChestMediaOut(BaseModel):
+    """Una foto o un video de la galería de un cofre."""
+    memory_id: int
+    title: str
+    happened_on: date
+    kind: str
+    url: MediaURL
+    poster_url: MediaURL = None
+    position: int
+
+
+class StarIn(BaseModel):
+    starred: bool
 
 
 class MemoryUpdate(BaseModel):

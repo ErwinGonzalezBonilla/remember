@@ -11,8 +11,8 @@ from ..on_this_day import memory_day, on_this_day, utc_today
 from pydantic import TypeAdapter, ValidationError
 
 from ..models import Comment, Memory, MemoryMedia, MemoryTag, Notification, Person, Reaction, User
-from ..schemas import (MEDIA_MAX, CommentIn, CommentOut, MediaAddIn, MediaItemOut, MediaKeyIn, MediaOrderIn,
-                       MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, clean_milestone)
+from ..schemas import (MEDIA_MAX, ChestMediaOut, CommentIn, CommentOut, MediaAddIn, MediaItemOut, MediaKeyIn, MediaOrderIn,
+                       MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, StarIn, clean_milestone)
 from ..storage import media_from, poster_from
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
@@ -88,7 +88,7 @@ def to_out(memory: Memory, user: User) -> MemoryOut:
         milestone=memory.milestone, created_at=memory.created_at, author_id=memory.author_id, author_name=memory.author.full_name,
         people=[_tag(t.person, memory, user) for t in memory.tags],
         reactions=dict(counts), my_reaction=mine, comment_count=len(memory.comments),
-        can_edit=memory.author_id == user.id, media_count=_media_count(memory),
+        can_edit=memory.author_id == user.id, media_count=_media_count(memory), starred=bool(memory.starred),
     )
 
 
@@ -127,6 +127,39 @@ def _require_author(memory: Memory, user: User):
         raise HTTPException(403, "Solo quien guardó este recuerdo puede cambiarlo.")
 
 
+def chest_condition(person_id: int, user: User, db: Session):
+    """El cofre de una persona: lo que tú etiquetaste con ella y, si está conectada,
+    también lo que ella guardó y etiquetó contigo (lo que compartís). Siempre junto a visible_to(user)."""
+    person = get_own_person(person_id, user, db)
+    cond = Memory.tags.any(MemoryTag.person_id == person.id)
+    if person.linked_user_id:
+        from_them = and_(Memory.author_id == person.linked_user_id,
+                         Memory.tags.any(MemoryTag.person.has(Person.linked_user_id == user.id)))
+        cond = or_(cond, from_them)
+    return cond
+
+
+@router.get("/memories/media", response_model=list[ChestMediaOut])
+def chest_media(
+    person_id: int = Query(..., description="El cofre de esta persona"),
+    kind: str = Query("photo", pattern="^(photo|video)$"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Galería del cofre: cada foto (o video) de los álbumes compartidos con esa persona, del recuerdo más reciente al
+    más antiguo. Misma regla que el cofre: solo lo que ves y lo que compartís."""
+    q = (select(Memory).where(visible_to(user), chest_condition(person_id, user, db))
+         .order_by(Memory.happened_on.desc().nulls_last(), Memory.created_at.desc()).limit(500)
+         .options(selectinload(Memory.media)))
+    out = []
+    for m in db.scalars(q).unique():
+        for it in media_items(m):
+            if it.kind == kind:
+                out.append(ChestMediaOut(memory_id=m.id, title=m.title, happened_on=m.happened_on or m.created_at.date(),
+                                         kind=it.kind, url=it.url, poster_url=it.poster_url, position=it.position))
+    return out
+
+
 @router.get("/memories", response_model=list[MemoryOut])
 def list_memories(
     person_id: int | None = Query(None),
@@ -138,15 +171,7 @@ def list_memories(
 ):
     q = select(Memory).where(visible_to(user))
     if person_id is not None:
-        # El cofre de una persona: lo que tú etiquetaste con ella y, si está conectada,
-        # también lo que ella guardó y etiquetó contigo (lo que compartís).
-        person = get_own_person(person_id, user, db)
-        cond = Memory.tags.any(MemoryTag.person_id == person.id)
-        if person.linked_user_id:
-            from_them = and_(Memory.author_id == person.linked_user_id,
-                             Memory.tags.any(MemoryTag.person.has(Person.linked_user_id == user.id)))
-            cond = or_(cond, from_them)
-        q = q.where(cond)
+        q = q.where(chest_condition(person_id, user, db))
     if untagged:
         q = q.where(~Memory.tags.any())
     if kind in KINDS:
@@ -314,6 +339,16 @@ def reorder_media(memory_id: int, data: MediaOrderIn, user: User = Depends(get_c
 
 
 # ---------- Reacciones ----------
+@router.put("/memories/{memory_id}/star", response_model=MemoryOut)
+def star(memory_id: int, data: StarIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Destacar un recuerdo en el cofre ("Momentos destacados"). Solo quien lo guardó."""
+    memory = get_visible_memory(memory_id, user, db)
+    _require_author(memory, user)
+    memory.starred = data.starred
+    db.commit()
+    return to_out(memory, user)
+
+
 @router.put("/memories/{memory_id}/reaction", response_model=MemoryOut)
 def react(memory_id: int, data: ReactionIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     memory = get_visible_memory(memory_id, user, db)

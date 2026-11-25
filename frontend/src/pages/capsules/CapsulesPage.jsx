@@ -124,8 +124,11 @@ function Group({ g, open, onToggle, received }) {
   )
 }
 
-export default function CapsulesPage() {
-  const { data, loading, error } = useApi('/api/capsules')
+/** `person`: dentro de un cofre, solo las cápsulas entre tú y esa persona (enviadas y recibidas). */
+export default function CapsulesPage({ person = null }) {
+  const { data, loading, error } = useApi(person ? `/api/capsules?person_id=${person.id}` : '/api/capsules')
+  const name = person?.name.split(' ')[0]
+  const createTo = person ? `/capsulas/nueva?persona=${person.id}` : '/capsulas/nueva'
   const [tab, setTab] = useState(null)
   const [status, setStatus] = useState('all')
   const [query, setQuery] = useState('')
@@ -152,14 +155,14 @@ export default function CapsulesPage() {
 
   return (
     <AppShell>
-      <TopBar title="Cápsulas del tiempo" />
+      <TopBar title={person ? `Cápsulas con ${name}` : 'Cápsulas del tiempo'} />
       <section className="capsule-hero">
         <span className="capsule-hero-icon"><Icon name="gift" size={26} /></span>
         <div>
-          <h2>Un regalo para el futuro</h2>
+          <h2>{person ? `Un regalo para ${name}` : 'Un regalo para el futuro'}</h2>
           <p>Escribe una carta, añade fotos, videos o audios, y elige el día en que se abrirá. Hasta entonces, nadie podrá verla.</p>
         </div>
-        <Link to="/capsulas/nueva" className="btn btn-coral"><Icon name="plus" size={18} /> Crear una cápsula</Link>
+        <Link to={createTo} className="btn btn-coral"><Icon name="plus" size={18} /> Crear una cápsula</Link>
       </section>
 
       <div className="capsule-tabs">
@@ -171,7 +174,7 @@ export default function CapsulesPage() {
             </button>
           ))}
         </div>
-        {data && list.length > 0 && (
+        {data && list.length > 0 && !person && (
           <FilterMenu status={status} onStatus={setStatus} query={query} onQuery={setQuery} options={options} />
         )}
       </div>
@@ -181,10 +184,13 @@ export default function CapsulesPage() {
       {data && !list.length && (
         received
           ? <EmptyState icon="gift" title="Aún no te han dejado ninguna"
-              text="Cuando alguien conectado contigo selle una cápsula para ti, aparecerá aquí con su cuenta atrás." />
+              text={person
+                ? (person.is_linked ? `Cuando ${name} selle una cápsula para ti, aparecerá aquí con su cuenta atrás.`
+                  : `${name} podrá dejarte cápsulas cuando se conecte contigo.`)
+                : 'Cuando alguien conectado contigo selle una cápsula para ti, aparecerá aquí con su cuenta atrás.'} />
           : <EmptyState icon="lock" title="Todavía no has creado ninguna"
               text="Una carta para su cumpleaños número 18, un audio para vuestro aniversario… Tú eliges cuándo se abre."
-              action={<Link to="/capsulas/nueva" className="btn btn-primary">Crear mi primera cápsula</Link>} />
+              action={<Link to={createTo} className="btn btn-primary">Crear mi primera cápsula</Link>} />
       )}
       {data && list.length > 0 && !groups.length && (
         <div className="capsule-none">

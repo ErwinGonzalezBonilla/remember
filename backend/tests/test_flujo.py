@@ -1248,3 +1248,88 @@ def test_recibidas_traen_id_de_quien_las_creo(monkeypatch):
     received = client.get("/api/capsules", headers=rosa).json()["received"]
     assert sorted(c["author_id"] for c in received) == sorted(ids) and ids[0] != ids[1]
     assert {c["author_name"] for c in received} == {"Paula Gil"}
+
+
+# ---------- Cofre: "Desde", destacados y cápsulas de una persona ----------
+def test_cofre_desde_destacados_y_capsulas(monkeypatch):
+    from datetime import datetime, timezone
+    from app.routers import capsules as cap_router
+    monkeypatch.setattr(cap_router, "send_email", lambda *a, **k: True)
+    ana = register("Ana Cofre", "ana.cofre@x.com")
+    luis = register("Luis Cofre", "luis.cofre@x.com")
+    otro = register("Otro Cofre", "otro.cofre@x.com")
+    luis_p = add_person(ana, "Luis", "pareja")
+    sin_cuenta = add_person(ana, "Abuela", "familia")
+    this_year = datetime.now(timezone.utc).year
+
+    # "Desde": sin conectar, el año en que la añadiste; conectados, el de la conexión; con año anotado, ese
+    assert client.get(f"/api/people/{sin_cuenta['id']}", headers=ana).json()["since_year"] == this_year
+    connect_users(luis, ana, luis_p)
+    p = client.get(f"/api/people/{luis_p['id']}", headers=ana).json()
+    assert p["since_year"] == this_year and p["known_since"] is None
+    body = {"name": "Luis", "relation": "pareja", "known_since": 2015}
+    assert client.put(f"/api/people/{luis_p['id']}", headers=ana, json=body).json()["since_year"] == 2015
+    # Un PUT que no envía el campo (calendario) no lo borra
+    r = client.put(f"/api/people/{luis_p['id']}", headers=ana, json={"name": "Luis", "relation": "pareja", "birth_date": "1990-03-04"})
+    assert r.json()["known_since"] == 2015
+    assert client.put(f"/api/people/{luis_p['id']}", headers=ana, json={**body, "known_since": this_year + 1}).status_code == 422
+    assert client.put(f"/api/people/{luis_p['id']}", headers=ana, json={**body, "known_since": 1800}).status_code == 422
+    # Un tercero no ve la persona de otro
+    assert client.get(f"/api/people/{luis_p['id']}", headers=otro).status_code == 404
+
+    # Destacados: solo quien guardó el recuerdo; nadie más (404 si ni lo ve)
+    m = save(ana, "Nuestra boda", people=[luis_p])
+    assert m["starred"] is False
+    r = client.put(f"/api/memories/{m['id']}/star", headers=ana, json={"starred": True})
+    assert r.status_code == 200 and r.json()["starred"] is True
+    assert client.put(f"/api/memories/{m['id']}/star", headers=luis, json={"starred": False}).status_code == 403
+    assert client.put(f"/api/memories/{m['id']}/star", headers=otro, json={"starred": True}).status_code == 404
+    cofre = client.get(f"/api/memories?person_id={luis_p['id']}", headers=ana).json()
+    assert [x["starred"] for x in cofre] == [True]
+    assert client.get(f"/api/memories/{m['id']}", headers=luis).json()["starred"] is True
+
+    # Cápsulas de un cofre: enviadas a esa persona y recibidas de ella; nada de otras personas
+    def capsule(h, person_id, title):
+        c = client.post("/api/capsules", headers=h, json={"title": title, "message": "x", "person_id": person_id,
+                                                          "open_at": future(), "timezone": "Europe/Madrid"}).json()
+        client.post(f"/api/capsules/{c['id']}/seal", headers=h)
+        return c["id"]
+    capsule(ana, luis_p["id"], "Para Luis")
+    capsule(ana, sin_cuenta["id"], "Para la abuela")
+    ana_en_luis = client.get("/api/people", headers=luis).json()[0]
+    capsule(luis, ana_en_luis["id"], "Para Ana")
+    r = client.get(f"/api/capsules?person_id={luis_p['id']}", headers=ana).json()
+    assert [c["title"] for c in r["sent"]] == ["Para Luis"] and [c["title"] for c in r["received"]] == ["Para Ana"]
+    r = client.get(f"/api/capsules?person_id={sin_cuenta['id']}", headers=ana).json()
+    assert [c["title"] for c in r["sent"]] == ["Para la abuela"] and r["received"] == []
+    # El cofre de otra persona no se puede pedir, ni siquiera para ver que existe
+    assert client.get(f"/api/capsules?person_id={luis_p['id']}", headers=otro).status_code == 404
+    assert client.get(f"/api/capsules?person_id={luis_p['id']}", headers=luis).status_code == 404
+    # Sin filtro, todo sigue igual
+    assert len(client.get("/api/capsules", headers=ana).json()["sent"]) == 2
+
+
+def test_galeria_del_cofre():
+    eva = register("Eva Galeria", "eva.galeria@x.com")
+    teo = register("Teo Galeria", "teo.galeria@x.com")
+    intruso = register("Intruso Galeria", "intruso.galeria@x.com")
+    teo_p = add_person(eva, "Teo", "amistad")
+    otra_p = add_person(eva, "Otra", "amistad")
+    connect_users(teo, eva, teo_p)
+    con_teo = save(eva, "Playa con Teo", people=[teo_p], kind="photo")
+    save(eva, "Con otra", people=[otra_p], kind="photo")
+    save(eva, "Nota para Teo", people=[teo_p])          # sin foto: no sale en la galería
+    eva_en_teo = client.get("/api/people", headers=teo).json()[0]
+    de_teo = save(teo, "Foto de Teo", people=[eva_en_teo], kind="photo")
+
+    r = client.get(f"/api/memories/media?person_id={teo_p['id']}", headers=eva).json()
+    assert sorted(x["memory_id"] for x in r) == sorted([con_teo["id"], de_teo["id"]])
+    assert all(x["kind"] == "photo" and x["url"] for x in r)
+    assert client.get(f"/api/memories/media?person_id={teo_p['id']}&kind=video", headers=eva).json() == []
+    assert client.get(f"/api/memories/media?person_id={teo_p['id']}&kind=audio", headers=eva).status_code == 422
+    # Teo, desde su cofre de Eva, ve lo mismo que comparten (y no la foto con "Otra")
+    r = client.get(f"/api/memories/media?person_id={eva_en_teo['id']}", headers=teo).json()
+    assert sorted(x["memory_id"] for x in r) == sorted([con_teo["id"], de_teo["id"]])
+    # Un tercero no puede pedir el cofre de otro
+    assert client.get(f"/api/memories/media?person_id={teo_p['id']}", headers=intruso).status_code == 404
+    assert client.get(f"/api/memories?person_id={teo_p['id']}", headers=intruso).status_code == 404

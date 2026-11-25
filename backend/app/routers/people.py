@@ -1,12 +1,14 @@
 """Personas: tu lista de gente importante. Cada una tiene su cofre de recuerdos."""
-from fastapi import APIRouter, Depends, File, Form, UploadFile
-from sqlalchemy import func, select
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from .capsules import detach_person
 from ..database import get_db
 from ..deps import get_current_user, get_own_person
-from ..models import Memory, MemoryTag, Person, User
+from ..models import ConnectionRequest, Memory, MemoryTag, Person, User
 from ..schemas import AboutFamily, AboutMember, AboutOut, Family, PersonIn, PersonOut, SeenAs
 from ..storage import media_from
 
@@ -32,7 +34,20 @@ def serialize(p: Person, stats: dict) -> PersonOut:
         nickname=p.nickname, nickname_emoji=p.nickname_emoji, photo_url=p.photo_url, birth_date=p.birth_date,
         special_date=p.special_date, special_label=p.special_label, note=p.note,
         is_linked=p.linked_user_id is not None, memory_count=count, last_memory_at=last, created_at=p.created_at,
+        known_since=p.known_since, since_year=p.known_since or (p.created_at.year if p.created_at else None),
     )
+
+
+def connected_year(user_id: int, other_id: int | None, db: Session) -> int | None:
+    """Año en que se aceptó la conexión entre los dos (en cualquier sentido)."""
+    if not other_id:
+        return None
+    at = db.scalar(select(ConnectionRequest.responded_at).where(
+        ConnectionRequest.status == "accepted",
+        or_(and_(ConnectionRequest.from_user_id == user_id, ConnectionRequest.to_user_id == other_id),
+            and_(ConnectionRequest.from_user_id == other_id, ConnectionRequest.to_user_id == user_id)))
+        .order_by(ConnectionRequest.responded_at.desc()).limit(1))
+    return at.year if at else None
 
 
 def _clean(data: PersonIn) -> dict:
@@ -42,6 +57,8 @@ def _clean(data: PersonIn) -> dict:
         d[k] = (d[k] or "").strip() or None
     if d["relation"] != "otro":
         d["relation_label"] = None
+    if d.get("known_since") and d["known_since"] > datetime.now(timezone.utc).year:
+        raise HTTPException(422, "El año en que os conocisteis no puede ser en el futuro.")
     if not d["nickname"]:
         d["nickname_emoji"] = None
     return d
@@ -71,6 +88,8 @@ def get_person(person_id: int, user: User = Depends(get_current_user), db: Sessi
     person = get_own_person(person_id, user, db)
     out = serialize(person, _stats(db, [person.id]))
     out.seen_as = seen_as(person.linked_user_id, user.id, db)
+    if not person.known_since:
+        out.since_year = connected_year(user.id, person.linked_user_id, db) or out.since_year
     if person.linked_user_id:
         other = db.get(User, person.linked_user_id)
         if other:
@@ -122,6 +141,9 @@ def update_person(person_id: int, data: PersonIn, user: User = Depends(get_curre
                   db: Session = Depends(get_db)):
     person = get_own_person(person_id, user, db)
     for k, v in _clean(data).items():
+        # Las pantallas que no conocen este campo (p. ej. el calendario) no lo envían: no se borra
+        if k == "known_since" and "known_since" not in data.model_fields_set:
+            continue
         setattr(person, k, v)
     db.commit()
     return serialize(person, _stats(db, [person.id]))

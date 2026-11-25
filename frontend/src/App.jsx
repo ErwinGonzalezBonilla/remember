@@ -14,6 +14,7 @@ import MemoriesGallery from './pages/memories/MemoriesGallery'
 import MemoryDetail from './pages/memories/MemoryDetail'
 import NewMemory from './pages/memories/NewMemory'
 import CapsuleDetail from './pages/capsules/CapsuleDetail'
+import { ChestCalendar, ChestCapsules, ChestGallery, ChestMemories, ChestSoon } from './pages/chest/ChestPages'
 import CapsuleForm from './pages/capsules/CapsuleForm'
 import CapsulesPage from './pages/capsules/CapsulesPage'
 import ChestOpened from './pages/connect/ChestOpened'
@@ -71,6 +72,14 @@ export default function App() {
       <Route path="/personas/:id" element={<Private><PersonChest /></Private>} />
       <Route path="/personas/:id/perfil" element={<Private><PersonProfile /></Private>} />
       <Route path="/personas/:id/editar" element={<Private><PersonForm /></Private>} />
+      <Route path="/personas/:id/recuerdos" element={<Private><ChestMemories /></Private>} />
+      <Route path="/personas/:id/fotos" element={<Private><ChestGallery key="photo" kind="photo" /></Private>} />
+      <Route path="/personas/:id/videos" element={<Private><ChestGallery key="video" kind="video" /></Private>} />
+      <Route path="/personas/:id/capsulas" element={<Private><ChestCapsules /></Private>} />
+      <Route path="/personas/:id/calendario" element={<Private><ChestCalendar /></Private>} />
+      <Route path="/personas/:id/canciones" element={<Private><ChestSoon what="Canciones" icon="music" /></Private>} />
+      <Route path="/personas/:id/chat" element={<Private><ChestSoon what="Chat" icon="chat" /></Private>} />
+      <Route path="/personas/:id/mapa" element={<Private><ChestSoon what="Mapa" icon="map" /></Private>} />
 
       <Route path="/c/:username" element={<Private><QrLink /></Private>} />
       <Route path="/conectar" element={<Private><ConnectPage /></Private>} />

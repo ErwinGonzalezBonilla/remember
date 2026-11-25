@@ -129,7 +129,8 @@ function AddDateForm({ date, people, onSaved, onCancel }) {
  * Panel de un día del calendario: lo que hay anotado y qué se puede hacer ese día.
  * `events`: los del día (cumpleaños y fechas especiales), ya con `date` y `years` de ese año.
  */
-export default function DaySheet({ date, events, people, today, onClose, onPersonSaved }) {
+export default function DaySheet({ date, events, people, today, onClose, onPersonSaved, personId = null }) {
+  const forWho = personId ? `&persona=${personId}` : ''
   const [adding, setAdding] = useState(false)
   const [saved, setSaved] = useState('')
   const sheet = useRef(null)
@@ -210,13 +211,13 @@ export default function DaySheet({ date, events, people, today, onClose, onPerso
           {!adding && (
             <div className="day-actions">
               {canCapsule && (
-                <Link to={`/capsulas/nueva?fecha=${iso}`} className="day-action">
+                <Link to={`/capsulas/nueva?fecha=${iso}${forWho}`} className="day-action">
                   <span className="day-action-icon is-capsule"><Icon name="lock" size={20} /></span>
                   <span>Crear una cápsula que se abra este día</span>
                 </Link>
               )}
               {canMemory && (
-                <Link to={`/recuerdos/nuevo?fecha=${iso}`} className="day-action">
+                <Link to={`/recuerdos/nuevo?fecha=${iso}${forWho}`} className="day-action">
                   <span className="day-action-icon is-memory"><Icon name="camera" size={20} /></span>
                   <span>Guardar un recuerdo de este día</span>
                 </Link>

@@ -289,6 +289,19 @@ function Viewer({ memory: m, setMemory, me }) {
     } finally { setBusy(false) }
   }
 
+  async function doStar() {
+    setMenu(false)
+    const next = !m.starred
+    merge({ starred: next })
+    try {
+      merge(await api(`/api/memories/${m.id}/star`, { method: 'PUT', body: { starred: next } }))
+      say(next ? 'Destacado en el cofre' : 'Ya no está destacado')
+    } catch (e) {
+      merge({ starred: !next })
+      say(e.message)
+    }
+  }
+
   async function doCopy() {
     setMenu(false)
     await copyLink(m)
@@ -375,6 +388,11 @@ function Viewer({ memory: m, setMemory, me }) {
             {m.can_edit && (
               <button type="button" role="menuitem" onClick={() => { setMenu(false); setEditing(true) }}>
                 <Icon name="edit" size={18} /> Editar recuerdo
+              </button>
+            )}
+            {m.can_edit && (
+              <button type="button" role="menuitem" onClick={doStar}>
+                <Icon name="star" size={18} filled={m.starred} /> {m.starred ? 'Quitar de destacados' : 'Destacar en el cofre'}
               </button>
             )}
             <button type="button" role="menuitem" onClick={doCopy}><Icon name="link" size={18} /> Copiar enlace</button>
