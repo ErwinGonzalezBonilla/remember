@@ -130,14 +130,3 @@ export function ChestCalendar() {
   return <CalendarPage person={person} />
 }
 
-/** Aviso provisional para lo que aún no existe en el cofre. */
-export function ChestSoon({ what, icon }) {
-  const { name, gate } = useChestPerson()
-  if (gate) return gate
-  return (
-    <AppShell>
-      <TopBar title={`${what} con ${name}`} />
-      <EmptyState icon={icon} title="Muy pronto" text={`Aquí tendréis ${what.toLowerCase()} solo para vosotros dos.`} />
-    </AppShell>
-  )
-}

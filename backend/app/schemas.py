@@ -477,3 +477,15 @@ class SongOut(BaseModel):
     mine: bool
     author_name: str
     created_at: datetime
+
+
+# ---------- Mapa del cofre ----------
+class MapPointOut(BaseModel):
+    memory_id: int
+    title: str
+    kind: str
+    location: str
+    lat: float
+    lng: float
+    happened_on: date
+    thumb_url: MediaURL = None         # foto o miniatura del video, si la hay

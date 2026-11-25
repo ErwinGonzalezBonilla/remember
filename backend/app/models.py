@@ -11,7 +11,7 @@
 """
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Integer, JSON, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Float, Integer, JSON, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -89,6 +89,8 @@ class Memory(Base):
     media_url: Mapped[str | None] = mapped_column(String(500))
     poster_url: Mapped[str | None] = mapped_column(String(500))  # miniatura de los videos (JPEG)
     location: Mapped[str | None] = mapped_column(String(160))
+    lat: Mapped[float | None] = mapped_column(Float)   # coordenadas del lugar (para el mapa); vacías si no se encontró
+    lng: Mapped[float | None] = mapped_column(Float)
     happened_on: Mapped[date | None] = mapped_column(Date)
     milestone: Mapped[str | None] = mapped_column(String(40))  # hito: "Primeros pasos", "Primer diente"…
     starred: Mapped[bool | None] = mapped_column(default=False)  # destacado por quien lo guardó (cofre)

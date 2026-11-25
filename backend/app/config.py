@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     mail_from: str = "REHOMI <onboarding@resend.dev>"
     # Clave que Vercel Cron envía como "Authorization: Bearer …" a /api/cron/*
     cron_secret: str | None = None
+    # Convertir el lugar de los recuerdos en coordenadas (Nominatim de OpenStreetMap) para el mapa del cofre
+    geocoding: bool = True
 
     @field_validator("database_url")
     @classmethod

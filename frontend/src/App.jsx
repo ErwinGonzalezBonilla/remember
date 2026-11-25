@@ -1,5 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { Splash } from './components/Logo'
+import { AppShell, Spinner } from './components/ui'
 import { useAuth } from './context/AuthContext'
 import CalendarPage from './pages/CalendarPage'
 import Home from './pages/Home'
@@ -14,18 +16,22 @@ import MemoriesGallery from './pages/memories/MemoriesGallery'
 import MemoryDetail from './pages/memories/MemoryDetail'
 import NewMemory from './pages/memories/NewMemory'
 import CapsuleDetail from './pages/capsules/CapsuleDetail'
-import ChatPage from './pages/chest/ChatPage'
-import SongsPage from './pages/chest/SongsPage'
-import { ChestCalendar, ChestCapsules, ChestGallery, ChestMemories, ChestSoon } from './pages/chest/ChestPages'
+import { ChestCalendar, ChestCapsules, ChestGallery, ChestMemories } from './pages/chest/ChestPages'
 import CapsuleForm from './pages/capsules/CapsuleForm'
 import CapsulesPage from './pages/capsules/CapsulesPage'
 import ChestOpened from './pages/connect/ChestOpened'
-import ConnectPage from './pages/connect/ConnectPage'
 import RequestReview from './pages/connect/RequestReview'
 import PeopleList from './pages/people/PeopleList'
 import PersonChest from './pages/people/PersonChest'
 import PersonForm from './pages/people/PersonForm'
 import PersonProfile from './pages/people/PersonProfile'
+
+// El mapa (Leaflet), el chat y las canciones se descargan solo al abrirlos
+const MapPage = lazy(() => import('./pages/chest/MapPage'))
+const ChatPage = lazy(() => import('./pages/chest/ChatPage'))
+const SongsPage = lazy(() => import('./pages/chest/SongsPage'))
+const ConnectPage = lazy(() => import('./pages/connect/ConnectPage'))   // lleva el lector y el generador de QR
+const lazyPage = (el) => <Suspense fallback={<AppShell><Spinner /></AppShell>}>{el}</Suspense>
 
 function Private({ children }) {
   const { user, loading } = useAuth()
@@ -79,12 +85,12 @@ export default function App() {
       <Route path="/personas/:id/videos" element={<Private><ChestGallery key="video" kind="video" /></Private>} />
       <Route path="/personas/:id/capsulas" element={<Private><ChestCapsules /></Private>} />
       <Route path="/personas/:id/calendario" element={<Private><ChestCalendar /></Private>} />
-      <Route path="/personas/:id/canciones" element={<Private><SongsPage /></Private>} />
-      <Route path="/personas/:id/chat" element={<Private><ChatPage /></Private>} />
-      <Route path="/personas/:id/mapa" element={<Private><ChestSoon what="Mapa" icon="map" /></Private>} />
+      <Route path="/personas/:id/canciones" element={<Private>{lazyPage(<SongsPage />)}</Private>} />
+      <Route path="/personas/:id/chat" element={<Private>{lazyPage(<ChatPage />)}</Private>} />
+      <Route path="/personas/:id/mapa" element={<Private>{lazyPage(<MapPage />)}</Private>} />
 
       <Route path="/c/:username" element={<Private><QrLink /></Private>} />
-      <Route path="/conectar" element={<Private><ConnectPage /></Private>} />
+      <Route path="/conectar" element={<Private>{lazyPage(<ConnectPage />)}</Private>} />
       <Route path="/conectar/solicitud/:id" element={<Private><RequestReview /></Private>} />
       <Route path="/cofre-abierto/:id" element={<Private><ChestOpened /></Private>} />
 

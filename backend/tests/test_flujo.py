@@ -5,6 +5,7 @@ import tempfile
 _tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["UPLOAD_DIR"] = f"{_tmp}/uploads"
+os.environ["GEOCODING"] = "false"   # sin red en los tests: el mapa se prueba con un geocode falso
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -1452,3 +1453,71 @@ def test_canciones_del_cofre():
     # Al desconectar, cada uno deja de ver las del otro
     client.post(f"/api/people/{bru_p['id']}/unlink", headers=ada)
     assert client.get(url, headers=ada).json() == []
+
+
+# ---------- Mapa del cofre ----------
+def test_geocode_nominatim(monkeypatch):
+    import httpx
+    from app import geocode as g
+    monkeypatch.setattr(g.settings, "geocoding", True)
+    monkeypatch.setattr(g, "MIN_INTERVAL", 0)
+    g._cache.clear()
+    calls = []
+
+    class Resp:
+        def __init__(self, rows): self.rows = rows
+        def raise_for_status(self): pass
+        def json(self): return self.rows
+
+    def fake_get(url, params, headers, timeout):
+        calls.append((url, params["q"], headers["User-Agent"]))
+        if params["q"] == "Sin red":
+            raise httpx.ConnectError("sin red")
+        return Resp([] if params["q"] == "Lugar inventado" else [{"lat": "39.4699", "lon": "-0.3763"}])
+
+    monkeypatch.setattr(g.httpx, "get", fake_get)
+    assert g.geocode("Valencia") == (39.4699, -0.3763)
+    assert calls == [("https://nominatim.openstreetmap.org/search", "Valencia", "Rehomi/1.0 (+https://rehomi.app)")]
+    assert g.geocode("  valencia ") == (39.4699, -0.3763) and len(calls) == 1     # caché
+    assert g.geocode("Lugar inventado") is None
+    assert g.geocode("Sin red") is None
+    assert g.geocode("") is None and g.geocode(None) is None
+    monkeypatch.setattr(g.settings, "geocoding", False)
+    assert g.geocode("Madrid") is None
+    g._cache.clear()
+
+
+def test_mapa_del_cofre(monkeypatch):
+    import app.routers.memories as mem
+    places = {"Valencia": (39.47, -0.38), "Cádiz": (36.53, -6.29)}
+    monkeypatch.setattr(mem, "geocode", lambda text: places.get((text or "").strip()))
+    rosa = register("Rosa Mapa", "rosa.mapa@x.com")
+    pau = register("Pau Mapa", "pau.mapa@x.com")
+    curioso = register("Curioso Mapa", "curioso.mapa@x.com")
+    pau_p = add_person(rosa, "Pau", "hermano/a")
+    otra_p = add_person(rosa, "Otra", "amistad")
+    connect_users(pau, rosa, pau_p)
+    pau_en_rosa = client.get("/api/people", headers=pau).json()[0]
+
+    playa = save(rosa, "Verano", people=[pau_p], kind="photo", location="Valencia")
+    save(rosa, "Sin lugar", people=[pau_p])
+    save(rosa, "Lugar que no existe", people=[pau_p], location="Atlántida")      # se guarda igual, sin punto
+    save(rosa, "Con otra", people=[otra_p], location="Valencia")
+    de_pau = save(pau, "Feria", people=[pau_en_rosa], location="Cádiz")
+
+    r = client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=rosa).json()
+    assert {p["memory_id"]: (p["lat"], p["lng"]) for p in r} == {playa["id"]: (39.47, -0.38), de_pau["id"]: (36.53, -6.29)}
+    assert next(p for p in r if p["memory_id"] == playa["id"])["thumb_url"]
+    assert sorted(p["title"] for p in client.get(f"/api/memories/map?person_id={pau_en_rosa['id']}", headers=pau).json()) == ["Feria", "Verano"]
+
+    # Editar el lugar mueve el punto; quitarlo lo borra del mapa
+    body = {"title": "Verano", "location": "Cádiz", "person_ids": [pau_p["id"]]}
+    client.put(f"/api/memories/{playa['id']}", headers=rosa, json=body)
+    r = client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=rosa).json()
+    assert next(p for p in r if p["memory_id"] == playa["id"])["lat"] == 36.53
+    client.put(f"/api/memories/{playa['id']}", headers=rosa, json={**body, "location": ""})
+    assert [p["title"] for p in client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=rosa).json()] == ["Feria"]
+
+    # Privacidad: el mapa de otro no se puede pedir
+    assert client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=curioso).status_code == 404
+    assert client.get(f"/api/memories/map?person_id={pau_p['id']}", headers=pau).status_code == 404

@@ -11,8 +11,9 @@ from ..on_this_day import memory_day, on_this_day, utc_today
 from pydantic import TypeAdapter, ValidationError
 
 from ..models import Comment, Memory, MemoryMedia, MemoryTag, Notification, Person, Reaction, User
-from ..schemas import (MEDIA_MAX, ChestMediaOut, CommentIn, CommentOut, MediaAddIn, MediaItemOut, MediaKeyIn, MediaOrderIn,
+from ..schemas import (MEDIA_MAX, ChestMediaOut, CommentIn, MapPointOut, CommentOut, MediaAddIn, MediaItemOut, MediaKeyIn, MediaOrderIn,
                        MemoryDetailOut, MemoryOut, MemoryUpdate, PersonTag, ReactionIn, StarIn, clean_milestone)
+from ..geocode import geocode
 from ..storage import media_from, poster_from
 from .notifications import mark_memory_read, notify_comment, notify_tagged
 
@@ -160,6 +161,21 @@ def chest_media(
     return out
 
 
+@router.get("/memories/map", response_model=list[MapPointOut])
+def chest_map(person_id: int = Query(..., description="El cofre de esta persona"),
+              user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Mapa del cofre: los recuerdos compartidos con esa persona que tienen lugar con coordenadas."""
+    q = (select(Memory).where(visible_to(user), chest_condition(person_id, user, db),
+                              Memory.lat.is_not(None), Memory.lng.is_not(None))
+         .order_by(Memory.happened_on.desc().nulls_last(), Memory.created_at.desc()).limit(500))
+    out = []
+    for m in db.scalars(q):
+        thumb = m.media_url if m.kind == "photo" else m.poster_url if m.kind == "video" else None
+        out.append(MapPointOut(memory_id=m.id, title=m.title, kind=m.kind, location=m.location, lat=m.lat, lng=m.lng,
+                               happened_on=m.happened_on or m.created_at.date(), thumb_url=thumb))
+    return out
+
+
 @router.get("/memories", response_model=list[MemoryOut])
 def list_memories(
     person_id: int | None = Query(None),
@@ -226,6 +242,10 @@ async def create_memory(
         tags=[MemoryTag(person_id=p.id) for p in people], media=album,
     )
     _sync_cover(memory)  # con álbum, el tipo y la portada son los del primer elemento
+    if memory.location:
+        # Para el mapa del cofre. Si no se encuentra (o no hay red), el recuerdo se guarda igual, sin punto.
+        from starlette.concurrency import run_in_threadpool
+        memory.lat, memory.lng = await run_in_threadpool(geocode, memory.location) or (None, None)
     db.add(memory)
     db.commit()
     db.refresh(memory)
@@ -264,7 +284,10 @@ def update_memory(memory_id: int, data: MemoryUpdate, user: User = Depends(get_c
     people = _own_people(data.person_ids, user, db)
     memory.title = data.title.strip()
     memory.description = (data.description or "").strip() or None
-    memory.location = (data.location or "").strip() or None
+    location = (data.location or "").strip() or None
+    if location != memory.location or (location and memory.lat is None):
+        memory.lat, memory.lng = geocode(location) or (None, None)
+    memory.location = location
     memory.happened_on = data.happened_on
     if "milestone" in data.model_fields_set:  # si no lo envían, se queda como estaba
         memory.milestone = data.milestone
